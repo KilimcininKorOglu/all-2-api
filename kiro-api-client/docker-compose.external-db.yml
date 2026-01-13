@@ -1,0 +1,24 @@
+version: '3.8'
+
+# 使用外部数据库的配置（不启动内置 MySQL）
+# 使用方法: docker-compose -f docker-compose.external-db.yml up -d
+
+services:
+  kiro-api:
+    build: .
+    container_name: kiro-api
+    restart: unless-stopped
+    ports:
+      - "${PORT:-3000}:3000"
+    environment:
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT:-3306}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-kiro_api}
+    networks:
+      - kiro-network
+
+networks:
+  kiro-network:
+    driver: bridge
