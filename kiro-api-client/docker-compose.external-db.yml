@@ -10,6 +10,8 @@ services:
     restart: unless-stopped
     ports:
       - "${PORT:-13003}:13003"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PORT=13003
       - MYSQL_HOST=${MYSQL_HOST}
