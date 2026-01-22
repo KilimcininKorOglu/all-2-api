@@ -131,9 +131,9 @@ function showToast(message, type = 'success') {
 // ============ 工具函数 ============
 function parseDateTime(dateStr) {
     if (!dateStr) return null;
-    // 如果是 MySQL 格式 (YYYY-MM-DD HH:MM:SS) 且没有时区信息，视为 UTC
+    // 如果是 MySQL 格式 (YYYY-MM-DD HH:MM:SS)，直接解析为本地时间，不做时区转换
     if (typeof dateStr === 'string' && !dateStr.includes('T') && !dateStr.includes('Z') && !dateStr.includes('+')) {
-        return new Date(dateStr.replace(' ', 'T') + 'Z');
+        return new Date(dateStr.replace(' ', 'T'));
     }
     return new Date(dateStr);
 }
@@ -141,13 +141,13 @@ function parseDateTime(dateStr) {
 function formatDateTime(dateStr) {
     if (!dateStr) return '-';
     const date = parseDateTime(dateStr);
-    return date.toLocaleString('zh-CN', {
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+    // 直接格式化显示，不做时区转换
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return year + '/' + month + '/' + day + ' ' + hours + ':' + minutes;
 }
 
 function formatDate(dateStr) {
