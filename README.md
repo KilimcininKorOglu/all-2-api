@@ -160,6 +160,12 @@ docker-compose -f docker-compose.external-db.yml up -d
 
 ---
 
+### 交流群
+
+![qr](https://github.com/CaiGaoQing/kiro-api-client/blob/main/qr.jpg?raw=true)
+
+---
+
 ### 界面截图
 
 #### 首页概览
@@ -593,10 +599,6 @@ curl -X POST 'http://localhost:13003/api/credentials/batch-import' \
 [![Star History Chart](https://api.star-history.com/svg?repos=CaiGaoQing/kiro-api-client&type=date&legend=top-left)](https://www.star-history.com/#CaiGaoQing/kiro-api-client&type=date&legend=top-left)
 
 ---
-
-## 交流群
-
-![qr](https://github.com/CaiGaoQing/kiro-api-client/blob/main/qr.jpg?raw=true)
 
 ## 打赏支持
 
