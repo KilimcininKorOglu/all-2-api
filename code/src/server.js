@@ -34,12 +34,17 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 function formatLocalDateTime(date) {
     if (!date) return null;
     const d = new Date(date);
-    const year = d.getFullYear();
-    const month = String(d.getMonth() + 1).padStart(2, '0');
-    const day = String(d.getDate()).padStart(2, '0');
-    const hours = String(d.getHours()).padStart(2, '0');
-    const minutes = String(d.getMinutes()).padStart(2, '0');
-    const seconds = String(d.getSeconds()).padStart(2, '0');
+    // 转换为北京时间 (UTC+8)
+    const beijingOffset = 8 * 60; // 北京时间偏移分钟数
+    const utcTime = d.getTime() + d.getTimezoneOffset() * 60 * 1000;
+    const beijingTime = new Date(utcTime + beijingOffset * 60 * 1000);
+
+    const year = beijingTime.getFullYear();
+    const month = String(beijingTime.getMonth() + 1).padStart(2, '0');
+    const day = String(beijingTime.getDate()).padStart(2, '0');
+    const hours = String(beijingTime.getHours()).padStart(2, '0');
+    const minutes = String(beijingTime.getMinutes()).padStart(2, '0');
+    const seconds = String(beijingTime.getSeconds()).padStart(2, '0');
     return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
