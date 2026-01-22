@@ -9,7 +9,8 @@ const DB_CONFIG = {
     database: process.env.MYSQL_DATABASE || 'kiro_api',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    timezone: '+08:00'
 };
 
 let pool = null;
