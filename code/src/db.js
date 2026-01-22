@@ -10,7 +10,8 @@ const DB_CONFIG = {
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    timezone: '+08:00'
+    timezone: '+08:00',
+    dateStrings: true  // 返回日期字符串而不是 Date 对象，避免时区转换问题
 };
 
 let pool = null;
