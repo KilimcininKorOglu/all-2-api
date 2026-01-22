@@ -30,6 +30,19 @@ import {
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
+// 格式化日期为本地时间字符串 (YYYY-MM-DD HH:mm:ss)
+function formatLocalDateTime(date) {
+    if (!date) return null;
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    const hours = String(d.getHours()).padStart(2, '0');
+    const minutes = String(d.getMinutes()).padStart(2, '0');
+    const seconds = String(d.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+}
+
 const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
@@ -1296,7 +1309,7 @@ app.get('/api/keys/:id/limits-status', authMiddleware, async (req, res) => {
                     totalCost: key.totalCostLimit > 0 ? Math.max(0, key.totalCostLimit - totalCost) : null,
                     days: remainingDays
                 },
-                expireDate: expireDate ? expireDate.toISOString() : null
+                expireDate: formatLocalDateTime(expireDate)
             }
         });
     } catch (error) {
@@ -4665,7 +4678,7 @@ app.post('/api/public/usage', async (req, res) => {
                     totalCostLimit: keyRecord.totalCostLimit,
                     expiresInDays: keyRecord.expiresInDays,
                     remainingDays,
-                    expireDate: expireDate ? expireDate.toISOString() : null
+                    expireDate: formatLocalDateTime(expireDate)
                 }
             }
         });
