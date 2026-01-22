@@ -1298,8 +1298,12 @@ app.get('/api/keys/:id/limits-status', authMiddleware, async (req, res) => {
         let remainingDays = null;
         let expireDate = null;
         if (key.expiresInDays > 0 && key.createdAt) {
-            const createDate = new Date(key.createdAt);
-            expireDate = new Date(createDate.getTime() + key.expiresInDays * 24 * 60 * 60 * 1000);
+            // createdAt 是字符串格式 "YYYY-MM-DD HH:mm:ss"（本地时间）
+            // 直接解析为本地时间
+            const createDate = new Date(key.createdAt.replace(' ', 'T'));
+            // 添加天数
+            expireDate = new Date(createDate);
+            expireDate.setDate(expireDate.getDate() + key.expiresInDays);
             remainingDays = Math.max(0, Math.ceil((expireDate - now) / (24 * 60 * 60 * 1000)));
         }
 

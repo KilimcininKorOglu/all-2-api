@@ -309,18 +309,24 @@ async function loadKeyLimitsStatus(keyId) {
             // 显示过期时间到单独的列
             if (expireCell) {
                 if (expireDate) {
-                    const expDate = new Date(expireDate);
-                    const now = new Date();
-                    const isExpired = expDate < now;
                     const daysLeft = remaining.days;
 
                     let expireClass = '';
-                    // 转换为本地时间格式显示
-                    const month = String(expDate.getMonth() + 1).padStart(2, '0');
-                    const day = String(expDate.getDate()).padStart(2, '0');
-                    const hours = String(expDate.getHours()).padStart(2, '0');
-                    const minutes = String(expDate.getMinutes()).padStart(2, '0');
-                    const expireDateStr = month + '/' + day + ' ' + hours + ':' + minutes;
+                    // expireDate 已经是后端格式化好的本地时间字符串 "YYYY-MM-DD HH:mm:ss"
+                    // 直接提取显示，不再用 new Date() 解析避免时区问题
+                    let expireDateStr = expireDate;
+                    // 格式化为 MM/DD HH:mm
+                    const parts = expireDate.split(' ');
+                    if (parts.length === 2) {
+                        const dateParts = parts[0].split('-');
+                        const timeParts = parts[1].split(':');
+                        if (dateParts.length === 3 && timeParts.length >= 2) {
+                            expireDateStr = dateParts[1] + '/' + dateParts[2] + ' ' + timeParts[0] + ':' + timeParts[1];
+                        }
+                    }
+
+                    // 判断是否过期：用剩余天数判断
+                    const isExpired = daysLeft <= 0;
 
                     if (isExpired) {
                         expireClass = 'danger';
