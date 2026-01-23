@@ -1836,7 +1836,7 @@ app.post('/v1/messages', async (req, res) => {
                 )) {
                     userFriendlyMessage = '服务暂时不可用，请稍后重试';
                 } else if (errorStatus === 400 && streamError.message.includes('ValidationException')) {
-                    userFriendlyMessage = '请求参数验证失败，请检查输入';
+                    userFriendlyMessage = '上下文超出限制，或工具参数过多，请关闭窗口，重新对话，或恢复对话';
                 }
 
                 if (streamStarted) {
