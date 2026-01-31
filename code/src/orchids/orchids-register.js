@@ -116,14 +116,14 @@ async function executeRegister(task) {
             for (const line of lines) {
                 task.addLog(line);
                 
-                // Parse progress
-                const progressMatch = line.match(/开始注册第 (\d+)\/(\d+)/);
+                // Parse progress (format: "Registering 1/10" or "Progress: 1/10")
+                const progressMatch = line.match(/(?:Registering|Progress[:\s]*)\s*(\d+)\s*\/\s*(\d+)/i);
                 if (progressMatch) {
                     task.progress = parseInt(progressMatch[1]);
                 }
 
                 // Parse success
-                if (line.includes('成功提取 __client') || line.includes('服务器保存成功')) {
+                if (line.includes('Successfully extracted') || line.includes('Server save successful') || line.includes('SUCCESS')) {
                     task.success++;
                 }
 
