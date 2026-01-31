@@ -398,6 +398,22 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Create remote pricing cache table (auto-fetched from llm-prices.com)
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS remote_pricing_cache (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            model_id VARCHAR(255) NOT NULL UNIQUE COMMENT 'Model identifier (lowercase)',
+            input_price DECIMAL(10, 4) NOT NULL COMMENT 'Input price (USD per million tokens)',
+            output_price DECIMAL(10, 4) NOT NULL COMMENT 'Output price (USD per million tokens)',
+            vendor VARCHAR(100) DEFAULT 'unknown',
+            fetched_at DATETIME NOT NULL COMMENT 'When the data was fetched from remote',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            INDEX idx_vendor (vendor),
+            INDEX idx_fetched_at (fetched_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     // Create Amazon Bedrock credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS bedrock_credentials (
@@ -3192,6 +3208,171 @@ export class ModelPricingStore {
             outputPrice: row.output_price,
             isActive: row.is_active === 1,
             sortOrder: row.sort_order,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
+    }
+}
+
+/**
+ * Remote pricing cache management class (llm-prices.com)
+ */
+export class RemotePricingCacheStore {
+    constructor(database) {
+        this.db = database;
+        this.cacheTtl = 60 * 60 * 1000; // 1 hour
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new RemotePricingCacheStore(database);
+    }
+
+    /**
+     * Get all cached pricing data
+     */
+    async getAll() {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM remote_pricing_cache ORDER BY model_id
+        `);
+        return rows.map(row => this._mapRow(row));
+    }
+
+    /**
+     * Get pricing map for quick lookup { modelId: { input, output, vendor } }
+     */
+    async getPricingMap() {
+        const [rows] = await this.db.execute(`
+            SELECT model_id, input_price, output_price, vendor FROM remote_pricing_cache
+        `);
+        const map = {};
+        for (const row of rows) {
+            map[row.model_id] = {
+                input: parseFloat(row.input_price),
+                output: parseFloat(row.output_price),
+                vendor: row.vendor
+            };
+        }
+        return map;
+    }
+
+    /**
+     * Get pricing for a specific model
+     */
+    async getByModelId(modelId) {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM remote_pricing_cache WHERE model_id = ?
+        `, [modelId.toLowerCase()]);
+        return rows.length > 0 ? this._mapRow(rows[0]) : null;
+    }
+
+    /**
+     * Check if cache is still valid (within TTL)
+     */
+    async isCacheValid() {
+        const [rows] = await this.db.execute(`
+            SELECT MAX(fetched_at) as last_fetch FROM remote_pricing_cache
+        `);
+        if (!rows[0] || !rows[0].last_fetch) return false;
+        const lastFetch = new Date(rows[0].last_fetch).getTime();
+        return (Date.now() - lastFetch) < this.cacheTtl;
+    }
+
+    /**
+     * Get last fetch timestamp
+     */
+    async getLastFetchTime() {
+        const [rows] = await this.db.execute(`
+            SELECT MAX(fetched_at) as last_fetch FROM remote_pricing_cache
+        `);
+        return rows[0]?.last_fetch ? new Date(rows[0].last_fetch) : null;
+    }
+
+    /**
+     * Get cache statistics
+     */
+    async getStats() {
+        const [countRows] = await this.db.execute(`
+            SELECT COUNT(*) as total, COUNT(DISTINCT vendor) as vendors FROM remote_pricing_cache
+        `);
+        const lastFetch = await this.getLastFetchTime();
+        const isValid = await this.isCacheValid();
+
+        return {
+            totalModels: countRows[0]?.total || 0,
+            vendors: countRows[0]?.vendors || 0,
+            lastFetch: lastFetch ? lastFetch.toISOString() : null,
+            cacheAge: lastFetch ? Math.round((Date.now() - lastFetch.getTime()) / 60000) + 'm' : 'never',
+            isValid
+        };
+    }
+
+    /**
+     * Update cache with new pricing data (bulk upsert)
+     */
+    async updateCache(pricingData) {
+        const fetchedAt = new Date();
+        let updated = 0;
+        let inserted = 0;
+
+        for (const [modelId, pricing] of Object.entries(pricingData)) {
+            try {
+                const [result] = await this.db.execute(`
+                    INSERT INTO remote_pricing_cache (model_id, input_price, output_price, vendor, fetched_at)
+                    VALUES (?, ?, ?, ?, ?)
+                    ON DUPLICATE KEY UPDATE
+                        input_price = VALUES(input_price),
+                        output_price = VALUES(output_price),
+                        vendor = VALUES(vendor),
+                        fetched_at = VALUES(fetched_at)
+                `, [
+                    modelId.toLowerCase(),
+                    pricing.input,
+                    pricing.output,
+                    pricing.vendor || 'unknown',
+                    fetchedAt
+                ]);
+
+                if (result.affectedRows === 1) {
+                    inserted++;
+                } else if (result.affectedRows === 2) {
+                    updated++;
+                }
+            } catch (error) {
+                console.error(`[RemotePricingCache] Failed to upsert ${modelId}:`, error.message);
+            }
+        }
+
+        return { inserted, updated, total: inserted + updated };
+    }
+
+    /**
+     * Clear all cached pricing data
+     */
+    async clearCache() {
+        const [result] = await this.db.execute(`DELETE FROM remote_pricing_cache`);
+        return result.affectedRows;
+    }
+
+    /**
+     * Delete stale entries (older than TTL)
+     */
+    async deleteStaleEntries() {
+        const staleTime = new Date(Date.now() - this.cacheTtl);
+        const [result] = await this.db.execute(`
+            DELETE FROM remote_pricing_cache WHERE fetched_at < ?
+        `, [staleTime]);
+        return result.affectedRows;
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            modelId: row.model_id,
+            inputPrice: parseFloat(row.input_price),
+            outputPrice: parseFloat(row.output_price),
+            vendor: row.vendor,
+            fetchedAt: row.fetched_at,
             createdAt: row.created_at,
             updatedAt: row.updated_at
         };

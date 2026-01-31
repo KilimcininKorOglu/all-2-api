@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, initDatabase } from './db.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
 import { KiroAPI } from './kiro/api.js';
@@ -16,7 +16,7 @@ import { WarpService, WARP_MODELS, refreshAccessToken, isTokenExpired, getEmailF
 import { setupWarpRoutes } from './warp/warp-routes.js';
 import { setupWarpMultiAgentRoutes } from './warp/warp-multi-agent.js';
 import { setupWarpProxyRoutes } from './warp/warp-proxy.js';
-import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo } from './constants.js';
+import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore } from './constants.js';
 import { initProxyConfig, getProxyConfig, saveProxyConfig, testProxyConnection, getAxiosProxyConfig } from './proxy.js';
 import {
     AntigravityApiService,
@@ -3758,7 +3758,7 @@ app.get('/api/error-credentials/:id/usage', async (req, res) => {
 // Get pricing info and statistics
 app.get('/api/pricing/info', authMiddleware, async (req, res) => {
     try {
-        const pricingInfo = getPricingInfo();
+        const pricingInfo = await getPricingInfo();
         res.json({ success: true, data: pricingInfo });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -4604,10 +4604,14 @@ async function start() {
         console.error(`[${getTimestamp()}] Failed to load pricing configuration:`, err.message);
     }
 
-    // Initialize remote pricing (non-blocking, falls back to static)
-    initializeRemotePricing().then(() => {
-        const pricingInfo = getPricingInfo();
-        console.log(`[${getTimestamp()}] Remote pricing: ${pricingInfo.remoteModels} models fetched (source: ${pricingInfo.source})`);
+    // Initialize remote pricing cache store (MySQL)
+    const remotePricingCacheStore = await RemotePricingCacheStore.create();
+    setRemotePricingStore(remotePricingCacheStore);
+
+    // Initialize remote pricing (non-blocking, falls back to database/static)
+    initializeRemotePricing().then(async () => {
+        const pricingInfo = await getPricingInfo();
+        console.log(`[${getTimestamp()}] Remote pricing: ${pricingInfo.remoteModels} models (source: ${pricingInfo.source}, db: ${pricingInfo.dbCache?.totalModels || 0})`);
     }).catch(() => {
         console.log(`[${getTimestamp()}] Using static pricing only`);
     });

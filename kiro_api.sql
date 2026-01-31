@@ -236,6 +236,24 @@ CREATE TABLE `orchids_error_credentials` (
   PRIMARY KEY (`id`) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 -- ----------------------------
+-- Table structure for remote_pricing_cache
+-- ----------------------------
+DROP TABLE IF EXISTS `remote_pricing_cache`;
+CREATE TABLE `remote_pricing_cache` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `model_id` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Model identifier (lowercase)',
+  `input_price` decimal(10, 4) NOT NULL COMMENT 'Input price (USD per million tokens)',
+  `output_price` decimal(10, 4) NOT NULL COMMENT 'Output price (USD per million tokens)',
+  `vendor` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT 'unknown',
+  `fetched_at` datetime NOT NULL COMMENT 'When the data was fetched from remote',
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `model_id`(`model_id` ASC) USING BTREE,
+  INDEX `idx_vendor`(`vendor` ASC) USING BTREE,
+  INDEX `idx_fetched_at`(`fetched_at` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+-- ----------------------------
 -- Table structure for settings
 -- ----------------------------
 DROP TABLE IF EXISTS `settings`;
