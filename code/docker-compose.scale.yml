@@ -18,15 +18,12 @@ x-api-common: &api-common
   restart: unless-stopped
   network_mode: host
   environment: &api-env
-    TZ: Asia/Shanghai
+    TZ: ${TZ:-UTC}
     MYSQL_HOST: ${MYSQL_HOST:-127.0.0.1}
     MYSQL_PORT: ${MYSQL_PORT:-3306}
     MYSQL_USER: ${MYSQL_USER:-root}
     MYSQL_PASSWORD: ${MYSQL_PASSWORD}
     MYSQL_DATABASE: ${MYSQL_DATABASE:-kiro_api}
-    HTTP_PROXY: ${HTTP_PROXY:-http://127.0.0.1:7890}
-    HTTPS_PROXY: ${HTTPS_PROXY:-http://127.0.0.1:7890}
-    NO_PROXY: ${NO_PROXY:-localhost,127.0.0.1}
 
 services:
   balancer:
@@ -35,7 +32,7 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      - TZ=Asia/Shanghai
+      - TZ=${TZ:-UTC}
       - BALANCER_PORT=${BALANCER_PORT:-13003}
       - BACKEND_PORTS=13004,13005,13006,13007,13008
     command: ["node", "src/cluster/balancer.js"]
