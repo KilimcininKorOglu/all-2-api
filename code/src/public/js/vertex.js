@@ -172,11 +172,6 @@ function renderCards() {
             e.preventDefault();
             showContextMenu(e, id);
         });
-
-        card.querySelector('.card-menu-btn')?.addEventListener('click', (e) => {
-            e.stopPropagation();
-            showContextMenu(e, id);
-        });
     });
 }
 
@@ -193,13 +188,6 @@ function createCard(credential) {
                     <h3 class="card-title" title="${escapeHtml(credential.name)}">${escapeHtml(credential.name)}</h3>
                     <span class="card-subtitle">${escapeHtml(credential.projectId || '')}</span>
                 </div>
-                <button class="card-menu-btn" title="More actions">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="1"/>
-                        <circle cx="12" cy="5" r="1"/>
-                        <circle cx="12" cy="19" r="1"/>
-                    </svg>
-                </button>
             </div>
             <div class="card-body">
                 <div class="card-info-row">
@@ -223,7 +211,31 @@ function createCard(credential) {
             </div>
             <div class="card-footer">
                 <span class="status-badge ${statusClass}">${statusText}</span>
-                <span class="card-date">${formatDate(credential.createdAt)}</span>
+                <div class="card-actions">
+                    <button class="card-action-btn ${credential.isActive ? 'active' : ''}" title="${credential.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); activateCredential(${credential.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </button>
+                    <button class="card-action-btn" title="Test" onclick="event.stopPropagation(); testCredential(${credential.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </button>
+                    <button class="card-action-btn" title="Details" onclick="event.stopPropagation(); showCredentialDetail(${credential.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
+                        </svg>
+                    </button>
+                    <button class="card-action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteCredential(${credential.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
     `;
@@ -654,6 +666,11 @@ async function testCredential(id) {
     } catch (error) {
         showToast('Test failed: ' + error.message, 'error');
     }
+}
+
+// Show credential detail (opens edit modal for now)
+function showCredentialDetail(id) {
+    showEditModal(id);
 }
 
 // Show edit modal

@@ -160,11 +160,15 @@ function createCardHTML(cred) {
                     ${formatDateShort(cred.createdAt)}
                 </span>
                 <div class="card-actions">
-                    <button class="action-btn" title="Details" onclick="event.stopPropagation(); showCredentialDetail(${cred.id})">
+                    <button class="action-btn ${cred.isActive ? 'active' : ''}" title="${cred.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); activateCredential(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M12 16v-4"/>
-                            <path d="M12 8h.01"/>
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn" title="Test" onclick="event.stopPropagation(); testCredential(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                         </svg>
                     </button>
                     <button class="action-btn" title="Chat" onclick="event.stopPropagation(); openChat(${cred.id})">
@@ -172,16 +176,10 @@ function createCardHTML(cred) {
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                     </button>
-                    <button class="action-btn" title="Refresh Token" onclick="event.stopPropagation(); refreshToken(${cred.id})">
+                    <button class="action-btn" title="Details" onclick="event.stopPropagation(); showCredentialDetail(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="23 4 23 10 17 10"/>
-                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                        </svg>
-                    </button>
-                    <button class="action-btn ${cred.isActive ? 'active' : ''}" title="${cred.isActive ? 'Currently Active' : 'Set Active'}" onclick="event.stopPropagation(); activateCredential(${cred.id})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
                         </svg>
                     </button>
                     <button class="action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteCredential(${cred.id})">

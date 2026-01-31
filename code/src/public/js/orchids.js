@@ -279,15 +279,21 @@ function createCardHTML(cred) {
                     </div>
                 </div>
                 <div class="card-actions">
-                    <button class="card-action-btn" data-action="chat" title="Chat" onclick="event.stopPropagation(); openChat(${cred.id})">
+                    <button class="card-action-btn ${cred.isActive ? 'active' : ''}" data-action="activate" title="${cred.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); activateAccount(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
                     </button>
                     <button class="card-action-btn" data-action="test" title="Test" onclick="event.stopPropagation(); testAccount(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                            <polyline points="22 4 12 14.01 9 11.01"/>
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </button>
+                    <button class="card-action-btn" data-action="details" title="Details" onclick="event.stopPropagation(); showAccountDetail(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
                         </svg>
                     </button>
                     <button class="card-action-btn danger" data-action="delete" title="Delete" onclick="event.stopPropagation(); deleteAccount(${cred.id})">
@@ -329,6 +335,30 @@ async function testAccount(id) {
     } catch (e) {
         showToast('Test failed: ' + e.message, 'error');
     }
+}
+
+// Helper function: activate account
+async function activateAccount(id) {
+    try {
+        const res = await fetch(`/api/orchids/credentials/${id}/activate`, {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+        });
+        const data = await res.json();
+        if (data.success) {
+            showToast('Account activated', 'success');
+        } else {
+            showToast('Activation failed: ' + (data.error || 'Unknown error'), 'error');
+        }
+        await loadCredentials();
+    } catch (e) {
+        showToast('Activation failed: ' + e.message, 'error');
+    }
+}
+
+// Helper function: show account detail
+function showAccountDetail(id) {
+    window.location.href = `/pages/orchids-detail.html?id=${id}`;
 }
 
 // Helper function: delete account

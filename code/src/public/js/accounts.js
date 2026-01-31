@@ -445,6 +445,9 @@ async function handleContextAction(action) {
         case 'chat':
             window.location.href = '/pages/chat.html?account=' + id;
             break;
+        case 'details':
+            window.location.href = '/pages/account-detail.html?id=' + id;
+            break;
     }
     await loadCredentials();
     hideContextMenu();
@@ -641,8 +644,9 @@ function createCardHTML(cred) {
 
     html += '<div class="card-actions">';
     html += '<button class="card-action-btn' + (cred.isActive ? ' active' : '') + '" data-action="activate" title="' + (cred.isActive ? 'Active' : 'Set Active') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>';
+    html += '<button class="card-action-btn" data-action="test" title="Test"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></button>';
     html += '<button class="card-action-btn" data-action="chat" title="Chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';
-    html += '<button class="card-action-btn" data-action="refresh" title="Refresh Token"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>';
+    html += '<button class="card-action-btn" data-action="details" title="Details"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>';
     html += '<button class="card-action-btn danger" data-action="delete" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
     html += '</div></div></div>';
 

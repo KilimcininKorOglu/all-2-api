@@ -172,28 +172,26 @@ function createCardHTML(cred) {
                     ${formatDateShort(cred.createdAt)}
                 </span>
                 <div class="card-actions">
-                    <button class="action-btn" title="Details" onclick="event.stopPropagation(); showCredentialDetail(${cred.id})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"/>
-                            <path d="M12 16v-4"/>
-                            <path d="M12 8h.01"/>
-                        </svg>
-                    </button>
-                    <button class="action-btn" title="Test Connection" onclick="event.stopPropagation(); testCredential(${cred.id})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
-                        </svg>
-                    </button>
-                    <button class="action-btn" title="Edit" onclick="event.stopPropagation(); editCredential(${cred.id})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </button>
-                    <button class="action-btn ${cred.isActive ? 'active' : ''}" title="${cred.isActive ? 'Currently Active' : 'Set Active'}" onclick="event.stopPropagation(); toggleActive(${cred.id})">
+                    <button class="action-btn ${cred.isActive ? 'active' : ''}" title="${cred.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); toggleActive(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn" title="Test" onclick="event.stopPropagation(); testCredential(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn" title="Chat" onclick="event.stopPropagation(); openChat(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn" title="Details" onclick="event.stopPropagation(); showCredentialDetail(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                            <circle cx="12" cy="12" r="3"/>
                         </svg>
                     </button>
                     <button class="action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteCredential(${cred.id})">
@@ -416,6 +414,10 @@ async function testCredential(id) {
     } catch (error) {
         showToast('Test failed: ' + error.message, 'error');
     }
+}
+
+function openChat(id) {
+    window.location.href = `/pages/chat.html?provider=anthropic&account=${id}`;
 }
 
 async function testAllCredentials() {
