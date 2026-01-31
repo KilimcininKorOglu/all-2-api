@@ -229,6 +229,7 @@ function navigateTo(page) {
         'orchids': '/pages/orchids.html',
         'warp': '/pages/warp.html',
         'vertex': '/pages/vertex.html',
+        'anthropic': '/pages/anthropic.html',
         'chat': '/pages/chat.html',
         'error-accounts': '/pages/error-accounts.html',
         'api-keys': '/pages/api-keys.html',
@@ -306,6 +307,15 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                     </svg>
                     Vertex AI
                     <span class="nav-badge" id="nav-vertex-count">${stats.vertex || 0}</span>
+                </a>
+                <a href="#" class="nav-item" data-page="anthropic">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <path d="M8 12h8"/>
+                        <path d="M12 8v8"/>
+                    </svg>
+                    Anthropic API
+                    <span class="nav-badge" id="nav-anthropic-count">${stats.anthropic || 0}</span>
                 </a>
                 <a href="#" class="nav-item" data-page="oauth">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -412,12 +422,13 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
 // ============ Update Sidebar Stats ============
 async function updateSidebarStats() {
     try {
-        const [credRes, errorRes, geminiRes, warpRes, vertexRes] = await Promise.all([
+        const [credRes, errorRes, geminiRes, warpRes, vertexRes, anthropicRes] = await Promise.all([
             fetch('/api/credentials', { headers: { 'Authorization': `Bearer ${authToken}` } }),
             fetch('/api/error-credentials', { headers: { 'Authorization': `Bearer ${authToken}` } }),
             fetch('/api/gemini/credentials', { headers: { 'Authorization': `Bearer ${authToken}` } }),
             fetch('/api/warp/statistics', { headers: { 'Authorization': `Bearer ${authToken}` } }),
-            fetch('/api/vertex/statistics', { headers: { 'Authorization': `Bearer ${authToken}` } })
+            fetch('/api/vertex/statistics', { headers: { 'Authorization': `Bearer ${authToken}` } }),
+            fetch('/api/anthropic/credentials', { headers: { 'Authorization': `Bearer ${authToken}` } })
         ]);
 
         const credResult = await credRes.json();
@@ -425,12 +436,14 @@ async function updateSidebarStats() {
         const geminiResult = await geminiRes.json();
         const warpResult = await warpRes.json();
         const vertexResult = await vertexRes.json();
+        const anthropicResult = await anthropicRes.json();
 
         const credentials = credResult.success ? credResult.data : [];
         const errors = errorResult.success ? errorResult.data : [];
         const geminiCredentials = geminiResult.success ? geminiResult.data : [];
         const warpStats = warpResult.success ? warpResult.data : { total: 0 };
         const vertexStats = vertexResult || { total: 0 };
+        const anthropicCredentials = anthropicResult.success ? anthropicResult.data : [];
 
         const total = credentials.length;
         const active = credentials.filter(c => c.isActive).length;
@@ -438,6 +451,7 @@ async function updateSidebarStats() {
         const geminiCount = geminiCredentials.length;
         const warpCount = warpStats.total || 0;
         const vertexCount = vertexStats.total || 0;
+        const anthropicCount = anthropicCredentials.length;
 
         // Update sidebar numbers
         const totalEl = document.getElementById('stat-total');
@@ -447,6 +461,7 @@ async function updateSidebarStats() {
         const navGeminiEl = document.getElementById('nav-gemini-count');
         const navWarpEl = document.getElementById('nav-warp-count');
         const navVertexEl = document.getElementById('nav-vertex-count');
+        const navAnthropicEl = document.getElementById('nav-anthropic-count');
 
         if (totalEl) totalEl.textContent = total;
         if (activeEl) activeEl.textContent = active;
@@ -455,11 +470,12 @@ async function updateSidebarStats() {
         if (navGeminiEl) navGeminiEl.textContent = geminiCount;
         if (navWarpEl) navWarpEl.textContent = warpCount;
         if (navVertexEl) navVertexEl.textContent = vertexCount;
+        if (navAnthropicEl) navAnthropicEl.textContent = anthropicCount;
 
-        return { total, active, error: errorCount, gemini: geminiCount, warp: warpCount, vertex: vertexCount };
+        return { total, active, error: errorCount, gemini: geminiCount, warp: warpCount, vertex: vertexCount, anthropic: anthropicCount };
     } catch (e) {
         console.error('Update sidebar stats error:', e);
-        return { total: 0, active: 0, error: 0, gemini: 0, warp: 0, vertex: 0 };
+        return { total: 0, active: 0, error: 0, gemini: 0, warp: 0, vertex: 0, anthropic: 0 };
     }
 }
 

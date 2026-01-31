@@ -2162,3 +2162,228 @@ body {
 #gemini-page .empty-state .btn-primary:hover {
     box-shadow: 0 4px 16px rgba(66, 133, 244, 0.4);
 }
+
+/* ============ Anthropic Page Styles ============ */
+
+.page-icon.anthropic {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    box-shadow: 0 0 30px rgba(217, 119, 6, 0.3);
+}
+
+/* Anthropic Card Styles */
+.anthropic-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+}
+
+.anthropic-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #d97706, #f59e0b);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.anthropic-card:hover {
+    border-color: var(--border-light);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.anthropic-card:hover::before {
+    opacity: 1;
+}
+
+.anthropic-card.selected {
+    border-color: #d97706;
+    background: rgba(217, 119, 6, 0.05);
+}
+
+.anthropic-card.selected::before {
+    opacity: 1;
+}
+
+.anthropic-card.inactive {
+    opacity: 0.7;
+}
+
+.anthropic-card .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.anthropic-card .card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.anthropic-card .card-email {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.anthropic-card .pro-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.anthropic-card .pro-badge.inactive {
+    background: linear-gradient(135deg, #6b7280, #9ca3af);
+}
+
+.anthropic-card .card-info {
+    margin-bottom: 16px;
+    font-size: 13px;
+}
+
+.anthropic-card .info-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.anthropic-card .info-label {
+    color: var(--text-secondary);
+    flex-shrink: 0;
+}
+
+.anthropic-card .info-value {
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.anthropic-card .info-value.monospace {
+    font-family: 'Monaco', 'Consolas', monospace;
+    font-size: 12px;
+}
+
+.anthropic-card .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 14px;
+    border-top: 1px solid var(--border-color);
+}
+
+.anthropic-card .card-date {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.anthropic-card .card-date svg {
+    width: 14px;
+    height: 14px;
+    opacity: 0.6;
+}
+
+.anthropic-card .card-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.anthropic-card .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-md);
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.anthropic-card .action-btn:hover {
+    background: rgba(217, 119, 6, 0.1);
+    color: #d97706;
+}
+
+.anthropic-card .action-btn.active {
+    color: #d97706;
+}
+
+.anthropic-card .action-btn.danger:hover {
+    background: var(--accent-danger-bg);
+    color: var(--accent-danger);
+}
+
+.anthropic-card .action-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Anthropic page specific styles */
+#anthropic-page .account-card::before {
+    background: linear-gradient(90deg, #d97706, #f59e0b);
+}
+
+#anthropic-page .account-card:hover {
+    border-color: rgba(217, 119, 6, 0.4);
+}
+
+#anthropic-page .account-card.selected {
+    border-color: #d97706;
+    background: rgba(217, 119, 6, 0.05);
+}
+
+#anthropic-page .action-btn:hover {
+    background: rgba(217, 119, 6, 0.1);
+    color: #d97706;
+}
+
+#anthropic-page .action-btn.active {
+    color: #d97706;
+}
+
+#anthropic-page .action-btn.danger:hover {
+    background: var(--accent-danger-bg);
+    color: var(--accent-danger);
+}
+
+#anthropic-page .empty-state .empty-icon {
+    color: #d97706;
+    opacity: 0.6;
+}
+
+#anthropic-page .empty-state .btn-primary {
+    background: linear-gradient(135deg, #d97706, #f59e0b);
+    box-shadow: 0 2px 8px rgba(217, 119, 6, 0.3);
+}
+
+#anthropic-page .empty-state .btn-primary:hover {
+    box-shadow: 0 4px 16px rgba(217, 119, 6, 0.4);
+}
