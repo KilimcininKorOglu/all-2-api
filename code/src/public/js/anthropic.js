@@ -453,7 +453,7 @@ function editCredential(id) {
     document.getElementById('edit-account-id').value = cred.id;
     document.getElementById('edit-account-name').value = cred.name || '';
     document.getElementById('edit-account-email').value = cred.email || '';
-    document.getElementById('edit-api-key').value = '';
+    document.getElementById('edit-api-key').value = cred.accessToken || '';
     document.getElementById('edit-api-base-url').value = cred.apiBaseUrl || '';
     document.getElementById('edit-is-active').checked = cred.isActive;
 
@@ -721,7 +721,8 @@ function getQuotaClass(utilization) {
 
 function formatResetTime(timestamp) {
     if (!timestamp) return '-';
-    const resetDate = new Date(timestamp);
+    // Timestamp is Unix seconds, convert to milliseconds
+    const resetDate = new Date(parseInt(timestamp) * 1000);
     const now = new Date();
     const diff = resetDate - now;
 
