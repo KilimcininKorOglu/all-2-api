@@ -34,6 +34,7 @@ import { setupVertexRoutes } from './vertex/vertex-routes.js';
 import bedrockRoutes from './bedrock/bedrock-routes.js';
 import { ANTHROPIC_MODELS, isAnthropicModel, sendMessage as sendAnthropicMessage, sendMessageStream as sendAnthropicMessageStream, verifyCredentials as verifyAnthropicCredentials } from './anthropic/index.js';
 import { startUnifiedQuotaRefreshTask } from './quota-refresh.js';
+import { updateLoggerSettings } from './logger.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -249,8 +250,42 @@ const credentialLocks = new Map();
 // Credential request queue: one queue per credential
 const credentialQueues = new Map();
 
-// Whether to disable credential concurrency limit (disabled when DISABLE_CREDENTIAL_LOCK=true)
-const DISABLE_CREDENTIAL_LOCK = process.env.DISABLE_CREDENTIAL_LOCK === 'true';
+// Dynamic system settings (loaded from DB, initialized from env)
+let systemSettings = {
+    disableCredentialLock: process.env.DISABLE_CREDENTIAL_LOCK === 'true',
+    warpDebug: process.env.WARP_DEBUG === 'true',
+    orchidsDebug: process.env.ORCHIDS_DEBUG === 'true'
+};
+
+// Check if credential lock is disabled (dynamic)
+function isCredentialLockDisabled() {
+    return systemSettings.disableCredentialLock;
+}
+
+/**
+ * Load and apply system settings from database
+ */
+async function loadSystemSettings() {
+    try {
+        const settings = await siteSettingsStore.get();
+
+        // Apply to systemSettings
+        systemSettings.disableCredentialLock = settings.disableCredentialLock;
+        systemSettings.warpDebug = settings.warpDebug;
+        systemSettings.orchidsDebug = settings.orchidsDebug;
+
+        // Apply to logger
+        updateLoggerSettings({
+            logLevel: settings.logLevel,
+            logEnabled: settings.logEnabled,
+            logConsole: settings.logConsole
+        });
+
+        console.log(`[${getTimestamp()}] [Settings] Loaded from DB: logLevel=${settings.logLevel}, credentialLock=${!settings.disableCredentialLock}`);
+    } catch (error) {
+        console.error(`[${getTimestamp()}] [Settings] Failed to load from DB: ${error.message}`);
+    }
+}
 
 /**
  * Get the request queue for a credential
@@ -269,7 +304,7 @@ function getCredentialQueue(credentialId) {
 function acquireCredentialLock(credentialId) {
     return new Promise((resolve) => {
         // If credential lock is disabled, proceed immediately
-        if (DISABLE_CREDENTIAL_LOCK) {
+        if (isCredentialLockDisabled()) {
             resolve();
             return;
         }
@@ -292,7 +327,7 @@ function acquireCredentialLock(credentialId) {
  */
 function releaseCredentialLock(credentialId) {
     // If credential lock is disabled, return immediately
-    if (DISABLE_CREDENTIAL_LOCK) {
+    if (isCredentialLockDisabled()) {
         return;
     }
     
@@ -1061,17 +1096,47 @@ app.get('/api/site-settings', async (req, res) => {
 // Update site settings (admin interface)
 app.put('/api/site-settings', authMiddleware, async (req, res) => {
     try {
-        const { siteName, siteLogo, siteSubtitle } = req.body;
+        const {
+            siteName, siteLogo, siteSubtitle,
+            logLevel, logEnabled, logConsole,
+            disableCredentialLock, warpDebug, orchidsDebug
+        } = req.body;
 
         // Validate siteLogo length
         if (siteLogo && siteLogo.length > 10) {
             return res.status(400).json({ success: false, error: 'Logo text maximum 10 characters' });
         }
 
-        const settings = await siteSettingsStore.update({
-            siteName: siteName || 'Kiro',
-            siteLogo: siteLogo || 'K',
-            siteSubtitle: siteSubtitle || 'Account Manager'
+        // Validate logLevel
+        const validLogLevels = ['DEBUG', 'INFO', 'WARN', 'ERROR'];
+        if (logLevel && !validLogLevels.includes(logLevel.toUpperCase())) {
+            return res.status(400).json({ success: false, error: 'Invalid log level' });
+        }
+
+        // Build update object (only include provided fields)
+        const updateData = {};
+        if (siteName !== undefined) updateData.siteName = siteName || 'Hermes';
+        if (siteLogo !== undefined) updateData.siteLogo = siteLogo || 'H';
+        if (siteSubtitle !== undefined) updateData.siteSubtitle = siteSubtitle || 'Account Manager';
+        if (logLevel !== undefined) updateData.logLevel = logLevel.toUpperCase();
+        if (logEnabled !== undefined) updateData.logEnabled = logEnabled;
+        if (logConsole !== undefined) updateData.logConsole = logConsole;
+        if (disableCredentialLock !== undefined) updateData.disableCredentialLock = disableCredentialLock;
+        if (warpDebug !== undefined) updateData.warpDebug = warpDebug;
+        if (orchidsDebug !== undefined) updateData.orchidsDebug = orchidsDebug;
+
+        const settings = await siteSettingsStore.update(updateData);
+
+        // Apply system settings dynamically
+        systemSettings.disableCredentialLock = settings.disableCredentialLock;
+        systemSettings.warpDebug = settings.warpDebug;
+        systemSettings.orchidsDebug = settings.orchidsDebug;
+
+        // Apply logger settings dynamically
+        updateLoggerSettings({
+            logLevel: settings.logLevel,
+            logEnabled: settings.logEnabled,
+            logConsole: settings.logConsole
         });
 
         res.json({ success: true, data: settings });
@@ -5369,6 +5434,10 @@ async function start() {
     warpStore = await WarpCredentialStore.create();
     warpService = new WarpService(warpStore);
     siteSettingsStore = await SiteSettingsStore.create();
+
+    // Load system settings from database
+    await loadSystemSettings();
+
     pricingStore = await ModelPricingStore.create();
     anthropicStore = await AnthropicCredentialStore.create();
 

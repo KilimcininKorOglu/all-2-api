@@ -157,6 +157,50 @@
             color: var(--text-secondary);
             margin-top: 2px;
         }
+        .form-select {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-primary-glow);
+        }
+        .form-checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 8px 0;
+        }
+        .form-checkbox {
+            width: 18px;
+            height: 18px;
+            accent-color: var(--accent-primary);
+            cursor: pointer;
+        }
+        .form-checkbox-label {
+            font-size: 14px;
+            color: var(--text-primary);
+            cursor: pointer;
+        }
+        .settings-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid var(--border-color);
+        }
     </style>
 </head>
 <body>
@@ -259,6 +303,90 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- System Settings Card -->
+                <div class="settings-card" style="margin-top: 24px;">
+                    <div class="settings-card-header">
+                        <div class="settings-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="3"/>
+                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <div class="settings-card-title">System Settings</div>
+                            <div class="settings-card-subtitle">Configure logging and runtime options</div>
+                        </div>
+                    </div>
+
+                    <form class="settings-form" id="system-settings-form">
+                        <div class="settings-section-title">Logging</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Log Level</label>
+                            <select class="form-select" id="log-level">
+                                <option value="DEBUG">DEBUG - All messages</option>
+                                <option value="INFO">INFO - Info and above</option>
+                                <option value="WARN">WARN - Warnings and errors</option>
+                                <option value="ERROR">ERROR - Errors only</option>
+                            </select>
+                            <div class="form-hint">Minimum log level to record</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-group">
+                                <input type="checkbox" class="form-checkbox" id="log-enabled" checked>
+                                <label class="form-checkbox-label" for="log-enabled">Enable File Logging</label>
+                            </div>
+                            <div class="form-hint">Write logs to files in the logs directory</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-group">
+                                <input type="checkbox" class="form-checkbox" id="log-console" checked>
+                                <label class="form-checkbox-label" for="log-console">Enable Console Output</label>
+                            </div>
+                            <div class="form-hint">Print error logs to console</div>
+                        </div>
+
+                        <div class="settings-section-title" style="margin-top: 24px;">Runtime Options</div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-group">
+                                <input type="checkbox" class="form-checkbox" id="disable-credential-lock">
+                                <label class="form-checkbox-label" for="disable-credential-lock">Disable Credential Lock</label>
+                            </div>
+                            <div class="form-hint">Allow concurrent requests per credential (may cause rate limit errors)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-group">
+                                <input type="checkbox" class="form-checkbox" id="warp-debug">
+                                <label class="form-checkbox-label" for="warp-debug">Warp Debug Mode</label>
+                            </div>
+                            <div class="form-hint">Enable detailed logging for Warp API</div>
+                        </div>
+
+                        <div class="form-group">
+                            <div class="form-checkbox-group">
+                                <input type="checkbox" class="form-checkbox" id="orchids-debug">
+                                <label class="form-checkbox-label" for="orchids-debug">Orchids Debug Mode</label>
+                            </div>
+                            <div class="form-hint">Enable detailed logging for Orchids API</div>
+                        </div>
+
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary" id="system-submit-btn">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                    <polyline points="17 21 17 13 7 13 7 21"/>
+                                    <polyline points="7 3 7 8 15 8"/>
+                                </svg>
+                                Save System Settings
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </main>
     </div>
@@ -291,15 +419,25 @@
         // Load current settings
         function loadCurrentSettings() {
             const settings = window.siteSettings || {};
+
+            // Site information
             document.getElementById('site-name').value = settings.siteName || 'Kiro';
             document.getElementById('site-logo').value = settings.siteLogo || 'K';
             document.getElementById('site-subtitle').value = settings.siteSubtitle || 'Account Manager';
             updatePreview();
+
+            // System settings
+            document.getElementById('log-level').value = settings.logLevel || 'INFO';
+            document.getElementById('log-enabled').checked = settings.logEnabled !== false;
+            document.getElementById('log-console').checked = settings.logConsole !== false;
+            document.getElementById('disable-credential-lock').checked = settings.disableCredentialLock === true;
+            document.getElementById('warp-debug').checked = settings.warpDebug === true;
+            document.getElementById('orchids-debug').checked = settings.orchidsDebug === true;
         }
 
         // Bind events
         function bindEvents() {
-            // Form submit
+            // Site settings form submit
             document.getElementById('settings-form').addEventListener('submit', handleSubmit);
 
             // Reset button
@@ -309,6 +447,9 @@
             document.getElementById('site-name').addEventListener('input', updatePreview);
             document.getElementById('site-logo').addEventListener('input', updatePreview);
             document.getElementById('site-subtitle').addEventListener('input', updatePreview);
+
+            // System settings form submit
+            document.getElementById('system-settings-form').addEventListener('submit', handleSystemSettingsSubmit);
         }
 
         // Update preview
@@ -388,6 +529,65 @@
             document.getElementById('site-subtitle').value = 'Account Manager';
             updatePreview();
             showToast('Reset to default, click save to apply', 'info');
+        }
+
+        // System settings form submit
+        async function handleSystemSettingsSubmit(e) {
+            e.preventDefault();
+
+            const logLevel = document.getElementById('log-level').value;
+            const logEnabled = document.getElementById('log-enabled').checked;
+            const logConsole = document.getElementById('log-console').checked;
+            const disableCredentialLock = document.getElementById('disable-credential-lock').checked;
+            const warpDebug = document.getElementById('warp-debug').checked;
+            const orchidsDebug = document.getElementById('orchids-debug').checked;
+
+            const submitBtn = document.getElementById('system-submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `
+                <div class="loading-spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
+                Saving...
+            `;
+
+            try {
+                const res = await fetch('/api/site-settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        logLevel,
+                        logEnabled,
+                        logConsole,
+                        disableCredentialLock,
+                        warpDebug,
+                        orchidsDebug
+                    })
+                });
+
+                const result = await res.json();
+
+                if (result.success) {
+                    // Update global settings
+                    window.siteSettings = result.data;
+                    showToast('System settings saved', 'success');
+                } else {
+                    showToast(result.error || 'Save failed', 'error');
+                }
+            } catch (error) {
+                showToast('Network error, please retry', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = `
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Save System Settings
+                `;
+            }
         }
     </script>
 </body>

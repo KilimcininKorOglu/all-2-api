@@ -347,13 +347,34 @@ export async function initDatabase() {
             site_name VARCHAR(50) DEFAULT 'Kiro',
             site_logo VARCHAR(10) DEFAULT 'K',
             site_subtitle VARCHAR(100) DEFAULT 'Account Manager',
+            log_level ENUM('DEBUG','INFO','WARN','ERROR') DEFAULT 'INFO',
+            log_enabled TINYINT DEFAULT 1,
+            log_console TINYINT DEFAULT 1,
+            disable_credential_lock TINYINT DEFAULT 0,
+            warp_debug TINYINT DEFAULT 0,
+            orchids_debug TINYINT DEFAULT 0,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Migration: Add new columns to existing site_settings table
+    const newColumns = [
+        { name: 'log_level', sql: "ADD COLUMN log_level ENUM('DEBUG','INFO','WARN','ERROR') DEFAULT 'INFO'" },
+        { name: 'log_enabled', sql: 'ADD COLUMN log_enabled TINYINT DEFAULT 1' },
+        { name: 'log_console', sql: 'ADD COLUMN log_console TINYINT DEFAULT 1' },
+        { name: 'disable_credential_lock', sql: 'ADD COLUMN disable_credential_lock TINYINT DEFAULT 0' },
+        { name: 'warp_debug', sql: 'ADD COLUMN warp_debug TINYINT DEFAULT 0' },
+        { name: 'orchids_debug', sql: 'ADD COLUMN orchids_debug TINYINT DEFAULT 0' }
+    ];
+    for (const col of newColumns) {
+        try {
+            await pool.execute(`ALTER TABLE site_settings ${col.sql}`);
+        } catch (e) { /* Column may already exist */ }
+    }
+
     // Ensure site settings table has default record
     try {
-        await pool.execute(`INSERT IGNORE INTO site_settings (id, site_name, site_logo, site_subtitle) VALUES (1, 'Kiro', 'K', 'Account Manager')`);
+        await pool.execute(`INSERT IGNORE INTO site_settings (id, site_name, site_logo, site_subtitle) VALUES (1, 'Hermes', 'H', 'Account Manager')`);
     } catch (e) {
         // Ignore error
     }
@@ -3132,25 +3153,35 @@ export class SiteSettingsStore {
             return {
                 siteName: 'Kiro',
                 siteLogo: 'K',
-                siteSubtitle: 'Account Manager'
+                siteSubtitle: 'Account Manager',
+                logLevel: 'INFO',
+                logEnabled: true,
+                logConsole: true,
+                disableCredentialLock: false,
+                warpDebug: false,
+                orchidsDebug: false
             };
         }
         return this._mapRow(rows[0]);
     }
 
     async update(settings) {
-        await this.db.execute(`
-            INSERT INTO site_settings (id, site_name, site_logo, site_subtitle)
-            VALUES (1, ?, ?, ?)
-            ON DUPLICATE KEY UPDATE
-                site_name = VALUES(site_name),
-                site_logo = VALUES(site_logo),
-                site_subtitle = VALUES(site_subtitle)
-        `, [
-            settings.siteName || 'Kiro',
-            settings.siteLogo || 'K',
-            settings.siteSubtitle || 'Account Manager'
-        ]);
+        const fields = [];
+        const values = [];
+
+        if (settings.siteName !== undefined) { fields.push('site_name = ?'); values.push(settings.siteName); }
+        if (settings.siteLogo !== undefined) { fields.push('site_logo = ?'); values.push(settings.siteLogo); }
+        if (settings.siteSubtitle !== undefined) { fields.push('site_subtitle = ?'); values.push(settings.siteSubtitle); }
+        if (settings.logLevel !== undefined) { fields.push('log_level = ?'); values.push(settings.logLevel); }
+        if (settings.logEnabled !== undefined) { fields.push('log_enabled = ?'); values.push(settings.logEnabled ? 1 : 0); }
+        if (settings.logConsole !== undefined) { fields.push('log_console = ?'); values.push(settings.logConsole ? 1 : 0); }
+        if (settings.disableCredentialLock !== undefined) { fields.push('disable_credential_lock = ?'); values.push(settings.disableCredentialLock ? 1 : 0); }
+        if (settings.warpDebug !== undefined) { fields.push('warp_debug = ?'); values.push(settings.warpDebug ? 1 : 0); }
+        if (settings.orchidsDebug !== undefined) { fields.push('orchids_debug = ?'); values.push(settings.orchidsDebug ? 1 : 0); }
+
+        if (fields.length > 0) {
+            await this.db.execute(`UPDATE site_settings SET ${fields.join(', ')} WHERE id = 1`, values);
+        }
         return this.get();
     }
 
@@ -3159,6 +3190,12 @@ export class SiteSettingsStore {
             siteName: row.site_name,
             siteLogo: row.site_logo,
             siteSubtitle: row.site_subtitle,
+            logLevel: row.log_level || 'INFO',
+            logEnabled: row.log_enabled === 1,
+            logConsole: row.log_console === 1,
+            disableCredentialLock: row.disable_credential_lock === 1,
+            warpDebug: row.warp_debug === 1,
+            orchidsDebug: row.orchids_debug === 1,
             updatedAt: row.updated_at
         };
     }

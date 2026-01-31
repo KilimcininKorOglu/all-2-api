@@ -38,25 +38,48 @@ const LogLevel = {
 };
 
 /**
- * Current log level (configurable via environment variable)
+ * Dynamic settings (can be updated from DB)
  */
-let currentLevel = LogLevel.INFO;
+let dynamicSettings = {
+    level: LogLevel.INFO,
+    enabled: true,
+    consoleOutput: true
+};
+
+// Initialize from environment variables (fallback)
 if (process.env.LOG_LEVEL) {
     const level = process.env.LOG_LEVEL.toUpperCase();
     if (LogLevel[level] !== undefined) {
-        currentLevel = LogLevel[level];
+        dynamicSettings.level = LogLevel[level];
+    }
+}
+dynamicSettings.enabled = process.env.LOG_ENABLED !== 'false';
+dynamicSettings.consoleOutput = process.env.LOG_CONSOLE !== 'false';
+
+/**
+ * Update logger settings dynamically (called from DB settings)
+ */
+export function updateLoggerSettings(settings) {
+    if (settings.logLevel) {
+        const level = settings.logLevel.toUpperCase();
+        if (LogLevel[level] !== undefined) {
+            dynamicSettings.level = LogLevel[level];
+        }
+    }
+    if (settings.logEnabled !== undefined) {
+        dynamicSettings.enabled = settings.logEnabled;
+    }
+    if (settings.logConsole !== undefined) {
+        dynamicSettings.consoleOutput = settings.logConsole;
     }
 }
 
 /**
- * Whether logging is enabled (can be disabled via environment variable)
+ * Get current settings
  */
-const enabled = process.env.LOG_ENABLED !== 'false';
-
-/**
- * Whether to output to console simultaneously
- */
-const consoleOutput = process.env.LOG_CONSOLE !== 'false';
+export function getLoggerSettings() {
+    return { ...dynamicSettings };
+}
 
 /**
  * Write stream cache
@@ -129,31 +152,31 @@ export function createLogger(module) {
 
     return {
         debug(...args) {
-            if (enabled && currentLevel <= LogLevel.DEBUG) {
+            if (dynamicSettings.enabled && dynamicSettings.level <= LogLevel.DEBUG) {
                 const message = formatArgs(args);
                 writeToFile(module, 'DEBUG', message);
             }
         },
 
         info(...args) {
-            if (enabled && currentLevel <= LogLevel.INFO) {
+            if (dynamicSettings.enabled && dynamicSettings.level <= LogLevel.INFO) {
                 const message = formatArgs(args);
                 writeToFile(module, 'INFO', message);
             }
         },
 
         warn(...args) {
-            if (enabled && currentLevel <= LogLevel.WARN) {
+            if (dynamicSettings.enabled && dynamicSettings.level <= LogLevel.WARN) {
                 const message = formatArgs(args);
                 writeToFile(module, 'WARN', message);
             }
         },
 
         error(...args) {
-            if (enabled && currentLevel <= LogLevel.ERROR) {
+            if (dynamicSettings.enabled && dynamicSettings.level <= LogLevel.ERROR) {
                 const message = formatArgs(args);
                 writeToFile(module, 'ERROR', message);
-                if (consoleOutput) {
+                if (dynamicSettings.consoleOutput) {
                     console.error(`[${getTimestamp()}] ${prefix} [ERROR]`, ...args);
                 }
             }
@@ -262,7 +285,7 @@ export const logger = {
 export function setLogLevel(level) {
     const upperLevel = level.toUpperCase();
     if (LogLevel[upperLevel] !== undefined) {
-        currentLevel = LogLevel[upperLevel];
+        dynamicSettings.level = LogLevel[upperLevel];
     }
 }
 
