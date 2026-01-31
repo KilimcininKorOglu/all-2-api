@@ -4,7 +4,8 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, AnthropicCredentialStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, initDatabase } from './db.js';
+import { StrategyFactory, getStrategyManager, ThinkingBlocksParser } from './selection/index.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
 import { KiroAPI } from './kiro/api.js';
@@ -17,7 +18,7 @@ import { WarpService, WARP_MODELS, refreshAccessToken, isTokenExpired, getEmailF
 import { setupWarpRoutes } from './warp/warp-routes.js';
 import { setupWarpMultiAgentRoutes } from './warp/warp-multi-agent.js';
 import { setupWarpProxyRoutes } from './warp/warp-proxy.js';
-import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore } from './constants.js';
+import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore, SELECTION_CONFIG } from './constants.js';
 import {
     AntigravityApiService,
     GEMINI_MODELS,
@@ -94,6 +95,13 @@ let trialStore = null;
 let siteSettingsStore = null;
 let pricingStore = null;
 let anthropicStore = null;
+
+// Selection module stores
+let accountHealthStore = null;
+let tokenBucketStore = null;
+let selectionConfigStore = null;
+let thinkingSignatureCacheStore = null;
+let thinkingBlocksParser = null;
 
 // Credential 403 error counter
 const credential403Counter = new Map();
@@ -309,13 +317,48 @@ function getCredentialQueueStatus(credentialId) {
 }
 
 /**
- * LRU credential selection strategy (based on AIClient-2-API's ProviderPoolManager)
+ * Advanced credential selection using configurable strategies
+ * Supports health tracking, token bucket rate limiting, and quota-aware selection
+ * @param {Array} credentials - Credential list
+ * @param {Array} excludeIds - Credential IDs to exclude (for fallback)
+ * @param {Object} context - Selection context (provider, model, etc.)
+ * @returns {Promise<Object|null>} Selected credential
+ */
+async function selectBestCredential(credentials, excludeIds = [], context = {}) {
+    if (!credentials || credentials.length === 0) return null;
+
+    try {
+        const strategyManager = getStrategyManager();
+        const provider = context.provider || 'kiro';
+        const strategy = await strategyManager.getStrategy(provider);
+
+        const result = await strategy.select(credentials, {
+            ...context,
+            provider,
+            excludeIds
+        });
+
+        if (result.credential) {
+            // Update in-memory health tracking for backwards compatibility
+            updateCredentialUsage(result.credential.id);
+        }
+
+        return result.credential;
+    } catch (error) {
+        // Fallback to legacy selection on error
+        console.log(`[${getTimestamp()}] [Selection] Strategy error, falling back to legacy: ${error.message}`);
+        return selectBestCredentialLegacy(credentials, excludeIds);
+    }
+}
+
+/**
+ * Legacy LRU credential selection (fallback)
  * Priority: healthy > recoverable > idle > least recently used > shortest queue
  * @param {Array} credentials - Credential list
  * @param {Array} excludeIds - Credential IDs to exclude (for fallback)
  * @returns {Object|null} Selected credential
  */
-function selectBestCredential(credentials, excludeIds = []) {
+function selectBestCredentialLegacy(credentials, excludeIds = []) {
     if (credentials.length === 0) return null;
 
     // Filter out excluded credentials
@@ -374,14 +417,63 @@ function selectBestCredential(credentials, excludeIds = []) {
         return a.queueLength - b.queueLength;
     });
 
-    const selected = candidates[0];
-    if (!selected.isHealthy) {
-        // console.log(`[${getTimestamp()}] [Credential Selection] Attempting to recover unhealthy credential ${selected.credential.id} (error count: ${selected.errorCount})`);
-    } else if (selected.isLocked) {
-        // console.log(`[${getTimestamp()}] [Credential Selection] All credentials in use, selecting credential with shortest queue ${selected.credential.id} (queue: ${selected.queueLength})`);
-    }
+    return candidates[0].credential;
+}
 
-    return selected.credential;
+/**
+ * Record credential selection success (updates health tracking)
+ * @param {string} provider - Provider name
+ * @param {number} credentialId - Credential ID
+ */
+async function recordSelectionSuccess(provider, credentialId) {
+    try {
+        const strategyManager = getStrategyManager();
+        const strategy = await strategyManager.getStrategy(provider);
+        await strategy.onSuccess(provider, credentialId);
+
+        // Also update legacy tracking
+        markCredentialHealthy(credentialId);
+    } catch (error) {
+        // Silently ignore errors in success tracking
+    }
+}
+
+/**
+ * Record credential selection failure (updates health tracking)
+ * @param {string} provider - Provider name
+ * @param {number} credentialId - Credential ID
+ * @param {string} errorType - Error type
+ */
+async function recordSelectionFailure(provider, credentialId, errorType) {
+    try {
+        const strategyManager = getStrategyManager();
+        const strategy = await strategyManager.getStrategy(provider);
+        await strategy.onFailure(provider, credentialId, errorType);
+
+        // Also update legacy tracking
+        markCredentialUnhealthy(credentialId, errorType);
+    } catch (error) {
+        // Silently ignore errors in failure tracking
+    }
+}
+
+/**
+ * Record rate limit for credential (updates health tracking)
+ * @param {string} provider - Provider name
+ * @param {number} credentialId - Credential ID
+ * @param {number} resetMs - Time until rate limit resets
+ */
+async function recordSelectionRateLimit(provider, credentialId, resetMs = 0) {
+    try {
+        const strategyManager = getStrategyManager();
+        const strategy = await strategyManager.getStrategy(provider);
+        await strategy.onRateLimit(provider, credentialId, resetMs);
+
+        // Also update legacy tracking
+        markCredentialUnhealthy(credentialId, 'rate_limit');
+    } catch (error) {
+        // Silently ignore errors in rate limit tracking
+    }
 }
 
 /**
@@ -1862,6 +1954,8 @@ app.post('/v1/messages', async (req, res) => {
 
                 // Streaming response successful, mark credential as healthy
                 markCredentialHealthy(credential.id);
+                // Record selection success
+                recordSelectionSuccess('kiro', credential.id).catch(() => {});
 
                 // Send content_block_stop event
                 res.write(`event: content_block_stop\ndata: ${JSON.stringify({
@@ -1917,6 +2011,13 @@ app.post('/v1/messages', async (req, res) => {
                 if (credential) {
                     releaseCredentialLock(credential.id);
                     markCredentialUnhealthy(credential.id, streamError.message);
+                    // Record selection failure
+                    const errorStatus = streamError.status || streamError.response?.status || 500;
+                    if (errorStatus === 429) {
+                        recordSelectionRateLimit('kiro', credential.id).catch(() => {});
+                    } else {
+                        recordSelectionFailure('kiro', credential.id, streamError.message).catch(() => {});
+                    }
                 }
                 decrementConcurrent(keyRecord.id, clientIp);
 
@@ -1995,6 +2096,10 @@ app.post('/v1/messages', async (req, res) => {
                 console.log(`  ✓ ${durationMs}ms | in=${inputTokens} out=${outputTokens}`);
 
                 await apiLogStore.create({ ...logData, outputTokens, durationMs });
+
+                // Record selection success
+                recordSelectionSuccess('kiro', credential.id).catch(() => {});
+
                 decrementConcurrent(keyRecord.id, clientIp);
 
                 res.json({
@@ -2085,43 +2190,73 @@ app.post('/v1/messages', async (req, res) => {
 
 // ============ Gemini Antigravity API Endpoints ============
 
-// Gemini credential pool selection - LRU strategy (least recently used first)
-async function selectGeminiCredential(requestedModel = null, excludeIds = []) {
+// Gemini credential pool selection - uses configurable strategies
+async function selectGeminiCredential(requestedModel = null, excludeIds = [], sessionId = null) {
     const allCredentials = await geminiStore.getAllActive();
     if (allCredentials.length === 0) return null;
 
-    // Filter out excluded credentials
-    let availableCredentials = allCredentials.filter(c => !excludeIds.includes(c.id));
-    if (availableCredentials.length === 0) {
-        // If all credentials are excluded, reset exclude list
-        availableCredentials = allCredentials;
+    try {
+        const strategyManager = getStrategyManager();
+        const strategy = await strategyManager.getStrategy('gemini');
+
+        // Filter credentials that have projectId (required for Gemini)
+        const validCredentials = allCredentials.filter(c => c.projectId);
+        if (validCredentials.length === 0) {
+            // If none have projectId, use all (will trigger onboarding)
+            return allCredentials[0];
+        }
+
+        const result = await strategy.select(validCredentials, {
+            provider: 'gemini',
+            model: requestedModel,
+            sessionId,
+            excludeIds
+        });
+
+        return result.credential;
+    } catch (error) {
+        // Fallback to legacy selection
+        console.log(`[${getTimestamp()}] [Gemini Selection] Strategy error, falling back: ${error.message}`);
+        return selectGeminiCredentialLegacy(requestedModel, excludeIds);
     }
+}
 
-    // Filter healthy credentials (error count below threshold and projectId not empty)
-    const maxErrorCount = 5;
-    let healthyCredentials = availableCredentials.filter(c =>
-        (c.errorCount || 0) < maxErrorCount && c.projectId
-    );
+// Legacy Gemini credential selection (fallback)
+function selectGeminiCredentialLegacy(requestedModel = null, excludeIds = []) {
+    return (async () => {
+        const allCredentials = await geminiStore.getAllActive();
+        if (allCredentials.length === 0) return null;
 
-    // If no healthy credentials, try to filter only those with non-empty projectId
-    if (healthyCredentials.length === 0) {
-        healthyCredentials = availableCredentials.filter(c => c.projectId);
-    }
+        // Filter out excluded credentials
+        let availableCredentials = allCredentials.filter(c => !excludeIds.includes(c.id));
+        if (availableCredentials.length === 0) {
+            availableCredentials = allCredentials;
+        }
 
-    // If still none, use all available credentials (will trigger onboarding)
-    if (healthyCredentials.length === 0) {
-        healthyCredentials = availableCredentials;
-    }
+        // Filter healthy credentials (error count below threshold and projectId not empty)
+        const maxErrorCount = 5;
+        let healthyCredentials = availableCredentials.filter(c =>
+            (c.errorCount || 0) < maxErrorCount && c.projectId
+        );
 
-    // LRU strategy: sort by last used time, prefer least recently used
-    healthyCredentials.sort((a, b) => {
-        const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
-        const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
-        if (timeA !== timeB) return timeA - timeB;
-        return (a.errorCount || 0) - (b.errorCount || 0);
-    });
+        if (healthyCredentials.length === 0) {
+            healthyCredentials = availableCredentials.filter(c => c.projectId);
+        }
 
-    return healthyCredentials[0];
+        if (healthyCredentials.length === 0) {
+            healthyCredentials = availableCredentials;
+        }
+
+        // LRU strategy: sort by last used time, prefer least recently used
+        healthyCredentials.sort((a, b) => {
+            const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
+            const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
+            if (timeA !== timeB) return timeA - timeB;
+            return (a.errorCount || 0) - (b.errorCount || 0);
+        });
+
+        return healthyCredentials[0];
+    })();
 }
 
 // Gemini Token expiry check (refresh 50 minutes early)
@@ -2568,25 +2703,63 @@ async function handleGeminiAntigravityRequest(req, res) {
                         }
                     })}\n\n`);
 
-                    // Send content_block_start event
-                    res.write(`event: content_block_start\ndata: ${JSON.stringify({
-                        type: 'content_block_start',
-                        index: 0,
-                        content_block: { type: 'text', text: '' }
-                    })}\n\n`);
-
+                    // Track thinking and text block states
+                    let thinkingBlockStarted = false;
+                    let textBlockStarted = false;
+                    let blockIndex = 0;
                     let fullText = '';
+                    let fullThinking = '';
                     let outputTokens = 0;
+
+                    // Check if model supports thinking blocks
+                    const isThinkingModel = thinkingBlocksParser.isThinkingModel(requestModel);
 
                     for await (const chunk of service.generateContentStream(requestModel, requestBody)) {
                         if (chunk && chunk.candidates && chunk.candidates[0]?.content?.parts) {
                             for (const part of chunk.candidates[0].content.parts) {
-                                if (part.text) {
+                                // Handle thinking blocks
+                                if (part.thought === true && part.text) {
+                                    if (!thinkingBlockStarted) {
+                                        // Start thinking block
+                                        res.write(`event: content_block_start\ndata: ${JSON.stringify({
+                                            type: 'content_block_start',
+                                            index: blockIndex,
+                                            content_block: { type: 'thinking', thinking: '' }
+                                        })}\n\n`);
+                                        thinkingBlockStarted = true;
+                                    }
+                                    fullThinking += part.text;
+                                    res.write(`event: content_block_delta\ndata: ${JSON.stringify({
+                                        type: 'content_block_delta',
+                                        index: blockIndex,
+                                        delta: { type: 'thinking_delta', thinking: part.text }
+                                    })}\n\n`);
+
+                                    // Cache signature if present
+                                    if (part.thoughtSignature) {
+                                        thinkingBlocksParser.cacheSignature(part.thoughtSignature, 'gemini').catch(() => {});
+                                    }
+                                } else if (part.text) {
+                                    // Handle text blocks
+                                    if (thinkingBlockStarted && !textBlockStarted) {
+                                        // End thinking block and start text block
+                                        res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: blockIndex })}\n\n`);
+                                        blockIndex++;
+                                    }
+                                    if (!textBlockStarted) {
+                                        // Start text block
+                                        res.write(`event: content_block_start\ndata: ${JSON.stringify({
+                                            type: 'content_block_start',
+                                            index: blockIndex,
+                                            content_block: { type: 'text', text: '' }
+                                        })}\n\n`);
+                                        textBlockStarted = true;
+                                    }
                                     fullText += part.text;
                                     outputTokens += Math.ceil(part.text.length / 4);
                                     res.write(`event: content_block_delta\ndata: ${JSON.stringify({
                                         type: 'content_block_delta',
-                                        index: 0,
+                                        index: blockIndex,
                                         delta: { type: 'text_delta', text: part.text }
                                     })}\n\n`);
                                 }
@@ -2601,8 +2774,18 @@ async function handleGeminiAntigravityRequest(req, res) {
                         }
                     }
 
+                    // Handle case where no blocks were sent
+                    if (!thinkingBlockStarted && !textBlockStarted) {
+                        // Send empty text block for compatibility
+                        res.write(`event: content_block_start\ndata: ${JSON.stringify({
+                            type: 'content_block_start',
+                            index: 0,
+                            content_block: { type: 'text', text: '' }
+                        })}\n\n`);
+                    }
+
                     // Send end events
-                    res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
+                    res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: blockIndex })}\n\n`);
                     res.write(`event: message_delta\ndata: ${JSON.stringify({
                         type: 'message_delta',
                         delta: { stop_reason: 'end_turn', stop_sequence: null },
@@ -2617,6 +2800,9 @@ async function handleGeminiAntigravityRequest(req, res) {
                         durationMs: Date.now() - startTime
                     });
                     await geminiStore.resetErrorCount(credential.id);
+
+                    // Record selection success
+                    recordSelectionSuccess('gemini', credential.id).catch(() => {});
 
                     // console.log(`[${getTimestamp()}] [Gemini] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${Date.now() - startTime}ms | in:${inputTokens} out:${outputTokens}`);
                     decrementConcurrent(keyRecord.id, clientIp);
@@ -2634,6 +2820,10 @@ async function handleGeminiAntigravityRequest(req, res) {
 
                     await apiLogStore.create(logData);
                     await geminiStore.resetErrorCount(credential.id);
+
+                    // Record selection success
+                    recordSelectionSuccess('gemini', credential.id).catch(() => {});
+
                     decrementConcurrent(keyRecord.id, clientIp);
 
                     // console.log(`[${getTimestamp()}] [Gemini] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${Date.now() - startTime}ms | in:${inputTokens} out:${outputTokens}`);
@@ -2653,11 +2843,16 @@ async function handleGeminiAntigravityRequest(req, res) {
 
                 // If 429 error, try next credential
                 if (errorStatus === 429) {
+                    // Record rate limit
+                    recordSelectionRateLimit('gemini', credential.id).catch(() => {});
                     // console.log(`[${getTimestamp()}] [Gemini API] Credential ${credential.name} triggered 429, trying to switch account...`);
                     // Brief delay before retry
                     await new Promise(resolve => setTimeout(resolve, 500));
                     continue;  // Continue to next iteration, try other credentials
                 }
+
+                // Record selection failure for other errors
+                recordSelectionFailure('gemini', credential.id, errorMessage).catch(() => {});
 
                 // Other errors throw directly
                 throw apiError;
@@ -5003,6 +5198,23 @@ async function start() {
     siteSettingsStore = await SiteSettingsStore.create();
     pricingStore = await ModelPricingStore.create();
     anthropicStore = await AnthropicCredentialStore.create();
+
+    // Initialize selection module stores
+    accountHealthStore = await AccountHealthStore.create();
+    tokenBucketStore = await TokenBucketStore.create();
+    selectionConfigStore = await SelectionConfigStore.create();
+    thinkingSignatureCacheStore = await ThinkingSignatureCacheStore.create();
+    thinkingBlocksParser = new ThinkingBlocksParser(thinkingSignatureCacheStore, SELECTION_CONFIG.thinking);
+
+    // Initialize strategy manager with stores
+    const strategyManager = getStrategyManager();
+    strategyManager.initialize({
+        healthStore: accountHealthStore,
+        tokenStore: tokenBucketStore,
+        configStore: selectionConfigStore
+    });
+
+    console.log(`[${getTimestamp()}] Selection module initialized (strategy: ${SELECTION_CONFIG.defaultStrategy})`);
 
     // Load dynamic pricing configuration
     try {
