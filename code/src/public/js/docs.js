@@ -85,9 +85,20 @@ async function loadSiteSettings() {
     }
 }
 
+// Replace {BASE_URL} placeholders with actual domain
+function replaceBaseUrl() {
+    const baseUrl = window.location.origin;
+    document.querySelectorAll('.endpoint-url, .code-block pre, code, pre').forEach(el => {
+        if (el.innerHTML.includes('{BASE_URL}')) {
+            el.innerHTML = el.innerHTML.replace(/\{BASE_URL\}/g, baseUrl);
+        }
+    });
+}
+
 // Page initialization
 document.addEventListener('DOMContentLoaded', () => {
     initIntegrationTabs();
     initTabSwitcher();
     loadSiteSettings();
+    replaceBaseUrl();
 });

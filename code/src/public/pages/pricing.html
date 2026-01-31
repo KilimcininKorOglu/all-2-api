@@ -696,7 +696,7 @@
 
                 const result = await response.json();
                 if (result.success) {
-                    alert(`Sync complete! Imported: ${result.data.imported}, Updated: ${result.data.updated}, Skipped (custom): ${result.data.skipped}`);
+                    alert(`Sync complete! Added: ${result.data.added || 0}, Updated: ${result.data.updated || 0}, Skipped (custom): ${result.data.skipped || 0}`);
                     loadPricing();
                     loadRemoteStats();
                 } else {

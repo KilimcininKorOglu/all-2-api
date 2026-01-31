@@ -27,10 +27,12 @@ export function generateCodeChallenge(codeVerifier) {
  * @param {string} redirectUri - Callback URL
  * @param {string} codeChallenge - PKCE code challenge
  * @param {string} state - State parameter for CSRF protection
+ * @param {string} region - AWS region (default: 'us-east-1')
  * @returns {string} Authorization URL
  */
-export function generateSocialAuthUrl(provider, redirectUri, codeChallenge, state) {
-    return `${KIRO_OAUTH_CONFIG.authServiceEndpoint}/login?` +
+export function generateSocialAuthUrl(provider, redirectUri, codeChallenge, state, region = 'us-east-1') {
+    const endpoint = KIRO_OAUTH_CONFIG.authServiceEndpoint.replace('{{region}}', region);
+    return `${endpoint}/login?` +
         `idp=${provider}&` +
         `redirect_uri=${encodeURIComponent(redirectUri)}&` +
         `code_challenge=${codeChallenge}&` +
@@ -48,7 +50,8 @@ export function generateSocialAuthUrl(provider, redirectUri, codeChallenge, stat
  * @returns {Promise<object>} Credentials object
  */
 export async function exchangeSocialAuthCode(code, codeVerifier, redirectUri, region = 'us-east-1') {
-    const tokenResponse = await fetch(`${KIRO_OAUTH_CONFIG.authServiceEndpoint}/oauth/token`, {
+    const endpoint = KIRO_OAUTH_CONFIG.authServiceEndpoint.replace('{{region}}', region);
+    const tokenResponse = await fetch(`${endpoint}/oauth/token`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
@@ -247,7 +250,8 @@ export class KiroAuth {
         const redirectUri = `http://127.0.0.1:${port}/oauth/callback`;
 
         // Build authorization URL
-        const authUrl = `${KIRO_OAUTH_CONFIG.authServiceEndpoint}/login?` +
+        const endpoint = KIRO_OAUTH_CONFIG.authServiceEndpoint.replace('{{region}}', this.region);
+        const authUrl = `${endpoint}/login?` +
             `idp=${provider}&` +
             `redirect_uri=${encodeURIComponent(redirectUri)}&` +
             `code_challenge=${codeChallenge}&` +
@@ -267,7 +271,8 @@ export class KiroAuth {
      */
     async startBuilderIDAuth() {
         // 1. Register OIDC client
-        const regResponse = await fetch(`${KIRO_OAUTH_CONFIG.ssoOIDCEndpoint}/client/register`, {
+        const ssoEndpoint = KIRO_OAUTH_CONFIG.ssoOIDCEndpoint.replace('{{region}}', this.region);
+        const regResponse = await fetch(`${ssoEndpoint}/client/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -288,7 +293,7 @@ export class KiroAuth {
         const regData = await regResponse.json();
 
         // 2. Start device authorization
-        const authResponse = await fetch(`${KIRO_OAUTH_CONFIG.ssoOIDCEndpoint}/device_authorization`, {
+        const authResponse = await fetch(`${ssoEndpoint}/device_authorization`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -370,7 +375,8 @@ export class KiroAuth {
                         }
 
                         // Exchange Code for Token
-                        const tokenResponse = await fetch(`${KIRO_OAUTH_CONFIG.authServiceEndpoint}/oauth/token`, {
+                        const authEndpoint = KIRO_OAUTH_CONFIG.authServiceEndpoint.replace('{{region}}', this.region);
+                        const tokenResponse = await fetch(`${authEndpoint}/oauth/token`, {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
@@ -464,7 +470,8 @@ export class KiroAuth {
             attempts++;
 
             try {
-                const response = await fetch(`${KIRO_OAUTH_CONFIG.ssoOIDCEndpoint}/token`, {
+                const ssoTokenEndpoint = KIRO_OAUTH_CONFIG.ssoOIDCEndpoint.replace('{{region}}', this.region);
+                const response = await fetch(`${ssoTokenEndpoint}/token`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',

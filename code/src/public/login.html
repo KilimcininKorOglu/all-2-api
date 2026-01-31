@@ -79,7 +79,7 @@
             font-size: 28px;
             font-weight: 700;
             background: linear-gradient(135deg, var(--text-primary) 0%, var(--text-secondary) 100%);
-          webkit-background-clip: text;
+            -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -145,7 +145,7 @@
 
         .btn-primary {
             background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
-    r: white;
+            color: white;
             box-shadow: 0 2px 8px var(--accent-primary-glow);
         }
 
@@ -165,7 +165,7 @@
             border: 1px solid rgba(239, 68, 68, 0.3);
             color: var(--accent-danger);
             padding: 12px;
-           rder-radius: var(--radius-md);
+            border-radius: var(--radius-md);
             font-size: 13px;
             margin-bottom: 20px;
             display: none;
@@ -215,7 +215,7 @@
                 <button type="submit" class="btn btn-primary" id="submit-btn">Login</button>
             </form>
 
-            <div class="setup-hint" id="setup-hint"le="display: none;">
+            <div class="setup-hint" id="setup-hint" style="display: none;">
                 First time use, please create an admin account
             </div>
         </div>

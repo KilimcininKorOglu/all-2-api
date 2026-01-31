@@ -1107,12 +1107,13 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
 app.get('/api/keys', authMiddleware, async (req, res) => {
     try {
         const keys = req.user.isAdmin ? await apiKeyStore.getAll() : await apiKeyStore.getByUserId(req.userId);
-        // Security: Never expose full keyValue in listings, only show prefix
+        // Include keyValue for copy functionality
         const safeKeys = keys.map(k => ({
             id: k.id,
             userId: k.userId,
             username: k.username,
             name: k.name,
+            keyValue: k.keyValue,
             keyPrefix: k.keyPrefix,
             isActive: k.isActive,
             lastUsedAt: k.lastUsedAt,
@@ -3312,7 +3313,7 @@ app.post('/api/oauth/social/start', async (req, res) => {
         const redirectUri = `${protocol}://${host}/api/oauth/social/callback`;
 
         // Generate auth URL
-        const authUrl = generateSocialAuthUrl(provider, redirectUri, codeChallenge, state);
+        const authUrl = generateSocialAuthUrl(provider, redirectUri, codeChallenge, state, region);
 
         // Store pending session
         pendingKiroSocialSessions.set(state, {
@@ -4258,11 +4259,6 @@ app.post('/api/anthropic/credentials', authMiddleware, async (req, res) => {
 
         if (!name || !accessToken) {
             return res.status(400).json({ success: false, error: 'Name and access token are required' });
-        }
-
-        // Validate API key format
-        if (!accessToken.startsWith('sk-ant-')) {
-            return res.status(400).json({ success: false, error: 'Invalid Anthropic API key format (must start with sk-ant-)' });
         }
 
         // Verify credentials
