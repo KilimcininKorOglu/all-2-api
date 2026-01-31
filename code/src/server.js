@@ -33,6 +33,7 @@ import { setupGeminiRoutes } from './gemini/gemini-routes.js';
 import { setupVertexRoutes } from './vertex/vertex-routes.js';
 import bedrockRoutes from './bedrock/bedrock-routes.js';
 import { ANTHROPIC_MODELS, isAnthropicModel, sendMessage as sendAnthropicMessage, sendMessageStream as sendAnthropicMessageStream, verifyCredentials as verifyAnthropicCredentials } from './anthropic/index.js';
+import { startUnifiedQuotaRefreshTask } from './quota-refresh.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -5300,7 +5301,12 @@ async function start() {
     // Start scheduled refresh tasks
     startCredentialsRefreshTask();
     startErrorCredentialsRefreshTask();
-    startGeminiQuotaRefreshTask();
+    startUnifiedQuotaRefreshTask({
+        kiro: store,
+        gemini: geminiStore,
+        orchids: orchidsStore,
+        warp: warpStore
+    });
 
     // Start log cleanup task (clean logs older than 30 days daily)
     startLogCleanupTask();
@@ -5318,92 +5324,6 @@ async function start() {
         console.log('[API]   Bedrock format: /api/bedrock/chat');
         console.log('[API]   Model list:     /v1/models');
     });
-}
-
-/**
- * Start Gemini quota refresh task
- */
-const QUOTA_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
-
-function startGeminiQuotaRefreshTask() {
-    console.log(`[${getTimestamp()}] [Quota Refresh] Gemini quota refresh task started, interval: ${QUOTA_REFRESH_INTERVAL / 60000} minutes`);
-
-    // Execute initial refresh after 1 minute
-    setTimeout(async () => {
-        await refreshAllGeminiQuotas();
-    }, 60000);
-
-    // Execute on schedule
-    setInterval(async () => {
-        await refreshAllGeminiQuotas();
-    }, QUOTA_REFRESH_INTERVAL);
-}
-
-/**
- * Refresh quotas for all active Gemini credentials
- */
-async function refreshAllGeminiQuotas() {
-    try {
-        const credentials = await geminiStore.getAllActive();
-        if (credentials.length === 0) {
-            return;
-        }
-
-        let successCount = 0;
-        let failCount = 0;
-
-        for (const credential of credentials) {
-            try {
-                const service = new AntigravityApiService({
-                    oauthCredsFilePath: null,
-                    projectId: credential.projectId
-                });
-
-                service.authClient.setCredentials({
-                    access_token: credential.accessToken,
-                    refresh_token: credential.refreshToken,
-                    expiry_date: credential.expiresAt ? new Date(credential.expiresAt).getTime() : null
-                });
-
-                service.projectId = credential.projectId;
-                service.isInitialized = true;
-
-                const quotaResult = await service.getModelsWithQuotas();
-
-                const quotaData = {};
-                for (const [modelId, modelInfo] of Object.entries(quotaResult.models)) {
-                    quotaData[modelId] = {
-                        remainingFraction: modelInfo.remaining,
-                        resetTime: modelInfo.resetTime
-                    };
-                }
-
-                await geminiStore.updateQuota(credential.id, quotaData);
-                successCount++;
-
-                // Log low quota warnings
-                for (const [modelId, quota] of Object.entries(quotaData)) {
-                    if (quota.remainingFraction !== null && quota.remainingFraction <= 0.05) {
-                        console.warn(`[${getTimestamp()}] [Quota] CRITICAL: ${credential.name} - ${modelId}: ${Math.round(quota.remainingFraction * 100)}% remaining`);
-                    } else if (quota.remainingFraction !== null && quota.remainingFraction <= 0.20) {
-                        console.log(`[${getTimestamp()}] [Quota] LOW: ${credential.name} - ${modelId}: ${Math.round(quota.remainingFraction * 100)}% remaining`);
-                    }
-                }
-            } catch (error) {
-                failCount++;
-                console.error(`[${getTimestamp()}] [Quota Refresh] Failed for ${credential.name}: ${error.message}`);
-            }
-
-            // Wait 2 seconds between credentials to avoid rate limiting
-            await new Promise(resolve => setTimeout(resolve, 2000));
-        }
-
-        if (successCount > 0 || failCount > 0) {
-            console.log(`[${getTimestamp()}] [Quota Refresh] Completed: ${successCount} success, ${failCount} failed`);
-        }
-    } catch (error) {
-        console.error(`[${getTimestamp()}] [Quota Refresh] Task failed: ${error.message}`);
-    }
 }
 
 /**
