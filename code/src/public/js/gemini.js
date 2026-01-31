@@ -36,6 +36,20 @@ async function loadCredentials() {
         if (result.success) {
             credentials = result.data;
             filteredCredentials = [...credentials];
+            // Pre-populate usage cache from DB quotaData
+            credentials.forEach(cred => {
+                if (cred.quotaData) {
+                    // Transform quotaData format to usage format for display
+                    const models = {};
+                    for (const [modelId, info] of Object.entries(cred.quotaData)) {
+                        models[modelId] = {
+                            remaining: info.remainingFraction || info.remaining || 0,
+                            resetTime: info.resetTime
+                        };
+                    }
+                    usageCache[cred.id] = { models };
+                }
+            });
             renderCards();
             updateCounts();
         } else {
@@ -103,6 +117,7 @@ function renderCards() {
 
 function createCardHTML(cred) {
     const isSelected = selectedIds.has(cred.id);
+    // Use cached usage (already transformed from quotaData)
     const usage = usageCache[cred.id];
     const displayName = cred.email || cred.name || 'Unknown';
 
@@ -966,13 +981,23 @@ async function refreshSingleUsage(id, showToastMsg = true) {
     }
 
     try {
-        const response = await fetch(`/api/gemini/credentials/${id}/usage`, {
+        const response = await fetch(`/api/gemini/credentials/${id}/refresh-quota`, {
+            method: 'POST',
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
         const result = await response.json();
 
         if (result.success && result.data) {
-            usageCache[id] = result.data;
+            // Transform quotaData format to usage format
+            const quotaData = result.data.quotaData || result.data;
+            const models = {};
+            for (const [modelId, info] of Object.entries(quotaData)) {
+                models[modelId] = {
+                    remaining: info.remainingFraction || info.remaining || 0,
+                    resetTime: info.resetTime
+                };
+            }
+            usageCache[id] = { models };
             // Update card display
             if (modelsSection) {
                 modelsSection.innerHTML = generateModelTagsHTML(result.data);
