@@ -139,6 +139,22 @@ A fully-featured web management interface including:
 - **Real-time Logs**: Real-time display of system and request logs with management controls
 - **Login Authentication**: Default password `admin123`, can be changed in the console
 
+### Pool Selection Strategies
+
+Configure credential selection behavior via Site Settings page or database. Three strategies are available:
+
+| Strategy    | Description                                                                     |
+|-------------|---------------------------------------------------------------------------------|
+| Hybrid      | Score-based selection considering credential health, quota availability, and    |
+|             | error rates. Automatically routes requests to the healthiest credential with    |
+|             | remaining quota. Recommended for production environments.                       |
+| Sticky      | Session affinity mode. Requests with the same `X-Session-ID` header are routed  |
+|             | to the same credential. Useful for maintaining conversation context or when     |
+|             | consistent credential usage is required within a session.                       |
+| Round Robin | Simple sequential rotation through all active credentials. Distributes load     |
+|             | equally regardless of health or quota status. Suitable for simple load          |
+|             | balancing scenarios or testing.                                                 |
+
 ### Multimodal Input Capability
 
 Supports various input types including images and documents, providing richer interaction experiences and more powerful application scenarios.
@@ -511,6 +527,20 @@ console.log(response);
 | `LOG_LEVEL`      | `INFO`      | Log level          |
 | `LOG_ENABLED`    | `true`      | Enable logging     |
 | `LOG_CONSOLE`    | `true`      | Output to console  |
+
+### Dynamic Settings (Database)
+
+The following settings can be configured via Site Settings page (`/pages/site-settings.html`) and are stored in the database:
+
+| Setting                  | Default        | Description                                          |
+|--------------------------|----------------|------------------------------------------------------|
+| Token Refresh Interval   | 30 minutes     | Background OAuth token refresh frequency             |
+| Token Refresh Threshold  | 10 minutes     | Refresh tokens expiring within this threshold        |
+| Quota Refresh Interval   | 5 minutes      | Background quota information refresh frequency       |
+| Selection Strategy       | Hybrid         | Credential pool selection (hybrid/sticky/round-robin)|
+| Log Level                | INFO           | Logging verbosity (DEBUG/INFO/WARN/ERROR)            |
+
+These settings are loaded at server startup and changes take effect on the next background task cycle without requiring a restart.
 
 ### Project Structure
 
