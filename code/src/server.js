@@ -3,6 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
+import bcrypt from 'bcrypt';
 import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, AnthropicCredentialStore, initDatabase } from './db.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
@@ -649,10 +650,44 @@ function getClientIp(req) {
 }
 
 /**
- * Generate password hash
+ * Generate password hash using bcrypt
+ * @param {string} password - Plain text password
+ * @returns {Promise<string>} - Bcrypt hash
  */
-function hashPassword(password) {
-    return crypto.createHash('sha256').update(password).digest('hex');
+const BCRYPT_SALT_ROUNDS = 12;
+
+async function hashPassword(password) {
+    return await bcrypt.hash(password, BCRYPT_SALT_ROUNDS);
+}
+
+/**
+ * Verify password against hash
+ * Supports both bcrypt and legacy SHA256 hashes for backward compatibility
+ * @param {string} password - Plain text password
+ * @param {string} hash - Stored hash
+ * @param {number} userId - User ID for hash migration
+ * @returns {Promise<boolean>} - True if password matches
+ */
+async function verifyPassword(password, hash, userId = null) {
+    // Check if it's a bcrypt hash (starts with $2b$ or $2a$)
+    if (hash.startsWith('$2b$') || hash.startsWith('$2a$')) {
+        return await bcrypt.compare(password, hash);
+    }
+
+    // Legacy SHA256 hash (64 hex characters)
+    if (hash.length === 64 && /^[a-f0-9]+$/i.test(hash)) {
+        const sha256Hash = crypto.createHash('sha256').update(password).digest('hex');
+        if (sha256Hash === hash) {
+            // Migrate to bcrypt if userId is provided
+            if (userId && userStore) {
+                const newHash = await hashPassword(password);
+                await userStore.updatePassword(userId, newHash);
+            }
+            return true;
+        }
+    }
+
+    return false;
 }
 
 /**
@@ -823,7 +858,7 @@ app.post('/api/auth/setup', async (req, res) => {
         if (password.length < 6) {
             return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
         }
-        const passwordHash = hashPassword(password);
+        const passwordHash = await hashPassword(password);
         const userId = await userStore.create(username, passwordHash, true);
         const token = createSession(userId);
         res.json({ success: true, data: { token, userId, username, isAdmin: true } });
@@ -843,8 +878,8 @@ app.post('/api/auth/login', async (req, res) => {
         if (!user) {
             return res.status(401).json({ success: false, error: 'Invalid username or password' });
         }
-        const passwordHash = hashPassword(password);
-        if (user.passwordHash !== passwordHash) {
+        const isValid = await verifyPassword(password, user.passwordHash, user.id);
+        if (!isValid) {
             return res.status(401).json({ success: false, error: 'Invalid username or password' });
         }
         const token = createSession(user.id);
@@ -894,13 +929,13 @@ app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
             return res.status(404).json({ success: false, error: 'User does not exist' });
         }
 
-        const oldPasswordHash = hashPassword(oldPassword);
-        if (user.passwordHash !== oldPasswordHash) {
+        const isOldPasswordValid = await verifyPassword(oldPassword, user.passwordHash);
+        if (!isOldPasswordValid) {
             return res.status(400).json({ success: false, error: 'Old password is incorrect' });
         }
 
         // Update password
-        const newPasswordHash = hashPassword(newPassword);
+        const newPasswordHash = await hashPassword(newPassword);
         await userStore.updatePassword(req.user.id, newPasswordHash);
 
         res.json({ success: true, message: 'Password changed successfully' });
@@ -5034,7 +5069,7 @@ async function start() {
 
     // Auto-create default admin account (if no users exist)
     if (!await userStore.hasUsers()) {
-        const passwordHash = hashPassword(DEFAULT_ADMIN.password);
+        const passwordHash = await hashPassword(DEFAULT_ADMIN.password);
         await userStore.create(DEFAULT_ADMIN.username, passwordHash, true);
         // console.log(`[${getTimestamp()}] Created default admin account`);
         // console.log(`[${getTimestamp()}] Username: ${DEFAULT_ADMIN.username}`);
