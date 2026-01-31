@@ -1,17 +1,17 @@
-// ============ API 日志页面 JS ============
+// ============ API Logs Page JS ============
 
 let currentLogsPage = 1;
 const logsPageSize = 50;
 let currentLogData = null;
 
-// DOM 元素
+// DOM elements
 let logDetailModal, cleanupModal;
 
 document.addEventListener('DOMContentLoaded', async () => {
     document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
     initSidebar('logs');
 
-    // 获取模态框元素
+    // Get modal elements
     logDetailModal = document.getElementById('log-detail-modal');
     cleanupModal = document.getElementById('cleanup-modal');
 
@@ -24,19 +24,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 function setupEventListeners() {
-    // 查询按钮
+    // Search button
     document.getElementById('logs-search-btn').addEventListener('click', function() {
         currentLogsPage = 1;
         loadLogs();
     });
 
-    // 重置按钮
+    // Reset button
     document.getElementById('logs-reset-btn').addEventListener('click', resetLogsFilter);
 
-    // 清理按钮 - 打开模态框
+    // Cleanup button - open modal
     document.getElementById('logs-cleanup-btn').addEventListener('click', openCleanupModal);
 
-    // 分页按钮
+    // Pagination buttons
     document.getElementById('logs-prev-btn').addEventListener('click', function() {
         if (currentLogsPage > 1) {
             currentLogsPage--;
@@ -48,7 +48,7 @@ function setupEventListeners() {
         loadLogs();
     });
 
-    // 日志详情模态框
+    // Log detail modal
     document.getElementById('log-detail-close').addEventListener('click', closeLogDetailModal);
     document.getElementById('log-detail-close-btn').addEventListener('click', closeLogDetailModal);
     document.getElementById('log-detail-copy').addEventListener('click', copyLogJson);
@@ -56,7 +56,7 @@ function setupEventListeners() {
         if (e.target === logDetailModal) closeLogDetailModal();
     });
 
-    // 清理模态框
+    // Cleanup modal
     document.getElementById('cleanup-modal-close').addEventListener('click', closeCleanupModal);
     document.getElementById('cleanup-cancel').addEventListener('click', closeCleanupModal);
     document.getElementById('cleanup-confirm').addEventListener('click', confirmCleanup);
@@ -64,7 +64,7 @@ function setupEventListeners() {
         if (e.target === cleanupModal) closeCleanupModal();
     });
 
-    // 键盘快捷键
+    // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeLogDetailModal();
@@ -72,7 +72,7 @@ function setupEventListeners() {
         }
     });
 
-    // 回车搜索
+    // Enter to search
     var filterInputs = document.querySelectorAll('.logs-filter-input');
     filterInputs.forEach(function(input) {
         input.addEventListener('keydown', function(e) {
@@ -108,11 +108,11 @@ async function loadLogs() {
         if (result.success) {
             renderLogs(result.data);
         } else {
-            showToast(result.error || '加载日志失败', 'error');
+            showToast(result.error || 'Failed to load logs', 'error');
         }
     } catch (err) {
         console.error('Load logs error:', err);
-        showToast('加载日志失败', 'error');
+        showToast('Failed to load logs', 'error');
     }
 }
 
@@ -154,14 +154,14 @@ function renderLogs(data) {
     document.getElementById('logs-next-btn').disabled = currentLogsPage >= totalPages;
 
     if (logs.length === 0) {
-        list.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">暂无日志记录</td></tr>';
+        list.innerHTML = '<tr><td colspan="9" style="text-align: center; padding: 40px; color: var(--text-muted);">No log records</td></tr>';
         return;
     }
 
     list.innerHTML = logs.map(function(log) {
         var statusClass = log.statusCode >= 400 ? 'error' : 'success';
         var typeClass = log.stream ? 'stream' : 'sync';
-        var typeText = log.stream ? '流式' : '同步';
+        var typeText = log.stream ? 'Stream' : 'Sync';
 
         return '<tr>' +
             '<td>' + formatDateTime(log.createdAt) + '</td>' +
@@ -173,14 +173,14 @@ function renderLogs(data) {
             '<td class="logs-duration-cell">' + (log.durationMs || 0) + 'ms</td>' +
             '<td><span class="logs-status-badge ' + statusClass + '">' + (log.statusCode || 200) + '</span></td>' +
             '<td>' +
-            '<button class="logs-action-btn" data-request-id="' + log.requestId + '" title="查看详情">' +
+            '<button class="logs-action-btn" data-request-id="' + log.requestId + '" title="View details">' +
             '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>' +
             '</button>' +
             '</td>' +
             '</tr>';
     }).join('');
 
-    // 绑定查看详情按钮事件
+    // Bind view details button events
     list.querySelectorAll('.logs-action-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             viewLogDetail(btn.dataset.requestId);
@@ -213,7 +213,7 @@ function resetLogsFilter() {
     loadLogs();
 }
 
-// ============ 日志详情模态框 ============
+// ============ Log Detail Modal ============
 
 async function viewLogDetail(requestId) {
     try {
@@ -226,10 +226,10 @@ async function viewLogDetail(requestId) {
             renderLogDetail(result.data);
             logDetailModal.classList.add('active');
         } else {
-            showToast('获取日志详情失败', 'error');
+            showToast('Failed to get log details', 'error');
         }
     } catch (err) {
-        showToast('获取日志详情失败: ' + err.message, 'error');
+        showToast('Failed to get log details: ' + err.message, 'error');
     }
 }
 
@@ -239,53 +239,53 @@ function renderLogDetail(log) {
 
     var html = '<div class="log-detail-grid">';
 
-    // 基本信息
+    // Basic info
     html += '<div class="log-detail-section">';
-    html += '<h4 class="log-detail-section-title">基本信息</h4>';
+    html += '<h4 class="log-detail-section-title">Basic Info</h4>';
     html += '<div class="log-detail-items">';
-    html += createDetailItem('请求 ID', log.requestId || '-');
-    html += createDetailItem('时间', formatDateTime(log.createdAt));
-    html += createDetailItem('IP 地址', log.ipAddress || '-');
+    html += createDetailItem('Request ID', log.requestId || '-');
+    html += createDetailItem('Time', formatDateTime(log.createdAt));
+    html += createDetailItem('IP Address', log.ipAddress || '-');
     html += createDetailItem('API Key', log.apiKeyPrefix || '-');
     html += '</div></div>';
 
-    // 请求信息
+    // Request info
     html += '<div class="log-detail-section">';
-    html += '<h4 class="log-detail-section-title">请求信息</h4>';
+    html += '<h4 class="log-detail-section-title">Request Info</h4>';
     html += '<div class="log-detail-items">';
-    html += createDetailItem('模型', log.model || '-');
-    html += createDetailItem('类型', log.stream ? '流式' : '同步');
-    html += createDetailItem('状态码', '<span class="logs-status-badge ' + statusClass + '">' + (log.statusCode || 200) + '</span>');
-    html += createDetailItem('耗时', (log.durationMs || 0) + 'ms');
+    html += createDetailItem('Model', log.model || '-');
+    html += createDetailItem('Type', log.stream ? 'Stream' : 'Sync');
+    html += createDetailItem('Status Code', '<span class="logs-status-badge ' + statusClass + '">' + (log.statusCode || 200) + '</span>');
+    html += createDetailItem('Duration', (log.durationMs || 0) + 'ms');
     html += '</div></div>';
 
-    // Token 统计
+    // Token statistics
     html += '<div class="log-detail-section">';
-    html += '<h4 class="log-detail-section-title">Token 统计</h4>';
+    html += '<h4 class="log-detail-section-title">Token Statistics</h4>';
     html += '<div class="log-detail-items">';
-    html += createDetailItem('输入 Tokens', log.inputTokens || 0);
-    html += createDetailItem('输出 Tokens', log.outputTokens || 0);
-    html += createDetailItem('总 Tokens', (log.inputTokens || 0) + (log.outputTokens || 0));
+    html += createDetailItem('Input Tokens', log.inputTokens || 0);
+    html += createDetailItem('Output Tokens', log.outputTokens || 0);
+    html += createDetailItem('Total Tokens', (log.inputTokens || 0) + (log.outputTokens || 0));
     html += '</div></div>';
 
-    // 错误信息（如果有）
+    // Error message (if any)
     if (log.errorMessage) {
         html += '<div class="log-detail-section log-detail-error">';
-        html += '<h4 class="log-detail-section-title">错误信息</h4>';
+        html += '<h4 class="log-detail-section-title">Error Message</h4>';
         html += '<div class="log-detail-error-content">' + escapeHtml(log.errorMessage) + '</div>';
         html += '</div>';
     }
 
-    // 请求/响应数据（如果有）
+    // Request/response data (if any)
     if (log.requestBody || log.responseBody) {
         html += '<div class="log-detail-section">';
-        html += '<h4 class="log-detail-section-title">请求/响应数据</h4>';
+        html += '<h4 class="log-detail-section-title">Request/Response Data</h4>';
         if (log.requestBody) {
-            html += '<div class="log-detail-code-label">请求体:</div>';
+            html += '<div class="log-detail-code-label">Request Body:</div>';
             html += '<pre class="log-detail-code">' + formatJsonString(log.requestBody) + '</pre>';
         }
         if (log.responseBody) {
-            html += '<div class="log-detail-code-label">响应体:</div>';
+            html += '<div class="log-detail-code-label">Response Body:</div>';
             html += '<pre class="log-detail-code">' + formatJsonString(log.responseBody) + '</pre>';
         }
         html += '</div>';
@@ -331,10 +331,10 @@ function copyLogJson() {
     if (!currentLogData) return;
     var jsonStr = JSON.stringify(currentLogData, null, 2);
     copyToClipboard(jsonStr);
-    showToast('已复制到剪贴板', 'success');
+    showToast('Copied to clipboard', 'success');
 }
 
-// ============ 清理模态框 ============
+// ============ Cleanup Modal ============
 
 function openCleanupModal() {
     document.getElementById('cleanup-days').value = '30';
@@ -350,7 +350,7 @@ async function confirmCleanup() {
     var days = parseInt(daysInput.value);
 
     if (isNaN(days) || days < 1 || days > 365) {
-        showToast('请输入 1-365 之间的天数', 'error');
+        showToast('Please enter a number between 1 and 365', 'error');
         return;
     }
 
@@ -365,19 +365,19 @@ async function confirmCleanup() {
         });
         var result = await res.json();
         if (result.success) {
-            showToast('日志清理完成', 'success');
+            showToast('Log cleanup completed', 'success');
             closeCleanupModal();
             loadLogs();
             loadLogsStats();
         } else {
-            showToast(result.error || '清理失败', 'error');
+            showToast(result.error || 'Cleanup failed', 'error');
         }
     } catch (err) {
-        showToast('清理失败: ' + err.message, 'error');
+        showToast('Cleanup failed: ' + err.message, 'error');
     }
 }
 
-// ============ 辅助函数 ============
+// ============ Helper Functions ============
 
 function formatNumber(num) {
     if (num >= 1000000) {

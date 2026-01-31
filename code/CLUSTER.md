@@ -1,27 +1,27 @@
-# 负载均衡与集群部署指南
+# Load Balancing and Cluster Deployment Guide
 
-## 架构概览
+## Architecture Overview
 
 ```
-客户端请求 → :13003 (负载均衡)
-                 ↓ IP 哈希路由
+Client Request → :13003 (Load Balancer)
+                 ↓ IP Hash Routing
          ┌───────┼───────┬───────┬───────┐
          ↓       ↓       ↓       ↓       ↓
       api-1   api-2   api-3   api-4   api-5
       :13004  :13005  :13006  :13007  :13008
                  ↓
-            外部 MySQL
+            External MySQL
 ```
 
-## 环境配置
+## Environment Configuration
 
-创建 `.env` 文件：
+Create a `.env` file:
 
 ```env
-# 负载均衡端口
+# Load Balancer Port
 BALANCER_PORT=13003
 
-# MySQL 数据库配置
+# MySQL Database Configuration
 MYSQL_HOST=127.0.0.1
 MYSQL_PORT=13306
 MYSQL_USER=root
@@ -29,120 +29,120 @@ MYSQL_PASSWORD=
 MYSQL_DATABASE=kiro_api
 ```
 
-## 启动方式
+## Startup Methods
 
-### 方式一：固定 5 实例 (推荐生产环境)
+### Method 1: Fixed 5 Instances (Recommended for Production)
 
 ```bash
-# 启动
+# Start
 docker-compose -f docker-compose.cluster.yml up -d
 
-# 查看状态
+# Check Status
 docker-compose -f docker-compose.cluster.yml ps
 
-# 查看日志
+# View Logs
 docker-compose -f docker-compose.cluster.yml logs -f
 
-# 停止
+# Stop
 docker-compose -f docker-compose.cluster.yml down
 ```
 
-### 方式二：动态扩展 (支持弹性伸缩)
+### Method 2: Dynamic Scaling (Supports Elastic Scaling)
 
 ```bash
-# 启动 5 个实例
+# Start 5 instances
 docker-compose -f docker-compose.scale.yml up -d --scale api=5
 
-# 扩容到 10 个 (不重启已有实例)
+# Scale up to 10 (without restarting existing instances)
 docker-compose -f docker-compose.scale.yml up -d --scale api=10 --no-recreate
 
-# 缩容到 3 个
+# Scale down to 3
 docker-compose -f docker-compose.scale.yml up -d --scale api=3 --no-recreate
 
-# 停止
+# Stop
 docker-compose -f docker-compose.scale.yml down
 ```
 
-### 方式三：本地开发 (不使用 Docker)
+### Method 3: Local Development (Without Docker)
 
 ```bash
-# 终端 1: 启动负载均衡
+# Terminal 1: Start Load Balancer
 npm run balancer
 
-# 终端 2: 启动集群 (5个实例)
+# Terminal 2: Start Cluster (5 instances)
 npm run cluster
 
-# 或一键启动
+# Or one-click start
 npm run prod
 ```
 
-## 状态监控
+## Status Monitoring
 
-### Web 页面
+### Web Pages
 
-- 负载均衡状态页: http://localhost:13003/lb
-- 公开状态页: http://localhost:13003/status.html (或单节点 http://localhost:13004/status.html)
+- Load Balancer Status Page: http://localhost:13003/lb
+- Public Status Page: http://localhost:13003/status.html (or single node http://localhost:13004/status.html)
 
-### API 接口
+### API Endpoints
 
 ```bash
-# JSON 状态
+# JSON Status
 curl http://localhost:13003/lb/status
 
-# 健康检查
+# Health Check
 curl http://localhost:13003/health
 
-# 获取客户端 IP
+# Get Client IP
 curl http://localhost:13003/api/client-ip
 ```
 
-## 负载均衡特性
+## Load Balancer Features
 
-| 特性 | 说明 |
-|------|------|
-| IP 一致性哈希 | 同一客户端 IP 始终路由到同一后端 |
-| 健康检查 | 每 30 秒检查后端状态 |
-| 故障转移 | 后端不可用时自动切换 |
-| DNS 发现 | 动态扩展时自动发现新实例 (每 60 秒) |
-| 实时监控 | Web 页面每 5 秒刷新状态 |
+| Feature              | Description                                                                     |
+|----------------------|---------------------------------------------------------------------------------|
+| IP Consistent Hash   | Same client IP always routes to the same backend                                |
+| Health Check         | Checks backend status every 30 seconds                                          |
+| Failover             | Automatically switches when backend is unavailable                              |
+| DNS Discovery        | Automatically discovers new instances during dynamic scaling (every 60 seconds) |
+| Real-time Monitoring | Web page refreshes status every 5 seconds                                       |
 
-## 配置文件说明
+## Configuration Files
 
-| 文件 | 说明 |
-|------|------|
-| `docker-compose.cluster.yml` | 固定 5 实例配置 |
-| `docker-compose.scale.yml` | 动态扩展配置 |
-| `src/balancer.js` | 负载均衡服务 |
-| `src/cluster.js` | 集群启动脚本 |
-| `src/public/status.html` | 状态监控页面 |
-| `.env` | 环境变量配置 |
+| File                         | Description              |
+|------------------------------|--------------------------|
+| `docker-compose.cluster.yml` | Fixed 5 instances config |
+| `docker-compose.scale.yml`   | Dynamic scaling config   |
+| `src/balancer.js`            | Load balancer service    |
+| `src/cluster.js`             | Cluster startup script   |
+| `src/public/status.html`     | Status monitoring page   |
+| `.env`                       | Environment variables    |
 
-## 环境变量
+## Environment Variables
 
-### 负载均衡 (balancer.js)
+### Load Balancer (balancer.js)
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `BALANCER_PORT` | 13003 | 负载均衡端口 |
-| `BACKEND_HOSTS` | - | Docker 模式: 后端地址列表 |
-| `BACKEND_DNS` | - | DNS 发现模式: 服务名称 |
-| `BACKEND_PORT` | 13004 | DNS 发现模式: 后端端口 |
-| `BACKEND_START_PORT` | 13004 | 本地模式: 起始端口 |
-| `BACKEND_COUNT` | 5 | 本地模式: 实例数量 |
+| Variable             | Default | Description                       |
+|----------------------|---------|-----------------------------------|
+| `BALANCER_PORT`      | 13003   | Load balancer port                |
+| `BACKEND_HOSTS`      | -       | Docker mode: Backend address list |
+| `BACKEND_DNS`        | -       | DNS discovery mode: Service name  |
+| `BACKEND_PORT`       | 13004   | DNS discovery mode: Backend port  |
+| `BACKEND_START_PORT` | 13004   | Local mode: Starting port         |
+| `BACKEND_COUNT`      | 5       | Local mode: Number of instances   |
 
-### 集群 (cluster.js)
+### Cluster (cluster.js)
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `INSTANCE_COUNT` | 5 | 实例数量 |
-| `START_PORT` | 13004 | 起始端口 |
+| Variable         | Default | Description         |
+|------------------|---------|---------------------|
+| `INSTANCE_COUNT` | 5       | Number of instances |
+| `START_PORT`     | 13004   | Starting port       |
 
-### 数据库
+### Database
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `MYSQL_HOST` | host.docker.internal | 数据库地址 |
-| `MYSQL_PORT` | 13306 | 数据库端口 |
-| `MYSQL_USER` | root | 数据库用户 |
-| `MYSQL_PASSWORD` | - | 数据库密码 |
-| `MYSQL_DATABASE` | kiro_api | 数据库名 |
+| Variable         | Default              | Description       |
+|------------------|----------------------|-------------------|
+| `MYSQL_HOST`     | host.docker.internal | Database address  |
+| `MYSQL_PORT`     | 13306                | Database port     |
+| `MYSQL_USER`     | root                 | Database user     |
+| `MYSQL_PASSWORD` | -                    | Database password |
+| `MYSQL_DATABASE` | kiro_api             | Database name     |

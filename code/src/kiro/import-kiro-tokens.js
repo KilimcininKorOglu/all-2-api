@@ -1,24 +1,24 @@
 /**
- * 导入 kiro 目录下的 token 文件到数据库
+ * Import token files from kiro directory to database
  */
 
 import fs from 'fs/promises';
 import path from 'path';
 import { initDatabase, CredentialStore } from '../db.js';
 
-const KIRO_DIR = 'D:\\个人工作\\ai\\kiro';
+const KIRO_DIR = 'D:\\personal-work\\ai\\kiro';
 
 async function importKiroTokens() {
-    console.log('正在连接数据库 127..0.0.1:13306)...');
+    console.log('Connecting to database 127.0.0.1:13306...');
     await initDatabase();
     const store = await CredentialStore.create();
 
-    console.log(`正在扫描目录: ${KIRO_DIR}`);
+    console.log(`Scanning directory: ${KIRO_DIR}`);
 
     const entries = await fs.readdir(KIRO_DIR, { withFileTypes: true });
     const dirs = entries.filter(e => e.isDirectory() && e.name.includes('kiro-auth-token'));
 
-    console.log(`找到 ${dirs.length} 个 token 目录`);
+    console.log(`Found ${dirs.length} token directories`);
 
     let imported = 0;
     let skipped = 0;
@@ -30,7 +30,7 @@ async function importKiroTokens() {
         const jsonFile = files.find(f => f.endsWith('.json'));
 
         if (!jsonFile) {
-            console.log(`[跳过] ${dir.name}: 没有找到 JSON 文件`);
+            console.log(`[Skip] ${dir.name}: JSON file not found`);
             skipped++;
             continue;
         }
@@ -41,19 +41,19 @@ async function importKiroTokens() {
             const content = await fs.readFile(filePath, 'utf-8');
             const data = JSON.parse(content);
 
-            // 生成唯一名称（使用目录名中的时间戳）
+            // Generate unique name (using timestamp from directory name)
             const timestamp = dir.name.split('_')[0];
             const name = `kiro-${data.authMethod || 'builder-id'}-${timestamp}`;
 
-            // 检查是否已存在
+            // Check if already exists
             const existing = await store.getByName(name);
             if (existing) {
-                console.log(`[跳过] ${name}: 已存在`);
+                console.log(`[Skip] ${name}: already exists`);
                 skipped++;
                 continue;
             }
 
-            // 插入数据库
+            // Insert into database
             const id = await store.add({
                 name: name,
                 accessToken: data.accessToken,
@@ -66,25 +66,25 @@ async function importKiroTokens() {
                 expiresAt: data.expiresAt || null
             });
 
-            console.log(`[导入] ${name} (ID: ${id})`);
+            console.log(`[Import] ${name} (ID: ${id})`);
             imported++;
 
         } catch (error) {
-            console.error(`[失败] ${dir.name}: ${error.message}`);
+            console.error(`[Failed] ${dir.name}: ${error.message}`);
             failed++;
         }
     }
 
-    console.log('\n========== 导入完成 ==========');
-    console.log(`成功导入: ${imported}`);
-    console.log(`跳过: ${skipped}`);
-    console.log(`失败: ${failed}`);
-    console.log(`总计: ${dirs.length}`);
+    console.log('\n========== Import Complete ==========');
+    console.log(`Successfully imported: ${imported}`);
+    console.log(`Skipped: ${skipped}`);
+    console.log(`Failed: ${failed}`);
+    console.log(`Total: ${dirs.length}`);
 
     process.exit(0);
 }
 
 importKiroTokens().catch(err => {
-    console.error('导入失败:', err);
+    console.error('Import failed:', err);
     process.exit(1);
 });

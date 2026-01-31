@@ -1,15 +1,15 @@
 #!/usr/bin/env node
 /**
- * 负载均衡服务 - 基于 IP 的一致性哈希轮询
- * 端口: 13003
+ * Load Balancer Service - IP-based consistent hashing round-robin
+ * Port: 13003
  *
- * 环境变量:
- *   BALANCER_PORT - 负载均衡端口 (默认 13003)
- *   BACKEND_HOSTS - Docker 模式: 逗号分隔的后端地址
- *   BACKEND_DNS - DNS 发现模式: 服务名称
- *   BACKEND_PORT - DNS 发现模式: 后端端口 (默认 13004)
- *   BACKEND_START_PORT - 本地模式: 起始端口 (默认 13004)
- *   BACKEND_COUNT - 本地模式: 实例数量 (默认 5)
+ * Environment Variables:
+ *   BALANCER_PORT - Load balancer port (default 13003)
+ *   BACKEND_HOSTS - Docker mode: comma-separated backend addresses
+ *   BACKEND_DNS - DNS discovery mode: service name
+ *   BACKEND_PORT - DNS discovery mode: backend port (default 13004)
+ *   BACKEND_START_PORT - Local mode: starting port (default 13004)
+ *   BACKEND_COUNT - Local mode: instance count (default 5)
  */
 
 import http from 'http';
@@ -23,7 +23,7 @@ const BALANCER_PORT = parseInt(process.env.BALANCER_PORT || '13003');
 let backends = [];
 
 function getTimestamp() {
-    return new Date().toLocaleString('zh-CN', { hour12: false });
+    return new Date().toLocaleString('en-US', { hour12: false });
 }
 
 async function initBackends() {
@@ -36,9 +36,9 @@ async function initBackends() {
             for (const ip of ips) {
                 backends.push({ host: ip, port, healthy: true, lastCheck: Date.now() });
             }
-            console.log(`[${getTimestamp()}] DNS 发现: ${serviceName} -> ${ips.length} 个实例`);
+            console.log(`[${getTimestamp()}] DNS discovery: ${serviceName} -> ${ips.length} instances`);
         } catch (err) {
-            console.error(`[${getTimestamp()}] DNS 发现失败: ${err.message}`);
+            console.error(`[${getTimestamp()}] DNS discovery failed: ${err.message}`);
             backends.push({ host: serviceName, port, healthy: true, lastCheck: Date.now() });
         }
     } else if (process.env.BACKEND_HOSTS) {
@@ -103,7 +103,7 @@ function proxyRequest(req, res, backend) {
     });
 
     proxyReq.on('error', (err) => {
-        console.error(`[${getTimestamp()}] 后端错误: ${err.message}`);
+        console.error(`[${getTimestamp()}] Backend error: ${err.message}`);
         backend.healthy = false;
         const other = backends.find(b => b.healthy && b !== backend);
         if (other) proxyRequest(req, res, other);
@@ -123,15 +123,15 @@ async function healthCheck() {
         } catch { b.healthy = false; }
         b.lastCheck = Date.now();
     }
-    console.log(`[${getTimestamp()}] 健康检查: ${backends.filter(b => b.healthy).length}/${backends.length} 可用`);
+    console.log(`[${getTimestamp()}] Health check: ${backends.filter(b => b.healthy).length}/${backends.length} available`);
 }
 
 function getStatusPage() {
     return `<!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>负载均衡状态</title>
+<title>Load Balancer Status</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:linear-gradient(135deg,#0f0f1a,#1a1a2e,#16213e);min-height:100vh;color:#fff;padding:20px}
@@ -178,32 +178,32 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;b
 </head>
 <body>
 <div class="container">
-<div class="header"><h1>Kiro API Gateway</h1><p>负载均衡状态监控</p></div>
+<div class="header"><h1>Kiro API Gateway</h1><p>Load Balancer Status Monitor</p></div>
 <div class="your-route"><div class="your-route-content">
-<div class="route-box"><div class="label">你的 IP</div><div class="value" id="clientIP">检测中...</div></div>
+<div class="route-box"><div class="label">Your IP</div><div class="value" id="clientIP">Detecting...</div></div>
 <div class="route-arrow">→</div>
-<div class="route-box"><div class="label">负载均衡</div><div class="value">:13003</div></div>
+<div class="route-box"><div class="label">Load Balancer</div><div class="value">:13003</div></div>
 <div class="route-arrow">→</div>
-<div class="route-box target"><div class="label">路由到节点</div><div class="value" id="targetNode">计算中...</div></div>
+<div class="route-box target"><div class="label">Routed to Node</div><div class="value" id="targetNode">Calculating...</div></div>
 </div></div>
 <div class="stats">
-<div class="stat-card total"><div class="number" id="totalNodes">-</div><div class="label">总节点数</div></div>
-<div class="stat-card healthy"><div class="number" id="healthyNodes">-</div><div class="label">健康节点</div></div>
-<div class="stat-card unhealthy"><div class="number" id="unhealthyNodes">-</div><div class="label">异常节点</div></div>
+<div class="stat-card total"><div class="number" id="totalNodes">-</div><div class="label">Total Nodes</div></div>
+<div class="stat-card healthy"><div class="number" id="healthyNodes">-</div><div class="label">Healthy Nodes</div></div>
+<div class="stat-card unhealthy"><div class="number" id="unhealthyNodes">-</div><div class="label">Unhealthy Nodes</div></div>
 </div>
-<div class="nodes-grid" id="nodesGrid"><div style="text-align:center;padding:50px;color:#666">加载中...</div></div>
-<div class="footer">每 5 秒自动刷新 | 最后更新: <span id="lastUpdate">-</span><br><br><a href="/login.html">管理后台</a></div>
+<div class="nodes-grid" id="nodesGrid"><div style="text-align:center;padding:50px;color:#666">Loading...</div></div>
+<div class="footer">Auto-refresh every 5 seconds | Last update: <span id="lastUpdate">-</span><br><br><a href="/login.html">Admin Console</a></div>
 </div>
 <script>
 let clientIP = null;
 function hashIP(ip, n) { let h = 0; for (let i = 0; i < ip.length; i++) { h = ((h << 5) - h) + ip.charCodeAt(i); h = h & h; } return Math.abs(h) % n; }
 async function fetchStatus() {
     try {
-        if (!clientIP) { const r = await fetch('/api/client-ip'); clientIP = (await r.json()).ip || '未知'; document.getElementById('clientIP').textContent = clientIP; }
+        if (!clientIP) { const r = await fetch('/api/client-ip'); clientIP = (await r.json()).ip || 'Unknown'; document.getElementById('clientIP').textContent = clientIP; }
         const res = await fetch('/lb/status'); const data = await res.json();
         const backends = data.backends, healthy = backends.filter(b => b.reachable);
         let targetIdx = 0;
-        if (healthy.length > 0 && clientIP !== '未知') { const hi = hashIP(clientIP, healthy.length); const tb = healthy[hi]; targetIdx = backends.findIndex(b => b.host === tb.host && b.port === tb.port); }
+        if (healthy.length > 0 && clientIP !== 'Unknown') { const hi = hashIP(clientIP, healthy.length); const tb = healthy[hi]; targetIdx = backends.findIndex(b => b.host === tb.host && b.port === tb.port); }
         document.getElementById('targetNode').textContent = backends[targetIdx] ? ':' + backends[targetIdx].port : '-';
         document.getElementById('totalNodes').textContent = data.summary.total;
         document.getElementById('healthyNodes').textContent = data.summary.healthy;
@@ -214,14 +214,14 @@ async function fetchStatus() {
             const lc = lat !== null ? (lat < 50 ? 'good' : lat < 200 ? 'medium' : 'slow') : '';
             return '<div class="node-card ' + (online ? 'online' : 'offline') + (current ? ' current' : '') + '">' +
                 '<div class="node-header"><div class="status-indicator"></div><div class="node-name">' + b.host + ':' + b.port + '</div>' +
-                (current ? '<span class="current-badge">当前节点</span>' : '') + '</div>' +
-                '<div class="node-info"><span class="label">状态</span><span>' + (online ? '✅ 在线' : '❌ 离线') + '</span></div>' +
-                '<div class="node-info"><span class="label">延迟</span><span class="latency ' + lc + '">' + (b.latency || '-') + '</span></div>' +
-                '<div class="node-info"><span class="label">健康检查</span><span>' + (b.healthy ? '通过' : '失败') + '</span></div>' +
-                (b.error ? '<div class="error-msg">错误: ' + b.error + '</div>' : '') + '</div>';
+                (current ? '<span class="current-badge">Current Node</span>' : '') + '</div>' +
+                '<div class="node-info"><span class="label">Status</span><span>' + (online ? '✅ Online' : '❌ Offline') + '</span></div>' +
+                '<div class="node-info"><span class="label">Latency</span><span class="latency ' + lc + '">' + (b.latency || '-') + '</span></div>' +
+                '<div class="node-info"><span class="label">Health Check</span><span>' + (b.healthy ? 'Passed' : 'Failed') + '</span></div>' +
+                (b.error ? '<div class="error-msg">Error: ' + b.error + '</div>' : '') + '</div>';
         }).join('');
-        document.getElementById('lastUpdate').textContent = new Date().toLocaleString('zh-CN', { hour12: false });
-    } catch (e) { console.error('获取状态失败:', e); }
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleString('en-US', { hour12: false });
+    } catch (e) { console.error('Failed to fetch status:', e); }
 }
 fetchStatus(); setInterval(fetchStatus, 5000);
 </script>
@@ -264,13 +264,13 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(BALANCER_PORT, () => {
-    console.log(`[${getTimestamp()}] 负载均衡服务已启动 | http://localhost:${BALANCER_PORT}`);
-    console.log(`[${getTimestamp()}] 后端实例: ${backends.map(b => b.host + ':' + b.port).join(', ')}`);
-    console.log(`[${getTimestamp()}] 状态页面: http://localhost:${BALANCER_PORT}/lb`);
+    console.log(`[${getTimestamp()}] Load balancer started | http://localhost:${BALANCER_PORT}`);
+    console.log(`[${getTimestamp()}] Backend instances: ${backends.map(b => b.host + ':' + b.port).join(', ')}`);
+    console.log(`[${getTimestamp()}] Status page: http://localhost:${BALANCER_PORT}/lb`);
 });
 
 setInterval(healthCheck, 30000);
 setInterval(() => { const exp = Date.now() - 3600000; for (const [k, v] of ipMapping) if (v.timestamp < exp) ipMapping.delete(k); }, 600000);
-if (process.env.BACKEND_DNS) setInterval(async () => { const old = backends.length; await initBackends(); if (backends.length !== old) { console.log(`[${getTimestamp()}] 后端数量变化: ${old} -> ${backends.length}`); ipMapping.clear(); } }, 60000);
+if (process.env.BACKEND_DNS) setInterval(async () => { const old = backends.length; await initBackends(); if (backends.length !== old) { console.log(`[${getTimestamp()}] Backend count changed: ${old} -> ${backends.length}`); ipMapping.clear(); } }, 60000);
 setTimeout(healthCheck, 5000);
-process.on('SIGINT', () => { console.log(`\n[${getTimestamp()}] 负载均衡服务关闭`); server.close(); process.exit(0); });
+process.on('SIGINT', () => { console.log(`\n[${getTimestamp()}] Load balancer shutting down`); server.close(); process.exit(0); });

@@ -1,6 +1,6 @@
 import mysql from 'mysql2/promise';
 
-// MySQL 连接配置
+// MySQL connection configuration
 const DB_CONFIG = {
     host: process.env.MYSQL_HOST || '127.0.0.1',
     port: parseInt(process.env.MYSQL_PORT || '13306'),
@@ -11,20 +11,20 @@ const DB_CONFIG = {
     connectionLimit: 10,
     queueLimit: 0,
     timezone: '+08:00',
-    dateStrings: true  // 返回日期字符串而不是 Date 对象，避免时区转换问题
+    dateStrings: true  // Return date strings instead of Date objects, avoiding timezone conversion issues
 };
 
 let pool = null;
 
 /**
- * 初始化数据库连接池
+ * Initialize database connection pool
  */
 export async function initDatabase() {
     if (pool) return pool;
 
     pool = mysql.createPool(DB_CONFIG);
 
-    // 创建凭据表
+    // Create credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -46,14 +46,14 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 添加 provider 列（如果不存在）
+    // Add provider column (if not exists)
     try {
         await pool.execute(`ALTER TABLE credentials ADD COLUMN provider VARCHAR(50) DEFAULT 'Google' AFTER auth_method`);
     } catch (e) {
-        // 列已存在，忽略错误
+        // Column already exists, ignore error
     }
 
-    // 创建错误凭据表
+    // Create error credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS error_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -74,7 +74,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建用户表
+    // Create users table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS users (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -86,7 +86,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 API 密钥表
+    // Create API keys table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS api_keys (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -111,7 +111,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 API 日志表
+    // Create API logs table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS api_logs (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -141,7 +141,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 Gemini Antigravity 凭证表
+    // Create Gemini Antigravity credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS gemini_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -162,7 +162,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 Gemini 错误凭证表
+    // Create Gemini error credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS gemini_error_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -180,7 +180,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 Orchids 凭证表
+    // Create Orchids credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS orchids_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -206,24 +206,24 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 添加 Orchids 凭证表新字段（迁移兼容）
+    // Add Orchids credentials table new fields (migration compatible)
     try {
         await pool.execute(`ALTER TABLE orchids_credentials ADD COLUMN weight INT DEFAULT 1 AFTER is_active`);
-    } catch (e) { /* 字段可能已存在 */ }
+    } catch (e) { /* Field may already exist */ }
     try {
         await pool.execute(`ALTER TABLE orchids_credentials ADD COLUMN request_count BIGINT DEFAULT 0 AFTER weight`);
-    } catch (e) { /* 字段可能已存在 */ }
+    } catch (e) { /* Field may already exist */ }
     try {
         await pool.execute(`ALTER TABLE orchids_credentials ADD COLUMN success_count BIGINT DEFAULT 0 AFTER request_count`);
-    } catch (e) { /* 字段可能已存在 */ }
+    } catch (e) { /* Field may already exist */ }
     try {
         await pool.execute(`ALTER TABLE orchids_credentials ADD COLUMN failure_count BIGINT DEFAULT 0 AFTER success_count`);
-    } catch (e) { /* 字段可能已存在 */ }
+    } catch (e) { /* Field may already exist */ }
     try {
         await pool.execute(`ALTER TABLE orchids_credentials ADD COLUMN last_used_at DATETIME AFTER failure_count`);
-    } catch (e) { /* 字段可能已存在 */ }
+    } catch (e) { /* Field may already exist */ }
 
-    // 创建 Orchids 错误凭证表
+    // Create Orchids error credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS orchids_error_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -241,7 +241,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 Warp 凭证表
+    // Create Warp credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS warp_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -264,18 +264,18 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
     
-    // 添加用量字段（如果不存在）
+    // Add quota fields (if not exists)
     try {
         await pool.execute(`ALTER TABLE warp_credentials ADD COLUMN quota_limit INT DEFAULT 0`);
-    } catch (e) { /* 字段已存在 */ }
+    } catch (e) { /* Field already exists */ }
     try {
         await pool.execute(`ALTER TABLE warp_credentials ADD COLUMN quota_used INT DEFAULT 0`);
-    } catch (e) { /* 字段已存在 */ }
+    } catch (e) { /* Field already exists */ }
     try {
         await pool.execute(`ALTER TABLE warp_credentials ADD COLUMN quota_updated_at DATETIME`);
-    } catch (e) { /* 字段已存在 */ }
+    } catch (e) { /* Field already exists */ }
 
-    // 创建 Warp 请求统计表（不记录消息内容）
+    // Create Warp request statistics table (without message content)
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS warp_request_stats (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -298,7 +298,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 Warp 错误凭证表
+    // Create Warp error credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS warp_error_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -314,7 +314,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建试用申请表
+    // Create trial applications table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS trial_applications (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -337,14 +337,14 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 修改 order_screenshot 字段为 MEDIUMTEXT（如果表已存在且字段是 TEXT）
+    // Modify order_screenshot field to MEDIUMTEXT (if table exists and field is TEXT)
     try {
         await pool.execute(`ALTER TABLE trial_applications MODIFY COLUMN order_screenshot MEDIUMTEXT`);
     } catch (e) {
-        // 忽略错误
+        // Ignore error
     }
 
-    // 创建站点设置表
+    // Create site settings table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS site_settings (
             id INT PRIMARY KEY DEFAULT 1,
@@ -355,14 +355,14 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 确保站点设置表有默认记录
+    // Ensure site settings table has default record
     try {
         await pool.execute(`INSERT IGNORE INTO site_settings (id, site_name, site_logo, site_subtitle) VALUES (1, 'Kiro', 'K', 'Account Manager')`);
     } catch (e) {
-        // 忽略错误
+        // Ignore error
     }
 
-    // 创建 Vertex AI 凭证表
+    // Create Vertex AI credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS vertex_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -382,15 +382,15 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建模型定价配置表
+    // Create model pricing configuration table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS model_pricing (
             id INT PRIMARY KEY AUTO_INCREMENT,
             model_name VARCHAR(255) NOT NULL UNIQUE,
             display_name VARCHAR(255),
             provider VARCHAR(50) DEFAULT 'anthropic',
-            input_price DECIMAL(10, 4) NOT NULL COMMENT '输入价格（美元/百万tokens）',
-            output_price DECIMAL(10, 4) NOT NULL COMMENT '输出价格（美元/百万tokens）',
+            input_price DECIMAL(10, 4) NOT NULL COMMENT 'Input price (USD per million tokens)',
+            output_price DECIMAL(10, 4) NOT NULL COMMENT 'Output price (USD per million tokens)',
             is_active TINYINT DEFAULT 1,
             sort_order INT DEFAULT 0,
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -398,7 +398,7 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // 创建 Amazon Bedrock 凭证表
+    // Create Amazon Bedrock credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS bedrock_credentials (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -422,7 +422,7 @@ export async function initDatabase() {
 }
 
 /**
- * 获取数据库连接池
+ * Get database connection pool
  */
 export async function getDatabase() {
     if (!pool) {
@@ -432,7 +432,7 @@ export async function getDatabase() {
 }
 
 /**
- * 关闭数据库连接池
+ * Close database connection pool
  */
 export async function closeDatabase() {
     if (pool) {
@@ -442,7 +442,7 @@ export async function closeDatabase() {
 }
 
 /**
- * 凭据管理类
+ * Credential management class
  */
 export class CredentialStore {
     constructor(database) {
@@ -567,7 +567,7 @@ export class CredentialStore {
                     results.failed++;
                     results.errors.push({
                         email: account.email || 'unknown',
-                        error: '缺少 email 或 refreshToken'
+                        error: 'Missing email or refreshToken'
                     });
                     continue;
                 }
@@ -770,7 +770,7 @@ export class CredentialStore {
 }
 
 /**
- * 用户管理类
+ * User management class
  */
 export class UserStore {
     constructor(database) {
@@ -791,7 +791,7 @@ export class UserStore {
             return result.insertId;
         } catch (error) {
             if (error.code === 'ER_DUP_ENTRY') {
-                throw new Error('用户名已存在');
+                throw new Error('Username already exists');
             }
             throw error;
         }
@@ -844,7 +844,7 @@ export class UserStore {
 }
 
 /**
- * API 密钥管理类
+ * API key management class
  */
 export class ApiKeyStore {
     constructor(database) {
@@ -933,22 +933,22 @@ export class ApiKeyStore {
     }
 
     /**
-     * 续费 - 增加有效期天数
-     * @param {number} id - API 密钥 ID
-     * @param {number} days - 要增加的天数
-     * @returns {object} 续费结果，包含新的过期信息
+     * Renew - add validity period days
+     * @param {number} id - API key ID
+     * @param {number} days - Days to add
+     * @returns {object} Renewal result, containing new expiration information
      */
     async renew(id, days) {
         if (!days || days <= 0) {
-            throw new Error('续费天数必须大于 0');
+            throw new Error('Renewal days must be greater than 0');
         }
 
         const key = await this.getById(id);
         if (!key) {
-            throw new Error('密钥不存在');
+            throw new Error('Key does not exist');
         }
 
-        // 直接在原有天数基础上增加
+        // Add to existing days directly
         const previousDays = key.expiresInDays || 0;
         const newExpiresInDays = previousDays + days;
 
@@ -956,15 +956,15 @@ export class ApiKeyStore {
             UPDATE api_keys SET expires_in_days = ? WHERE id = ?
         `, [newExpiresInDays, id]);
 
-        // 计算新的过期日期和剩余天数（用于返回显示）
-        // createdAt 是数据库存储的北京时间字符串 "YYYY-MM-DD HH:mm:ss"
+        // Calculate new expiration date and remaining days (for display)
+        // createdAt is a Beijing time string stored in database "YYYY-MM-DD HH:mm:ss"
         const now = new Date();
         const createDateStr = key.createdAt.replace(' ', 'T') + '+08:00';
         const createDate = new Date(createDateStr);
         const newExpireDate = new Date(createDate.getTime() + newExpiresInDays * 24 * 60 * 60 * 1000);
         const remainingDays = Math.max(0, Math.ceil((newExpireDate - now) / (24 * 60 * 60 * 1000)));
 
-        // 格式化过期时间为北京时间字符串
+        // Format expiration time as Beijing time string
         const expireDateLocal = new Date(newExpireDate.getTime() + 8 * 60 * 60 * 1000);
         const expireDateStr = expireDateLocal.toISOString().replace('T', ' ').replace(/\.\d{3}Z$/, '');
 
@@ -1032,7 +1032,7 @@ export class ApiKeyStore {
 }
 
 /**
- * API 日志管理类
+ * API log management class
  */
 export class ApiLogStore {
     constructor(database) {
@@ -1098,7 +1098,7 @@ export class ApiLogStore {
             params.push(endDate);
         }
 
-        // 获取总数
+        // Get total count
         const countQuery = query.replace('SELECT *', 'SELECT COUNT(*) as total');
         const [countRows] = await this.db.execute(countQuery, params);
         const total = Number(countRows[0].total) || 0;
@@ -1304,7 +1304,7 @@ export class ApiLogStore {
         const [rows] = await this.db.execute(query, params);
         return rows.map(row => ({
             apiKeyId: row.api_key_id,
-            apiKeyName: row.apiKeyName || '未知',
+            apiKeyName: row.apiKeyName || 'Unknown',
             apiKeyPrefix: row.apiKeyPrefix || '',
             requestCount: Number(row.requestCount) || 0,
             inputTokens: Number(row.inputTokens) || 0,
@@ -1575,7 +1575,7 @@ export class ApiLogStore {
 }
 
 /**
- * Gemini Antigravity 凭证管理类
+ * Gemini Antigravity credential management class
  */
 export class GeminiCredentialStore {
     constructor(database) {
@@ -1717,7 +1717,7 @@ export class GeminiCredentialStore {
         };
     }
 
-    // ============ 错误凭证管理 ============
+    // ============ Error Credential Management ============
 
     async moveToError(id, errorMessage) {
         const credential = await this.getById(id);
@@ -1819,7 +1819,7 @@ export class GeminiCredentialStore {
 }
 
 /**
- * Orchids 凭证管理类
+ * Orchids credential management class
  */
 export class OrchidsCredentialStore {
     constructor(database) {
@@ -1851,7 +1851,7 @@ export class OrchidsCredentialStore {
     async update(id, credential) {
         const toNull = (val) => val === undefined ? null : val;
         
-        // 构建动态更新语句
+        // Build dynamic update statement
         const updates = [];
         const values = [];
         
@@ -1965,10 +1965,10 @@ export class OrchidsCredentialStore {
         };
     }
 
-    // ============ 负载均衡相关方法 ============
+    // ============ Load Balancing Related Methods ============
 
     /**
-     * 获取所有已启用的账号（用于负载均衡）
+     * Get all enabled accounts (for load balancing)
      */
     async getEnabledAccounts() {
         const [rows] = await this.db.execute(
@@ -1978,14 +1978,14 @@ export class OrchidsCredentialStore {
     }
 
     /**
-     * 更新权重
+     * Update weight
      */
     async updateWeight(id, weight) {
         await this.db.execute('UPDATE orchids_credentials SET weight = ? WHERE id = ?', [weight, id]);
     }
 
     /**
-     * 增加请求计数
+     * Add request count
      */
     async addRequestCount(id, count = 1) {
         await this.db.execute(
@@ -1995,7 +1995,7 @@ export class OrchidsCredentialStore {
     }
 
     /**
-     * 增加成功计数
+     * Add success count
      */
     async addSuccessCount(id, count = 1) {
         await this.db.execute(
@@ -2005,7 +2005,7 @@ export class OrchidsCredentialStore {
     }
 
     /**
-     * 增加失败计数
+     * Add failure count
      */
     async addFailureCount(id, count = 1) {
         await this.db.execute(
@@ -2015,7 +2015,7 @@ export class OrchidsCredentialStore {
     }
 
     /**
-     * 重置统计计数
+     * Reset statistics counts
      */
     async resetCounts(id) {
         await this.db.execute(
@@ -2025,7 +2025,7 @@ export class OrchidsCredentialStore {
     }
 
     /**
-     * 获取统计汇总
+     * Get statistics summary
      */
     async getStats() {
         const [rows] = await this.db.execute(`
@@ -2041,7 +2041,7 @@ export class OrchidsCredentialStore {
         return rows[0];
     }
 
-    // ============ 错误凭证管理 ============
+    // ============ Error Credential Management ============
 
     async moveToError(id, errorMessage) {
         const credential = await this.getById(id);
@@ -2143,7 +2143,7 @@ export class OrchidsCredentialStore {
 }
 
 /**
- * Warp 凭证管理类
+ * Warp credential management class
  */
 export class WarpCredentialStore {
     constructor(database) {
@@ -2257,9 +2257,9 @@ export class WarpCredentialStore {
     }
 
     async getRandomActive() {
-        // 获取使用次数最少的活跃账号
+        // Get active account with least usage count
         const [rows] = await this.db.execute(`
-            SELECT * FROM warp_credentials 
+            SELECT * FROM warp_credentials
             WHERE is_active = 1 AND error_count < 3
             ORDER BY use_count ASC, RAND()
             LIMIT 1
@@ -2269,29 +2269,29 @@ export class WarpCredentialStore {
     }
 
     async getRandomActiveExcluding(excludeIds = []) {
-        // 获取使用次数最少的活跃账号，排除指定 ID
+        // Get active account with least usage count, excluding specified IDs
         let query = `
-            SELECT * FROM warp_credentials 
+            SELECT * FROM warp_credentials
             WHERE is_active = 1 AND error_count < 3
         `;
-        
+
         if (excludeIds.length > 0) {
             const placeholders = excludeIds.map(() => '?').join(',');
             query += ` AND id NOT IN (${placeholders})`;
         }
-        
+
         query += ` ORDER BY use_count ASC, RAND() LIMIT 1`;
-        
+
         const [rows] = await this.db.execute(query, excludeIds);
         if (rows.length === 0) return null;
         return this._mapRow(rows[0]);
     }
 
     async markQuotaExhausted(id) {
-        // 标记账号额度耗尽（增加错误计数到阈值）
+        // Mark account quota exhausted (increase error count to threshold)
         await this.db.execute(
             'UPDATE warp_credentials SET error_count = 3, last_error_message = ?, last_error_at = NOW() WHERE id = ?',
-            ['额度耗尽', id]
+            ['Quota exhausted', id]
         );
     }
 
@@ -2350,7 +2350,7 @@ export class WarpCredentialStore {
         );
     }
 
-    // ============ 错误凭证管理 ============
+    // ============ Error Credential Management ============
 
     async moveToError(id, errorMessage) {
         const credential = await this.getById(id);
@@ -2437,7 +2437,7 @@ export class WarpCredentialStore {
 }
 
 /**
- * Warp 请求统计存储
+ * Warp request statistics storage
  */
 export class WarpRequestStatsStore {
     constructor(db) {
@@ -2622,7 +2622,7 @@ export class WarpRequestStatsStore {
 }
 
 /**
- * 试用申请管理类
+ * Trial application management class
  */
 export class TrialApplicationStore {
     constructor(database) {
@@ -2765,7 +2765,7 @@ export class TrialApplicationStore {
 }
 
 /**
- * 站点设置管理类
+ * Site settings management class
  */
 export class SiteSettingsStore {
     constructor(database) {
@@ -2816,7 +2816,7 @@ export class SiteSettingsStore {
 }
 
 /**
- * Vertex AI 凭证管理类
+ * Vertex AI credential management class
  */
 export class VertexCredentialStore {
     constructor(database) {
@@ -2967,7 +2967,7 @@ export class VertexCredentialStore {
     }
 
     /**
-     * 将凭据转换为 GCP 服务账号格式
+     * Convert credentials to GCP service account format
      */
     toGcpCredentials(credential) {
       return {
@@ -2980,14 +2980,14 @@ export class VertexCredentialStore {
 }
 
 /**
- * 模型定价管理类
+ * Model pricing management class
  */
 export class ModelPricingStore {
     constructor(database) {
         this.db = database;
         this.cache = null;
         this.cacheTime = null;
-        this.cacheTTL = 60000; // 缓存 60 秒
+        this.cacheTTL = 60000; // Cache for 60 seconds
     }
 
     static async create() {
@@ -2996,7 +2996,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 获取所有定价配置
+     * Get all pricing configurations
      */
     async getAll() {
         const [rows] = await this.db.execute(`
@@ -3006,7 +3006,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 获取所有定价配置（带缓存）
+     * Get all pricing configurations (with cache)
      */
     async getAllCached() {
         const now = Date.now();
@@ -3019,7 +3019,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 根据模型名称获取定价
+     * Get pricing by model name
      */
     async getByModel(modelName) {
         const [rows] = await this.db.execute(`
@@ -3029,7 +3029,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 获取定价映射表（带缓存，用于快速查找）
+     * Get pricing mapping table (with cache, for quick lookup)
      */
     async getPricingMap() {
         const all = await this.getAllCached();
@@ -3046,7 +3046,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 根据 ID 获取定价
+     * Get pricing by ID
      */
     async getById(id) {
         const [rows] = await this.db.execute(`
@@ -3056,7 +3056,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 添加定价配置
+     * Add pricing configuration
      */
     async add(pricing) {
         const [result] = await this.db.execute(`
@@ -3076,7 +3076,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 更新定价配置
+     * Update pricing configuration
      */
     async update(id, pricing) {
         await this.db.execute(`
@@ -3103,7 +3103,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 删除定价配置
+     * Delete pricing configuration
      */
     async delete(id) {
         await this.db.execute('DELETE FROM model_pricing WHERE id = ?', [id]);
@@ -3111,20 +3111,20 @@ export class ModelPricingStore {
     }
 
     /**
-     * 批量导入定价配置
+     * Batch import pricing configurations
      */
     async batchImport(pricingList) {
         const results = { success: 0, failed: 0, errors: [] };
-        
+
         for (const pricing of pricingList) {
             try {
-                // 检查是否已存在
+                // Check if already exists
                 const existing = await this.getByModel(pricing.modelName);
                 if (existing) {
-                    // 更新现有记录
+                    // Update existing record
                     await this.update(existing.id, pricing);
                 } else {
-                    // 添加新记录
+                    // Add new record
                     await this.add(pricing);
                 }
                 results.success++;
@@ -3133,13 +3133,13 @@ export class ModelPricingStore {
                 results.errors.push({ modelName: pricing.modelName, error: err.message });
             }
         }
-        
+
         this.clearCache();
         return results;
     }
 
     /**
-     * 初始化默认定价配置
+     * Initialize default pricing configuration
      */
     async initDefaultPricing() {
         const defaultPricing = [
@@ -3165,7 +3165,7 @@ export class ModelPricingStore {
             { modelName: 'claude-3-sonnet-20240229', displayName: 'Claude 3 Sonnet', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 31 },
             // Claude 3 Haiku
             { modelName: 'claude-3-haiku-20240307', displayName: 'Claude 3 Haiku', provider: 'anthropic', inputPrice: 0.25, outputPrice: 1.25, sortOrder: 32 },
-            // Gemini 模型
+            // Gemini models
             { modelName: 'gemini-3-pro-preview', displayName: 'Gemini 3 Pro', provider: 'google', inputPrice: 1.25, outputPrice: 5, sortOrder: 50 },
             { modelName: 'gemini-3-flash-preview', displayName: 'Gemini 3 Flash', provider: 'google', inputPrice: 0.075, outputPrice: 0.30, sortOrder: 51 },
             { modelName: 'gemini-2.5-flash-preview', displayName: 'Gemini 2.5 Flash', provider: 'google', inputPrice: 0.075, outputPrice: 0.30, sortOrder: 52 },
@@ -3175,7 +3175,7 @@ export class ModelPricingStore {
     }
 
     /**
-     * 清除缓存
+     * Clear cache
      */
     clearCache() {
         this.cache = null;
@@ -3199,7 +3199,7 @@ export class ModelPricingStore {
 }
 
 /**
- * Amazon Bedrock 凭证管理类
+ * Amazon Bedrock credential management class
  */
 export class BedrockCredentialStore {
     constructor(database) {

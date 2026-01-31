@@ -1,5 +1,5 @@
 /**
- * Amazon Bedrock API 路由
+ * Amazon Bedrock API Routes
  */
 import express from 'express';
 import { BedrockCredentialStore } from '../db.js';
@@ -10,17 +10,17 @@ import { logger } from '../logger.js';
 const log = logger.api;
 const router = express.Router();
 
-// ==================== 凭据管理 API ====================
+// ==================== Credential Management API ====================
 
 /**
- * 获取所有 Bedrock 凭据
+ * Get all Bedrock credentials
  */
 router.get('/credentials', async (req, res) => {
     try {
         const store = await BedrockCredentialStore.create();
         const credentials = await store.getAll();
         
-        // 隐藏敏感信息
+        // Hide sensitive information
         const safeCredentials = credentials.map(cred => ({
             ...cred,
             accessKeyId: cred.accessKeyId ? cred.accessKeyId.substring(0, 8) + '****' : null,
@@ -30,13 +30,13 @@ router.get('/credentials', async (req, res) => {
         
         res.json({ success: true, data: safeCredentials });
     } catch (error) {
-        log.error(`获取 Bedrock 凭据列表失败: ${error.message}`);
+        log.error(`Failed to get Bedrock credentials list: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 获取单个 Bedrock 凭据
+ * Get a single Bedrock credential
  */
 router.get('/credentials/:id', async (req, res) => {
     try {
@@ -44,10 +44,10 @@ router.get('/credentials/:id', async (req, res) => {
         const credential = await store.getById(parseInt(req.params.id));
         
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
-        // 隐藏敏感信息
+        // Hide sensitive information
         const safeCredential = {
             ...credential,
             accessKeyId: credential.accessKeyId ? credential.accessKeyId.substring(0, 8) + '****' : null,
@@ -57,28 +57,28 @@ router.get('/credentials/:id', async (req, res) => {
         
         res.json({ success: true, data: safeCredential });
     } catch (error) {
-        log.error(`获取 Bedrock 凭据失败: ${error.message}`);
+        log.error(`Failed to get Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 添加 Bedrock 凭据
+ * Add Bedrock credential
  */
 router.post('/credentials', async (req, res) => {
     try {
         const { name, accessKeyId, secretAccessKey, sessionToken, region } = req.body;
         
         if (!name || !accessKeyId || !secretAccessKey) {
-            return res.status(400).json({ success: false, error: '缺少必要参数: name, accessKeyId, secretAccessKey' });
+            return res.status(400).json({ success: false, error: 'Missing required parameters: name, accessKeyId, secretAccessKey' });
         }
         
         const store = await BedrockCredentialStore.create();
         
-        // 检查名称是否已存在
+        // Check if name already exists
         const existing = await store.getByName(name);
         if (existing) {
-            return res.status(400).json({ success: false, error: `名称 "${name}" 已存在` });
+            return res.status(400).json({ success: false, error: `Name "${name}" already exists` });
         }
         
         const id = await store.add({
@@ -89,16 +89,16 @@ router.post('/credentials', async (req, res) => {
             region: region || BEDROCK_CONSTANTS.DEFAULT_REGION
         });
         
-        log.info(`添加 Bedrock 凭据成功: ${name} (ID: ${id})`);
+        log.info(`Successfully added Bedrock credential: ${name} (ID: ${id})`);
         res.json({ success: true, data: { id, name } });
     } catch (error) {
-        log.error(`添加 Bedrock 凭据失败: ${error.message}`);
+        log.error(`Failed to add Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 更新 Bedrock 凭据
+ * Update Bedrock credential
  */
 router.put('/credentials/:id', async (req, res) => {
     try {
@@ -107,7 +107,7 @@ router.put('/credentials/:id', async (req, res) => {
         
         const existing = await store.getById(id);
         if (!existing) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
         const updates = {};
@@ -120,16 +120,16 @@ router.put('/credentials/:id', async (req, res) => {
         
         await store.update(id, updates);
         
-        log.info(`更新 Bedrock 凭据成功: ID ${id}`);
+        log.info(`Successfully updated Bedrock credential: ID ${id}`);
         res.json({ success: true });
     } catch (error) {
-        log.error(`更新 Bedrock 凭据失败: ${error.message}`);
+        log.error(`Failed to update Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 删除 Bedrock 凭据
+ * Delete Bedrock credential
  */
 router.delete('/credentials/:id', async (req, res) => {
     try {
@@ -138,21 +138,21 @@ router.delete('/credentials/:id', async (req, res) => {
         
         const existing = await store.getById(id);
         if (!existing) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
         await store.delete(id);
         
-        log.info(`删除 Bedrock 凭据成功: ${existing.name} (ID: ${id})`);
+        log.info(`Successfully deleted Bedrock credential: ${existing.name} (ID: ${id})`);
         res.json({ success: true });
     } catch (error) {
-        log.error(`删除 Bedrock 凭据失败: ${error.message}`);
+        log.error(`Failed to delete Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 激活 Bedrock 凭据
+ * Activate Bedrock credential
  */
 router.post('/credentials/:id/activate', async (req, res) => {
     try {
@@ -161,21 +161,21 @@ router.post('/credentials/:id/activate', async (req, res) => {
         
         const existing = await store.getById(id);
         if (!existing) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
         await store.update(id, { isActive: true });
         
-        log.info(`激活 Bedrock 凭据成功: ${existing.name} (ID: ${id})`);
+        log.info(`Successfully activated Bedrock credential: ${existing.name} (ID: ${id})`);
         res.json({ success: true });
     } catch (error) {
-        log.error(`激活 Bedrock 凭据失败: ${error.message}`);
+        log.error(`Failed to activate Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 停用 Bedrock 凭据
+ * Deactivate Bedrock credential
  */
 router.post('/credentials/:id/deactivate', async (req, res) => {
     try {
@@ -184,21 +184,21 @@ router.post('/credentials/:id/deactivate', async (req, res) => {
         
         const existing = await store.getById(id);
         if (!existing) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
         await store.update(id, { isActive: false });
         
-        log.info(`停用 Bedrock 凭据成功: ${existing.name} (ID: ${id})`);
+        log.info(`Successfully deactivated Bedrock credential: ${existing.name} (ID: ${id})`);
         res.json({ success: true });
     } catch (error) {
-        log.error(`停用 Bedrock 凭据失败: ${error.message}`);
+        log.error(`Failed to deactivate Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 测试 Bedrock 凭据
+ * Test Bedrock credential
  */
 router.post('/credentials/:id/test', async (req, res) => {
     try {
@@ -207,10 +207,10 @@ router.post('/credentials/:id/test', async (req, res) => {
         
         const credential = await store.getById(id);
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
-        // 使用简单消息测试
+        // Test with simple message
         const client = BedrockClient.fromCredentials(credential);
         const response = await client.chat(
             [{ role: 'user', content: 'Hi, respond with just "OK".' }],
@@ -218,10 +218,10 @@ router.post('/credentials/:id/test', async (req, res) => {
             { max_tokens: 10 }
         );
         
-        // 重置错误计数
+        // Reset error count
         await store.resetErrorCount(id);
         
-        log.info(`测试 Bedrock 凭据成功: ${credential.name} (ID: ${id})`);
+        log.info(`Successfully tested Bedrock credential: ${credential.name} (ID: ${id})`);
         res.json({
             success: true,
             data: {
@@ -234,13 +234,13 @@ router.post('/credentials/:id/test', async (req, res) => {
         const store = await BedrockCredentialStore.create();
         await store.incrementErrorCount(id, error.message);
         
-        log.error(`测试 Bedrock 凭据失败: ${error.message}`);
+        log.error(`Failed to test Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 获取 Bedrock 凭据统计
+ * Get Bedrock credential statistics
  */
 router.get('/statistics', async (req, res) => {
     try {
@@ -248,15 +248,15 @@ router.get('/statistics', async (req, res) => {
         const stats = await store.getStatistics();
         res.json({ success: true, data: stats });
     } catch (error) {
-        log.error(`获取 Bedrock 统计失败: ${error.message}`);
+        log.error(`Failed to get Bedrock statistics: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ==================== 模型和区域信息 ====================
+// ==================== Model and Region Information ====================
 
 /**
- * 获取支持的模型列表
+ * Get supported model list
  */
 router.get('/models', (req, res) => {
     res.json({
@@ -267,7 +267,7 @@ router.get('/models', (req, res) => {
 });
 
 /**
- * 获取支持的区域列表
+ * Get supported region list
  */
 router.get('/regions', (req, res) => {
     res.json({
@@ -276,10 +276,10 @@ router.get('/regions', (req, res) => {
     });
 });
 
-// ==================== 聊天 API ====================
+// ==================== Chat API ====================
 
 /**
- * 聊天接口（非流式）- 使用指定凭据
+ * Chat endpoint (non-streaming) - Using specified credential
  */
 router.post('/chat/:id', async (req, res) => {
     try {
@@ -287,18 +287,18 @@ router.post('/chat/:id', async (req, res) => {
         const { messages, model, system, max_tokens, temperature, tools } = req.body;
         
         if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ success: false, error: '缺少 messages 参数' });
+            return res.status(400).json({ success: false, error: 'Missing messages parameter' });
         }
         
         const store = await BedrockCredentialStore.create();
         const credential = await store.getById(id);
         
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
         if (!credential.isActive) {
-            return res.status(400).json({ success: false, error: '凭据已停用' });
+            return res.status(400).json({ success: false, error: 'Credential is deactivated' });
         }
         
         const client = BedrockClient.fromCredentials(credential);
@@ -309,18 +309,18 @@ router.post('/chat/:id', async (req, res) => {
             tools
         });
         
-        // 更新使用计数
+        // Update usage count
         await store.incrementUseCount(id);
         
         res.json(response);
     } catch (error) {
-        log.error(`Bedrock 聊天失败: ${error.message}`);
+        log.error(`Bedrock chat failed: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 聊天接口（流式）- 使用指定凭据
+ * Chat endpoint (streaming) - Using specified credential
  */
 router.post('/chat/:id/stream', async (req, res) => {
     try {
@@ -328,21 +328,21 @@ router.post('/chat/:id/stream', async (req, res) => {
         const { messages, model, system, max_tokens, temperature, tools } = req.body;
         
         if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ success: false, error: '缺少 messages 参数' });
+            return res.status(400).json({ success: false, error: 'Missing messages parameter' });
         }
         
         const store = await BedrockCredentialStore.create();
         const credential = await store.getById(id);
         
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential not found' });
         }
         
         if (!credential.isActive) {
-            return res.status(400).json({ success: false, error: '凭据已停用' });
+            return res.status(400).json({ success: false, error: 'Credential is deactivated' });
         }
         
-        // 设置 SSE 响应头
+        // Set SSE response headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -359,13 +359,13 @@ router.post('/chat/:id/stream', async (req, res) => {
             res.write(`data: ${JSON.stringify(event)}\n\n`);
         }
         
-        // 更新使用计数
+        // Update usage count
         await store.incrementUseCount(id);
         
         res.write('data: [DONE]\n\n');
         res.end();
     } catch (error) {
-        log.error(`Bedrock 流式聊天失败: ${error.message}`);
+        log.error(`Bedrock streaming chat failed: ${error.message}`);
         
         if (!res.headersSent) {
             res.status(500).json({ success: false, error: error.message });
@@ -377,21 +377,21 @@ router.post('/chat/:id/stream', async (req, res) => {
 });
 
 /**
- * 使用随机活跃凭据聊天（非流式）
+ * Chat using random active credential (non-streaming)
  */
 router.post('/chat', async (req, res) => {
     try {
         const { messages, model, system, max_tokens, temperature, tools } = req.body;
         
         if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ success: false, error: '缺少 messages 参数' });
+            return res.status(400).json({ success: false, error: 'Missing messages parameter' });
         }
         
         const store = await BedrockCredentialStore.create();
         const credential = await store.getRandomActive();
         
         if (!credential) {
-            return res.status(400).json({ success: false, error: '没有可用的 Bedrock 凭据' });
+            return res.status(400).json({ success: false, error: 'No available Bedrock credentials' });
         }
         
         const client = BedrockClient.fromCredentials(credential);
@@ -402,35 +402,35 @@ router.post('/chat', async (req, res) => {
             tools
         });
         
-        // 更新使用计数
+        // Update usage count
         await store.incrementUseCount(credential.id);
         
         res.json(response);
     } catch (error) {
-        log.error(`Bedrock 聊天失败: ${error.message}`);
+        log.error(`Bedrock chat failed: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
 /**
- * 使用随机活跃凭据聊天（流式）
+ * Chat using random active credential (streaming)
  */
 router.post('/chat/stream', async (req, res) => {
     try {
         const { messages, model, system, max_tokens, temperature, tools } = req.body;
         
         if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ success: false, error: '缺少 messages 参数' });
+            return res.status(400).json({ success: false, error: 'Missing messages parameter' });
         }
         
         const store = await BedrockCredentialStore.create();
         const credential = await store.getRandomActive();
         
         if (!credential) {
-            return res.status(400).json({ success: false, error: '没有可用的 Bedrock 凭据' });
+            return res.status(400).json({ success: false, error: 'No available Bedrock credentials' });
         }
         
-        // 设置 SSE 响应头
+        // Set SSE response headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
@@ -447,13 +447,13 @@ router.post('/chat/stream', async (req, res) => {
             res.write(`data: ${JSON.stringify(event)}\n\n`);
         }
         
-        // 更新使用计数
+        // Update usage count
         await store.incrementUseCount(credential.id);
         
         res.write('data: [DONE]\n\n');
         res.end();
     } catch (error) {
-        log.error(`Bedrock 流式聊天失败: ${error.message}`);
+        log.error(`Bedrock streaming chat failed: ${error.message}`);
         
         if (!res.headersSent) {
             res.status(500).json({ success: false, error: error.message });

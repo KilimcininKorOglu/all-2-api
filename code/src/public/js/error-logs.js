@@ -1,4 +1,4 @@
-// ============ 错误日志页面 JS ============
+// ============ Error Logs Page JS ============
 
 let currentErrorLogsPage = 1;
 const errorLogsPageSize = 50;
@@ -49,11 +49,11 @@ async function loadErrorLogs() {
             renderErrorLogs(result.data);
             updateStats(result.data.logs || []);
         } else {
-            showToast(result.error || '加载错误日志失败', 'error');
+            showToast(result.error || 'Failed to load error logs', 'error');
         }
     } catch (err) {
         console.error('Load error logs error:', err);
-        showToast('加载错误日志失败', 'error');
+        showToast('Failed to load error logs', 'error');
     }
 }
 

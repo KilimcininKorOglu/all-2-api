@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>试用审批 - Kiro Account Manager</title>
+    <title>Trial Approval - Kiro Account Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -153,8 +153,8 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 class="page-title">试用审批</h1>
-                            <p class="page-subtitle">管理用户的试用申请</p>
+                            <h1 class="page-title">Trial Approval</h1>
+                            <p class="page-subtitle">Manage user trial applications</p>
                         </div>
                     </div>
                 </div>
@@ -164,7 +164,7 @@
                             <polyline points="23 4 23 10 17 10"/>
                             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                         </svg>
-                        刷新
+                        Refresh
                     </button>
                 </div>
             </header>
@@ -179,7 +179,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="stat-total">0</div>
-                        <div class="stat-label">总申请数</div>
+                        <div class="stat-label">Total Applications</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -191,7 +191,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="stat-pending">0</div>
-                        <div class="stat-label">待审批</div>
+                        <div class="stat-label">Pending</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -203,7 +203,7 @@
                 </div>
                     <div class="stat-content">
                         <div class="stat-value" id="stat-approved">0</div>
-                        <div class="stat-label">已通过</div>
+                        <div class="stat-label">Approved</div>
                     </div>
                 </div>
                 <div class="stat-card">
@@ -216,7 +216,7 @@
                     </div>
                     <div class="stat-content">
                         <div class="stat-value" id="stat-rejected">0</div>
-                        <div class="stat-label">已拒绝</div>
+                        <div class="stat-label">Rejected</div>
                     </div>
                 </div>
             </div>
@@ -224,16 +224,16 @@
             <div class="content-area">
                 <div class="filter-tabs">
                     <button class="filter-tab active" data-status="">
-                        全部 <span class="count" id="count-all">0</span>
+                        All <span class="count" id="count-all">0</span>
                     </button>
                     <button class="filter-tab" data-status="pending">
-                        待审批 <span class="count" id="count-pending">0</span>
+                        Pending <span class="count" id="count-pending">0</span>
                     </button>
                     <button class="filter-tab" data-status="approved">
-                        已通过 <span class="count" id="count-approved">0</span>
+                        Approved <span class="count" id="count-approved">0</span>
                     </button>
                     <button class="filter-tab" data-status="rejected">
-                        已拒绝 <span class="count" id="count-rejected">0</span>
+                        Rejected <span class="count" id="count-rejected">0</span>
                     </button>
                 </div>
 
@@ -242,19 +242,19 @@
                         <thead>
                             <tr>
                                 <th>ID</th>
-                                <th>咸鱼名称</th>
-                                <th>邮箱</th>
-                                <th>来源</th>
-                                <th>截图</th>
-                                <th>状态</th>
+                                <th>Xianyu Name</th>
+                                <th>Email</th>
+                                <th>Source</th>
+                                <th>Screenshot</th>
+                                <th>Status</th>
                                 <th>API Key</th>
-                                <th>申请时间</th>
-                                <th>操作</th>
+                                <th>Applied At</th>
+                                <th>Actions</th>
                             </tr>
                         </thead>
                         <tbody id="app-tbody">
                             <tr class="empty-row">
-                                <td colspan="9">加载中...</td>
+                                <td colspan="9">Loading...</td>
                             </tr>
                         </tbody>
                     </table>
@@ -269,7 +269,7 @@
     <div class="modal-overlay" id="approve-modal">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">审批通过</h2>
+                <h2 class="modal-title">Approve Application</h2>
                 <button class="modal-close" onclick="closeApproveModal()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -279,20 +279,20 @@
             </div>
             <div class="modal-body">
                 <p style="margin-bottom: 16px; color: var(--text-secondary);">
-                    确认通过此申请？系统将自动生成一个限制 <strong>$50</strong> 额度、有效期 <strong>24小时</strong> 的 API Key。
+                    Confirm approval? System will generate an API Key with <strong>$50</strong> limit and <strong>24 hours</strong> validity.
                 </p>
                 <div class="form-group">
-                    <label class="form-label">额度限制 (美元)</label>
+                    <label class="form-label">Cost Limit (USD)</label>
                     <input type="number" class="form-input" id="cost-limit" value="50" min="1" max="1000">
                 </div>
                 <div class="form-group">
-                    <label class="form-label">有效期 (小时)</label>
+                    <label class="form-label">Validity Period (hours)</label>
                     <input type="number" class="form-input" id="expire-hours" value="24" min="1" max="720">
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeApproveModal()">取消</button>
-                <button class="btn btn-primary" id="confirm-approve-btn">确认通过</button>
+                <button class="btn btn-secondary" onclick="closeApproveModal()">Cancel</button>
+                <button class="btn btn-primary" id="confirm-approve-btn">Confirm Approval</button>
             </div>
         </div>
     </div>
@@ -301,7 +301,7 @@
     <div class="modal-overlay" id="reject-modal">
         <div class="modal">
             <div class="modal-header">
-                <h2 class="modal-title">拒绝申请</h2>
+                <h2 class="modal-title">Reject Application</h2>
                 <button class="modal-close" onclick="closeRejectModal()">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -311,20 +311,20 @@
             </div>
             <div class="modal-body">
                 <div class="form-group">
-                    <label class="form-label">拒绝原因</label>
-                    <textarea class="form-textarea" id="reject-reason" placeholder="请输入拒绝原因（可选）"></textarea>
+                    <label class="form-label">Rejection Reason</label>
+                    <textarea class="form-textarea" id="reject-reason" placeholder="Enter rejection reason (optional)"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeRejectModal()">取消</button>
-                <button class="btn btn-danger" id="confirm-reject-btn">确认拒绝</button>
+                <button class="btn btn-secondary" onclick="closeRejectModal()">Cancel</button>
+                <button class="btn btn-danger" id="confirm-reject-btn">Confirm Rejection</button>
             </div>
         </div>
     </div>
 
     <!-- Screenshot Modal -->
     <div class="modal-overlay" id="screenshot-modal" onclick="closeScreenshotModal()">
-        <img class="modal-screenshot" id="screenshot-img" src="" alt="订单截图">
+        <img class="modal-screenshot" id="screenshot-img" src="" alt="Order Screenshot">
     </div>
 
     <!-- Toast Container -->
@@ -380,10 +380,10 @@
                     renderTable();
                     updateStats();
                 } else {
-                    showToast(data.error || '加载失败', 'error');
+                    showToast(data.error || 'Loading failed', 'error');
                 }
             } catch (e) {
-                showToast('网络错误', 'error');
+                showToast('Network error', 'error');
             }
         }
 
@@ -410,7 +410,7 @@
         function renderTable() {
             const tbody = document.getElementById('app-tbody');
             if (applications.length === 0) {
-                tbody.innerHTML = '<tr class="empty-row"><td colspan="9">暂无记录</td></tr>';
+                tbody.innerHTML = '<tr class="empty-row"><td colspan="9">No records</td></tr>';
                 return;
             }
 
@@ -422,24 +422,24 @@
                     <td>${getSourceText(app.source)}</td>
                     <td>
                         ${app.orderScreenshot ?
-                            `<img src="${app.orderScreenshot}" class="screenshot-preview" onclick="showScreenshot('${app.orderScreenshot}')" alt="截图">` :
-                            '<span style="color: var(--text-muted)">无</span>'}
+                            `<img src="${app.orderScreenshot}" class="screenshot-preview" onclick="showScreenshot('${app.orderScreenshot}')" alt="Screenshot">` :
+                            '<span style="color: var(--text-muted)">None</span>'}
                     </td>
                     <td><span class="status-badge status-${app.status}">${getStatusText(app.status)}</span></td>
                     <td>
                         ${app.apiKey ?
-                            `<span class="api-key-display" onclick="copyToClipboard('${app.apiKey}')" title="点击复制">${app.apiKey.substring(0, 20)}...</span>` :
+                            `<span class="api-key-display" onclick="copyToClipboard('${app.apiKey}')" title="Click to copy">${app.apiKey.substring(0, 20)}...</span>` :
                             '-'}
                     </td>
                     <td>${formatDateTime(app.createdAt)}</td>
                     <td>
                         ${app.status === 'pending' ? `
                             <div class="action-btns">
-                                <button class="btn btn-sm btn-approve" onclick="openApproveModal(${app.id})">通过</button>
-                                <button class="btn btn-sm btn-reject" onclick="openRejectModal(${app.id})">拒绝</button>
+                                <button class="btn btn-sm btn-approve" onclick="openApproveModal(${app.id})">Approve</button>
+                                <button class="btn btn-sm btn-reject" onclick="openRejectModal(${app.id})">Reject</button>
                             </div>
                         ` : `
-                            <button class="btn btn-sm btn-secondary" onclick="deleteApplication(${app.id})">删除</button>
+                            <button class="btn btn-sm btn-secondary" onclick="deleteApplication(${app.id})">Delete</button>
                         `}
                     </td>
                 </tr>
@@ -452,12 +452,12 @@
         }
 
         function getStatusText(status) {
-            const map = { pending: '待审批', approved: '已通过', rejected: '已拒绝' };
+            const map = { pending: 'Pending', approved: 'Approved', rejected: 'Rejected' };
             return map[status] || status;
         }
 
         function getSourceText(source) {
-            const map = { xianyu: '咸鱼', github: 'GitHub', twitter: 'Twitter/X', friend: '朋友推荐', other: '其他' };
+            const map = { xianyu: 'Xianyu', github: 'GitHub', twitter: 'Twitter/X', friend: 'Friend Referral', other: 'Other' };
             return map[source] || source || '-';
         }
 
@@ -499,7 +499,7 @@
 
             const btn = document.getElementById('confirm-approve-btn');
             btn.disabled = true;
-            btn.textContent = '处理中...';
+            btn.textContent = 'Processing...';
 
             try {
                 const res = await fetch(`/api/trial/admin/${currentAppId}/approve`, {
@@ -513,17 +513,17 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    showToast('审批通过成功', 'success');
+                    showToast('Approved successfully', 'success');
                     closeApproveModal();
                     loadApplications();
                 } else {
-                    showToast(data.error || '操作失败', 'error');
+                    showToast(data.error || 'Operation failed', 'error');
                 }
             } catch (e) {
-                showToast('网络错误', 'error');
+                showToast('Network error', 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '确认通过';
+                btn.textContent = 'Confirm Approval';
             }
         }
 
@@ -534,7 +534,7 @@
 
             const btn = document.getElementById('confirm-reject-btn');
             btn.disabled = true;
-            btn.textContent = '处理中...';
+            btn.textContent = 'Processing...';
 
             try {
                 const res = await fetch(`/api/trial/admin/${currentAppId}/reject`, {
@@ -548,22 +548,22 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    showToast('已拒绝申请', 'success');
+                    showToast('Application rejected', 'success');
                     closeRejectModal();
                     loadApplications();
                 } else {
-                    showToast(data.error || '操作失败', 'error');
+                    showToast(data.error || 'Operation failed', 'error');
                 }
             } catch (e) {
-                showToast('网络错误', 'error');
+                showToast('Network error', 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '确认拒绝';
+                btn.textContent = 'Confirm Rejection';
             }
         }
 
         async function deleteApplication(id) {
-            if (!confirm('确定要删除此申请记录吗？')) return;
+            if (!confirm('Are you sure you want to delete this application?')) return;
             try {
                 const res = await fetch(`/api/trial/admin/${id}`, {
                     method: 'DELETE',
@@ -572,13 +572,13 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    showToast('删除成功', 'success');
+                    showToast('Deleted successfully', 'success');
                     loadApplications();
                 } else {
-                    showToast(data.error || '删除失败', 'error');
+                    showToast(data.error || 'Delete failed', 'error');
                 }
             } catch (e) {
-                showToast('网络错误', 'error');
+                showToast('Network error', 'error');
             }
         }
     </script>

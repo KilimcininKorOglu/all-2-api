@@ -13,7 +13,7 @@ const log = logger.client;
 const logToken = logger.token;
 
 /**
- * 根据凭证生成唯一的机器码
+ * Generate unique machine ID based on credentials
  */
 function generateMachineId(credentials) {
     const uniqueKey = credentials.profileArn || credentials.clientId || 'KIRO_DEFAULT';
@@ -21,7 +21,7 @@ function generateMachineId(credentials) {
 }
 
 /**
- * 获取系统运行时信息
+ * Get system runtime information
  */
 function getSystemInfo() {
     const platform = os.platform();
@@ -37,21 +37,21 @@ function getSystemInfo() {
 }
 
 /**
- * Kiro API 客户端
- * 通过 AWS CodeWhisperer 访问 Claude 模型
+ * Kiro API Client
+ * Access Claude models via AWS CodeWhisperer
  */
 export class KiroClient {
     /**
-     * @param {Object} options - 配置选项
-     * @param {string} options.accessToken - 访问令牌（必需）
-     * @param {string} options.profileArn - Profile ARN（可选）
-     * @param {string} options.region - 区域（默认 us-east-1）
-     * @param {number} options.maxRetries - 最大重试次数（默认 3）
-     * @param {number} options.baseDelay - 重试基础延迟毫秒（默认 1000）
+     * @param {Object} options - Configuration options
+     * @param {string} options.accessToken - Access token (required)
+     * @param {string} options.profileArn - Profile ARN (optional)
+     * @param {string} options.region - Region (default us-east-1)
+     * @param {number} options.maxRetries - Maximum retry count (default 3)
+     * @param {number} options.baseDelay - Base delay in milliseconds for retry (default 1000)
      */
     constructor(options = {}) {
         if (!options.accessToken) {
-            throw new Error('accessToken 是必需的');
+            throw new Error('accessToken is required');
         }
 
         this.region = options.region || KIRO_CONSTANTS.DEFAULT_REGION;
@@ -63,11 +63,11 @@ export class KiroClient {
         this.authMethod = options.authMethod || KIRO_CONSTANTS.AUTH_METHOD_SOCIAL;
         this.expiresAt = options.expiresAt;
 
-        // 重试配置
+        // Retry configuration
         this.maxRetries = options.maxRetries || 3;
         this.baseDelay = options.baseDelay || 1000;
 
-        // 创建 axios 实例
+        // Create axios instance
         const machineId = generateMachineId({
             profileArn: this.profileArn,
             clientId: options.clientId
@@ -91,7 +91,7 @@ export class KiroClient {
     }
 
     /**
-     * 从凭据文件创建客户端
+     * Create client from credentials file
      */
     static async fromCredentialsFile(credentialsPath) {
         const filePath = credentialsPath ||
@@ -113,14 +113,14 @@ export class KiroClient {
     }
 
     /**
-     * 从数据库创建客户端（使用活跃凭据）
+     * Create client from database (using active credentials)
      */
     static async fromDatabase() {
         const store = await CredentialStore.create();
         const creds = await store.getActive();
 
         if (!creds) {
-            throw new Error('数据库中没有活跃的凭据，请先添加凭据');
+            throw new Error('No active credentials in database, please add credentials first');
         }
 
         return new KiroClient({
@@ -136,14 +136,14 @@ export class KiroClient {
     }
 
     /**
-     * 从数据库按 ID 创建客户端
+     * Create client from database by ID
      */
     static async fromDatabaseById(id) {
         const store = await CredentialStore.create();
         const creds = await store.getById(id);
 
         if (!creds) {
-            throw new Error(`未找到 ID 为 ${id} 的凭据`);
+            throw new Error(`Credentials with ID ${id} not found`);
         }
 
         return new KiroClient({
@@ -159,14 +159,14 @@ export class KiroClient {
     }
 
     /**
-     * 从数据库按名称创建客户端
+     * Create client from database by name
      */
     static async fromDatabaseByName(name) {
         const store = await CredentialStore.create();
         const creds = await store.getByName(name);
 
         if (!creds) {
-            throw new Error(`未找到名称为 "${name}" 的凭据`);
+            throw new Error(`Credentials with name "${name}" not found`);
         }
 
         return new KiroClient({
@@ -182,7 +182,7 @@ export class KiroClient {
     }
 
     /**
-     * 检查 Token 是否即将过期（10分钟内）
+     * Check if Token is about to expire (within 10 minutes)
      */
     isTokenExpiringSoon(minutes = 10) {
         if (!this.expiresAt) return false;
@@ -192,29 +192,29 @@ export class KiroClient {
             const thresholdTime = new Date(currentTime.getTime() + minutes * 60 * 1000);
             return expirationTime.getTime() <= thresholdTime.getTime();
         } catch (error) {
-            log.error(`检查过期时间失败: ${error.message}`);
+            log.error(`Failed to check expiration time: ${error.message}`);
             return false;
         }
     }
 
     /**
-     * 刷新 Token
-     * @returns {Promise<boolean>} 是否刷新成功
+     * Refresh Token
+     * @returns {Promise<boolean>} Whether refresh was successful
      */
     async refreshAccessToken() {
         if (!this.refreshToken) {
-            logToken.warn('没有 refreshToken，无法刷新');
+            logToken.warn('No refreshToken, cannot refresh');
             return false;
         }
 
-        logToken.info('开始刷新 Token...');
-        logToken.info(`认证方式: ${this.authMethod}`);
+        logToken.info('Starting Token refresh...');
+        logToken.info(`Auth method: ${this.authMethod}`);
 
         try {
             let newAccessToken, newRefreshToken, expiresAt;
 
             if (this.authMethod === KIRO_CONSTANTS.AUTH_METHOD_SOCIAL) {
-                // Social 认证方式
+                // Social authentication method
                 const refreshUrl = KIRO_CONSTANTS.REFRESH_URL.replace('{{region}}', this.region);
                 const requestBody = { refreshToken: this.refreshToken };
                 const requestHeaders = { 'Content-Type': 'application/json' };
@@ -231,19 +231,19 @@ export class KiroClient {
                 newRefreshToken = response.data.refreshToken || this.refreshToken;
                 expiresAt = response.data.expiresAt || null;
             } else {
-                // Builder ID / IdC 认证方式 (OIDC)
+                // Builder ID / IdC authentication method (OIDC)
                 if (!this.clientId || !this.clientSecret) {
-                    logToken.warn('Builder ID/IdC 认证需要 clientId 和 clientSecret');
+                    logToken.warn('Builder ID/IdC authentication requires clientId and clientSecret');
                     return false;
                 }
 
-                // IdC 使用 sso-oidc 端点，builder-id 使用 oidc 端点
+                // IdC uses sso-oidc endpoint, builder-id uses oidc endpoint
                 const refreshUrl = this.authMethod === KIRO_CONSTANTS.AUTH_METHOD_IDC
                     ? KIRO_CONSTANTS.REFRESH_SSO_OIDC_URL.replace('{{region}}', this.region)
                     : KIRO_CONSTANTS.REFRESH_IDC_URL.replace('{{region}}', this.region);
                 logToken.request('POST', refreshUrl);
 
-                // 使用 JSON 格式发送请求（与 AIClient 一致）
+                // Send request in JSON format (consistent with AIClient)
                 const requestBody = {
                     refreshToken: this.refreshToken,
                     clientId: this.clientId,
@@ -259,7 +259,7 @@ export class KiroClient {
                     ...getAxiosProxyConfig()
                 });
 
-                // 响应字段使用 camelCase（与 social 认证一致）
+                // Response fields use camelCase (consistent with social auth)
                 newAccessToken = response.data.accessToken || response.data.access_token;
                 newRefreshToken = response.data.refreshToken || response.data.refresh_token || this.refreshToken;
                 expiresAt = response.data.expiresAt
@@ -271,38 +271,38 @@ export class KiroClient {
                         : null);
             }
 
-            // 更新实例属性
+            // Update instance properties
             this.accessToken = newAccessToken;
             this.refreshToken = newRefreshToken;
             this.expiresAt = expiresAt;
 
-            logToken.success('Token 刷新成功!');
-            logToken.info(`新 Token 前缀: ${newAccessToken.substring(0, 20)}...`);
-            logToken.info(`过期时间: ${expiresAt || '未知'}`);
+            logToken.success('Token refresh successful!');
+            logToken.info(`New Token prefix: ${newAccessToken.substring(0, 20)}...`);
+            logToken.info(`Expiration time: ${expiresAt || 'unknown'}`);
 
             return true;
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
-            logToken.fail(`Token 刷新失败: ${errorMsg}`, error.response?.status);
+            logToken.fail(`Token refresh failed: ${errorMsg}`, error.response?.status);
             return false;
         }
     }
 
     /**
-     * 确保 Token 有效（如果即将过期则自动刷新）
-     * @param {number} minutes - 提前多少分钟刷新（默认10分钟）
-     * @returns {Promise<boolean>} Token 是否有效
+     * Ensure Token is valid (auto-refresh if about to expire)
+     * @param {number} minutes - How many minutes ahead to refresh (default 10 minutes)
+     * @returns {Promise<boolean>} Whether Token is valid
      */
     async ensureValidToken(minutes = 10) {
         if (this.isTokenExpiringSoon(minutes)) {
-            logToken.info(`Token 即将在 ${minutes} 分钟内过期，自动刷新...`);
+            logToken.info(`Token about to expire within ${minutes} minutes, auto-refreshing...`);
             return await this.refreshAccessToken();
         }
         return true;
     }
 
     /**
-     * 合并相邻相同 role 的消息
+     * Merge adjacent messages with the same role
      */
     _mergeAdjacentMessages(messages) {
         const merged = [];
@@ -312,11 +312,11 @@ export class KiroClient {
             } else {
                 const last = merged[merged.length - 1];
                 if (msg.role === last.role) {
-                    // 合并内容
+                    // Merge content
                     const lastContent = this._getContentText(last);
                     const currentContent = this._getContentText(msg);
                     last.content = `${lastContent}\n${currentContent}`;
-                    log.debug(`合并相邻的 ${msg.role} 消息`);
+                    log.debug(`Merged adjacent ${msg.role} messages`);
                 } else {
                     merged.push({ ...msg });
                 }
@@ -326,36 +326,36 @@ export class KiroClient {
     }
 
     /**
-     * 压缩消息上下文（用于 400 ValidationException 重试）
-     * 策略：保留第一条和最后几条消息，移除中间的消息
-     * @param {Array} messages - 原始消息数组
-     * @param {number} compressionLevel - 压缩级别 (1-3)
-     * @returns {Array} 压缩后的消息数组
+     * Compress message context (for 400 ValidationException retry)
+     * Strategy: Keep first and last few messages, remove middle ones
+     * @param {Array} messages - Original message array
+     * @param {number} compressionLevel - Compression level (1-3)
+     * @returns {Array} Compressed message array
      */
     _compressMessages(messages, compressionLevel = 1) {
         if (!messages || messages.length <= 3) {
             return messages;
         }
 
-        const keepRecent = Math.max(2, 6 - compressionLevel * 2); // 级别1保留4条，级别2保留2条，级别3保留2条
-        const maxContentLength = Math.max(500, 2000 - compressionLevel * 500); // 逐步减少内容长度
+        const keepRecent = Math.max(2, 6 - compressionLevel * 2); // Level 1 keeps 4, level 2 keeps 2, level 3 keeps 2
+        const maxContentLength = Math.max(500, 2000 - compressionLevel * 500); // Gradually reduce content length
 
-        log.warn(`[上下文压缩] 级别 ${compressionLevel} | 原始消息数: ${messages.length} | 保留最近: ${keepRecent} 条`);
+        log.warn(`[Context Compression] Level ${compressionLevel} | Original message count: ${messages.length} | Keeping recent: ${keepRecent}`);
 
-        // 分离第一条消息（通常是 system 或重要的 user 消息）和最后几条
+        // Separate first message (usually system or important user message) and last few
         const firstMessage = messages[0];
         const recentMessages = messages.slice(-keepRecent);
-        
-        // 如果第一条消息在 recent 中，直接返回 recent
+
+        // If first message is in recent, return recent directly
         if (messages.length <= keepRecent + 1) {
             return this._truncateMessageContent(messages, maxContentLength);
         }
 
-        // 中间消息生成摘要
+        // Generate summary for middle messages
         const middleMessages = messages.slice(1, -keepRecent);
-        let summaryText = `[历史对话已压缩，共 ${middleMessages.length} 条消息]`;
-        
-        // 如果压缩级别较低，保留部分中间消息的摘要
+        let summaryText = `[Chat history compressed, total ${middleMessages.length} messages]`;
+
+        // If compression level is low, keep summary of some middle messages
         if (compressionLevel === 1 && middleMessages.length > 0) {
             const summaries = middleMessages.slice(0, 3).map(msg => {
                 const content = this._getContentText(msg);
@@ -363,28 +363,28 @@ export class KiroClient {
                 return `[${msg.role}]: ${truncated}`;
             });
             if (middleMessages.length > 3) {
-                summaries.push(`... 省略 ${middleMessages.length - 3} 条消息 ...`);
+                summaries.push(`... omitted ${middleMessages.length - 3} messages ...`);
             }
             summaryText = summaries.join('\n');
         }
 
-        // 构建压缩后的消息数组
+        // Build compressed message array
         const compressed = [
             firstMessage,
             { role: 'user', content: summaryText },
-            { role: 'assistant', content: '好的，我了解了之前的对话上下文。' },
+            { role: 'assistant', content: 'OK, I understand the previous conversation context.' },
             ...recentMessages
         ];
 
-        // 截断过长的内容
+        // Truncate overly long content
         const result = this._truncateMessageContent(compressed, maxContentLength);
-        
-        log.warn(`[上下文压缩] 压缩后消息数: ${result.length}`);
+
+        log.warn(`[Context Compression] Compressed message count: ${result.length}`);
         return result;
     }
 
     /**
-     * 截断消息内容
+     * Truncate message content
      */
     _truncateMessageContent(messages, maxLength) {
         return messages.map(msg => {
@@ -392,7 +392,7 @@ export class KiroClient {
             if (content.length > maxLength) {
                 return {
                     ...msg,
-                    content: content.substring(0, maxLength) + `\n[内容已截断，原长度: ${content.length}]`
+                    content: content.substring(0, maxLength) + `\n[Content truncated, original length: ${content.length}]`
                 };
             }
             return msg;
@@ -400,29 +400,29 @@ export class KiroClient {
     }
 
     /**
-     * 构建请求体
+     * Build request body
      */
     _buildRequest(messages, model, options = {}) {
         const conversationId = uuidv4();
         const codewhispererModel = MODEL_MAPPING[model] || MODEL_MAPPING[KIRO_CONSTANTS.DEFAULT_MODEL_NAME] || model;
 
-        // 合并相邻相同 role 的消息
+        // Merge adjacent messages with the same role
         const mergedMessages = this._mergeAdjacentMessages(messages);
 
-        // 处理消息历史
+        // Process message history
         const history = [];
         const processedMessages = [...mergedMessages];
 
-        // 处理 system prompt
+        // Process system prompt
         let systemPrompt = options.system || '';
 
-        // 处理 tools（校验格式，避免 ValidationException）
+        // Process tools (validate format, avoid ValidationException)
         let toolsContext = {};
         if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
             const validTools = options.tools
-                .filter(tool => tool && tool.name) // 确保有 name
+                .filter(tool => tool && tool.name) // Ensure name exists
                 .map(tool => {
-                    // 确保 input_schema 是有效的对象
+                    // Ensure input_schema is a valid object
                     let inputSchema = tool.input_schema;
                     if (!inputSchema || typeof inputSchema !== 'object') {
                         inputSchema = { type: 'object', properties: {} };
@@ -442,7 +442,7 @@ export class KiroClient {
             }
         }
 
-        // 如果第一条是 user 消息，将 system prompt 合并进去
+        // If first message is user, merge system prompt into it
         if (systemPrompt && processedMessages.length > 0 && processedMessages[0].role === 'user') {
             const firstUserMsg = processedMessages[0];
             const userInputMessage = this._buildUserInputMessage(firstUserMsg, codewhispererModel, systemPrompt);
@@ -458,7 +458,7 @@ export class KiroClient {
             });
         }
 
-        // 处理历史消息（除了最后一条）
+        // Process history messages (except the last one)
         for (let i = 0; i < processedMessages.length - 1; i++) {
             const msg = processedMessages[i];
             if (msg.role === 'user') {
@@ -470,11 +470,11 @@ export class KiroClient {
             }
         }
 
-        // 当前消息
+        // Current message
         const currentMsg = processedMessages[processedMessages.length - 1];
         let currentUserInputMessage;
 
-        // 如果没有消息，创建一个默认的 Continue 消息
+        // If no messages, create a default Continue message
         if (!currentMsg) {
             currentUserInputMessage = {
                 content: 'Continue',
@@ -482,7 +482,7 @@ export class KiroClient {
                 origin: KIRO_CONSTANTS.ORIGIN_AI_EDITOR
             };
         } else if (currentMsg.role === 'assistant') {
-            // 如果最后一条是 assistant，移到 history 并创建 Continue
+            // If last message is assistant, move to history and create Continue
             const assistantResponseMessage = this._buildAssistantResponseMessage(currentMsg);
             history.push({ assistantResponseMessage });
             currentUserInputMessage = {
@@ -493,7 +493,7 @@ export class KiroClient {
         } else {
             currentUserInputMessage = this._buildUserInputMessage(currentMsg, codewhispererModel);
 
-            // 确保 history 以 assistant 消息结尾
+            // Ensure history ends with assistant message
             if (history.length > 0 && !history[history.length - 1].assistantResponseMessage) {
                 history.push({
                     assistantResponseMessage: { content: 'Continue' }
@@ -501,7 +501,7 @@ export class KiroClient {
             }
         }
 
-        // 添加 tools 到 currentMessage 的 userInputMessageContext
+        // Add tools to currentMessage's userInputMessageContext
         if (Object.keys(toolsContext).length > 0 && toolsContext.tools) {
             if (!currentUserInputMessage.userInputMessageContext) {
                 currentUserInputMessage.userInputMessageContext = {};
@@ -531,7 +531,7 @@ export class KiroClient {
     }
 
     /**
-     * 构建 userInputMessage
+     * Build userInputMessage
      */
     _buildUserInputMessage(msg, codewhispererModel, systemPromptPrefix = '') {
         const userInputMessage = {
@@ -548,14 +548,14 @@ export class KiroClient {
                 if (part.type === 'text') {
                     userInputMessage.content += part.text || '';
                 } else if (part.type === 'tool_result') {
-                    // 校验必要字段，避免 ValidationException
+                    // Validate required fields, avoid ValidationException
                     const toolUseId = part.tool_use_id;
                     if (!toolUseId) {
-                        log.warn('tool_result 缺少 tool_use_id，跳过');
+                        log.warn('tool_result missing tool_use_id, skipping');
                         continue;
                     }
                     
-                    // 确保 content 是有效的文本
+                    // Ensure content is valid text
                     let resultContent = this._getContentText(part.content);
                     if (!resultContent) {
                         resultContent = part.is_error ? 'Error occurred' : 'Success';
@@ -567,7 +567,7 @@ export class KiroClient {
                         toolUseId
                     });
                 } else if (part.type === 'image') {
-                    // 校验图片数据
+                    // Validate image data
                     if (part.source?.media_type && part.source?.data) {
                         images.push({
                             format: part.source.media_type.split('/')[1] || 'png',
@@ -582,22 +582,22 @@ export class KiroClient {
             userInputMessage.content = this._getContentText(msg);
         }
 
-        // 添加 system prompt 前缀
+        // Add system prompt prefix
         if (systemPromptPrefix) {
             userInputMessage.content = `${systemPromptPrefix}\n\n${userInputMessage.content}`;
         }
 
-        // Kiro API 要求 content 不能为空
+        // Kiro API requires content to be non-empty
         if (!userInputMessage.content) {
             userInputMessage.content = toolResults.length > 0 ? 'Tool results provided.' : 'Continue';
         }
 
-        // 只添加非空字段
+        // Only add non-empty fields
         if (images.length > 0) {
             userInputMessage.images = images;
         }
         if (toolResults.length > 0) {
-            // 去重 toolResults
+            // Deduplicate toolResults
             const uniqueToolResults = [];
             const seenIds = new Set();
             for (const tr of toolResults) {
@@ -613,7 +613,7 @@ export class KiroClient {
     }
 
     /**
-     * 构建 assistantResponseMessage
+     * Build assistantResponseMessage
      */
     _buildAssistantResponseMessage(msg) {
         const assistantResponseMessage = {
@@ -626,11 +626,11 @@ export class KiroClient {
                 if (part.type === 'text') {
                     assistantResponseMessage.content += part.text || '';
                 } else if (part.type === 'tool_use') {
-                    // 校验必要字段，避免 ValidationException
+                    // Validate required fields, avoid ValidationException
                     const toolUseId = part.id || `tool_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
                     const name = part.name || 'unknown_tool';
                     
-                    // 确保 input 是有效的对象
+                    // Ensure input is a valid object
                     let input = part.input;
                     if (input === undefined || input === null) {
                         input = {};
@@ -655,12 +655,12 @@ export class KiroClient {
             assistantResponseMessage.content = this._getContentText(msg);
         }
 
-        // Kiro API 要求 content 不能为空
+        // Kiro API requires content to be non-empty
         if (!assistantResponseMessage.content) {
             assistantResponseMessage.content = toolUses.length > 0 ? 'Tool calls executed.' : 'Continue';
         }
 
-        // 只添加非空字段
+        // Only add non-empty fields
         if (toolUses.length > 0) {
             assistantResponseMessage.toolUses = toolUses;
         }
@@ -669,12 +669,12 @@ export class KiroClient {
     }
 
     /**
-     * 获取消息文本内容
+     * Get message text content
      */
     _getContentText(message) {
         if (!message) return '';
         if (typeof message === 'string') return message;
-        // 处理直接传入数组的情况（如 tool_result 的 content）
+        // Handle case where array is passed directly (e.g., tool_result content)
         if (Array.isArray(message)) {
             return message
                 .map(part => {
@@ -693,7 +693,7 @@ export class KiroClient {
                 .map(part => part.text)
                 .join('');
         }
-        // 避免返回 [object Object]
+        // Avoid returning [object Object]
         if (typeof message === 'object') {
             if (message.text) return message.text;
             try {
@@ -706,7 +706,7 @@ export class KiroClient {
     }
 
     /**
-     * 解析 AWS Event Stream 缓冲区
+     * Parse AWS Event Stream buffer
      */
     _parseEventStreamBuffer(buffer) {
         const events = [];
@@ -714,7 +714,7 @@ export class KiroClient {
         let searchStart = 0;
 
         while (true) {
-            // 搜索所有可能的 JSON payload 开头模式
+            // Search for all possible JSON payload start patterns
             const contentStart = remaining.indexOf('{"content":', searchStart);
             const followupStart = remaining.indexOf('{"followupPrompt":', searchStart);
             const nameStart = remaining.indexOf('{"name":', searchStart);
@@ -727,7 +727,7 @@ export class KiroClient {
             const jsonStart = Math.min(...candidates);
             if (jsonStart < 0) break;
 
-            // 使用括号计数法找到完整 JSON
+            // Use bracket counting to find complete JSON
             let braceCount = 0;
             let jsonEnd = -1;
             let inString = false;
@@ -772,11 +772,11 @@ export class KiroClient {
             const jsonStr = remaining.substring(jsonStart, jsonEnd + 1);
             try {
                 const parsed = JSON.parse(jsonStr);
-                // 处理 content 事件
+                // Handle content event
                 if (parsed.content !== undefined && !parsed.followupPrompt) {
                     events.push({ type: 'content', data: parsed.content });
                 }
-                // 处理结构化工具调用事件 - 开始事件（包含 name 和 toolUseId）
+                // Handle structured tool call event - start event (contains name and toolUseId)
                 else if (parsed.name && parsed.toolUseId) {
                     events.push({
                         type: 'toolUse',
@@ -788,14 +788,14 @@ export class KiroClient {
                         }
                     });
                 }
-                // 处理工具调用的 input 续传事件（只有 input 字段）
+                // Handle tool call input continuation event (only input field)
                 else if (parsed.input !== undefined && !parsed.name) {
                     events.push({
                         type: 'toolUseInput',
                         data: { input: parsed.input }
                     });
                 }
-                // 处理工具调用的结束事件（只有 stop 字段）
+                // Handle tool call end event (only stop field)
                 else if (parsed.stop !== undefined) {
                     events.push({
                         type: 'toolUseStop',
@@ -803,7 +803,7 @@ export class KiroClient {
                     });
                 }
             } catch (e) {
-                // JSON 解析失败，跳过
+                // JSON parse failed, skip
             }
 
             searchStart = jsonEnd + 1;
@@ -821,7 +821,7 @@ export class KiroClient {
     }
 
     /**
-     * 解析响应（非流式）- 返回内容和工具调用
+     * Parse response (non-streaming) - returns content and tool calls
      */
     _parseResponse(rawData) {
         const rawStr = Buffer.isBuffer(rawData) ? rawData.toString('utf8') : String(rawData);
@@ -865,7 +865,7 @@ export class KiroClient {
             }
         }
 
-        // 处理未完成的工具调用
+        // Handle incomplete tool calls
         if (currentToolCall) {
             this._finalizeToolCall(currentToolCall, toolCalls);
         }
@@ -874,34 +874,34 @@ export class KiroClient {
     }
 
     /**
-     * 完成工具调用的解析
+     * Finalize tool call parsing
      */
     _finalizeToolCall(toolCall, toolCalls) {
         try {
             toolCall.input = JSON.parse(toolCall.input);
         } catch (e) {
-            // input 不是有效 JSON，保持原样
+            // input is not valid JSON, keep as is
         }
         toolCalls.push(toolCall);
     }
 
     /**
-     * 检查是否为 ValidationException
+     * Check if error is ValidationException
      * @private
      */
     _isValidationException(error) {
-        // 检查 header 中的错误类型
+        // Check error type in header
         const errorType = error.response?.headers?.['x-amzn-errortype'] || '';
         if (errorType.includes('ValidationException')) {
             return true;
         }
 
-        // 检查 error.message
+        // Check error.message
         if (error.message && error.message.includes('ValidationException')) {
             return true;
         }
 
-        // 检查 response.data
+        // Check response.data
         const responseData = error.response?.data;
         if (responseData) {
             if (typeof responseData === 'string' && responseData.includes('ValidationException')) {
@@ -917,9 +917,9 @@ export class KiroClient {
                         return true;
                     }
                 } catch {
-                    // 忽略序列化错误
+                    // Ignore serialization error
                 }
-                // 检查嵌套的 error 对象
+                // Check nested error object
                 if (responseData.error?.message?.includes('ValidationException')) {
                     return true;
                 }
@@ -930,25 +930,25 @@ export class KiroClient {
     }
 
     /**
-     * 检查是否为上下文超限的 ValidationException（不应重试）
+     * Check if error is context limit ValidationException (should not retry)
      * @private
      */
     _isContextLimitException(error) {
         if (!this._isValidationException(error)) {
             return false;
         }
-        // ValidationException 通常是上下文超限导致的，不应重试
+        // ValidationException is usually caused by context limit, should not retry
         return true;
     }
 
     /**
-     * 获取自定义错误消息，屏蔽原始 AWS 错误详情
+     * Get custom error message, mask original AWS error details
      * @private
      */
     _getCustomErrorMessage(error) {
         const status = error.response?.status;
 
-        // 记录原始错误到日志
+        // Log original error
         const responseData = error.response?.data;
         let originalError = error.message;
         if (responseData) {
@@ -960,35 +960,35 @@ export class KiroClient {
                 try {
                     originalError = JSON.stringify(responseData).substring(0, 500);
                 } catch (e) {
-                    originalError = '[无法序列化的响应]';
+                    originalError = '[Unable to serialize response]';
                 }
             }
         }
 
-        // ValidationException 使用 debug 级别，不输出到控制台
+        // ValidationException uses debug level, not output to console
         if (this._isValidationException(error)) {
-            log.debug(`原始错误: ${status} - ${originalError}`);
+            log.debug(`Original error: ${status} - ${originalError}`);
         } else {
-            log.error(`原始错误: ${status} - ${originalError}`);
+            log.error(`Original error: ${status} - ${originalError}`);
         }
 
-        // 返回自定义错误消息
+        // Return custom error message
         if (status === 400) {
             if (this._isContextLimitException(error)) {
-                return '上下文超出限制，请恢复对话重试，或重新打开对话';
+                return 'Context limit exceeded, please restore conversation and retry, or reopen conversation';
             }
-            return '请求参数错误';
+            return 'Request parameter error';
         }
-        if (status === 401) return '认证失败，请重新登录';
-        if (status === 403) return '访问被拒绝，Token 可能已过期';
-        if (status === 429) return '请求过于频繁，请稍后重试';
-        if (status >= 500) return '服务器错误，请稍后重试';
+        if (status === 401) return 'Authentication failed, please login again';
+        if (status === 403) return 'Access denied, Token may have expired';
+        if (status === 429) return 'Too many requests, please try again later';
+        if (status >= 500) return 'Server error, please try again later';
 
-        return '请求失败，请稍后重试';
+        return 'Request failed, please try again later';
     }
 
     /**
-     * 带重试的 API 调用
+     * API call with retry
      */
     async _callWithRetry(requestFn, retryCount = 0, hasRefreshed = false) {
         try {
@@ -996,32 +996,32 @@ export class KiroClient {
         } catch (error) {
             const status = error.response?.status;
 
-            // 403 Forbidden - 尝试刷新 Token 后重试
+            // 403 Forbidden - Try refreshing Token and retry
             if (status === 403 && !hasRefreshed) {
-                log.warn('收到 403，尝试刷新 Token 后重试...');
+                log.warn('Received 403, trying to refresh Token and retry...');
                 const refreshed = await this.refreshAccessToken();
                 if (refreshed) {
                     return this._callWithRetry(requestFn, retryCount, true);
                 }
             }
 
-            // 429 Too Many Requests - 指数退避重试
+            // 429 Too Many Requests - Exponential backoff retry
             if (status === 429 && retryCount < this.maxRetries) {
                 const delay = this.baseDelay * Math.pow(2, retryCount);
-                log.warn(`收到 429，${delay}ms 后重试... (${retryCount + 1}/${this.maxRetries})`);
+                log.warn(`Received 429, retrying in ${delay}ms... (${retryCount + 1}/${this.maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this._callWithRetry(requestFn, retryCount + 1, hasRefreshed);
             }
 
-            // 5xx 服务器错误 - 重试
+            // 5xx Server error - Retry
             if (status >= 500 && status < 600 && retryCount < this.maxRetries) {
                 const delay = this.baseDelay * Math.pow(2, retryCount);
-                log.warn(`收到 ${status}，${delay}ms 后重试... (${retryCount + 1}/${this.maxRetries})`);
+                log.warn(`Received ${status}, retrying in ${delay}ms... (${retryCount + 1}/${this.maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this._callWithRetry(requestFn, retryCount + 1, hasRefreshed);
             }
 
-            // 返回自定义错误消息，屏蔽原始 AWS 错误详情
+            // Return custom error message, mask original AWS error details
             const customMessage = this._getCustomErrorMessage(error);
             const customError = new Error(customMessage);
             customError.status = status;
@@ -1031,14 +1031,14 @@ export class KiroClient {
     }
 
     /**
-     * 发送聊天请求
-     * @param {Array} messages - 消息数组
-     * @param {string} model - 模型名称
-     * @param {Object} options - 选项
-     * @param {boolean} options.skipTokenRefresh - 跳过 token 自动刷新
+     * Send chat request
+     * @param {Array} messages - Message array
+     * @param {string} model - Model name
+     * @param {Object} options - Options
+     * @param {boolean} options.skipTokenRefresh - Skip token auto-refresh
      */
     async chat(messages, model = KIRO_CONSTANTS.DEFAULT_MODEL_NAME, options = {}) {
-        // 自动刷新 Token（除非明确跳过）
+        // Auto-refresh Token (unless explicitly skipped)
         // if (!options.skipTokenRefresh) {
         //     await this.ensureValidToken();
         // }
@@ -1068,16 +1068,16 @@ export class KiroClient {
 
             return this._parseResponse(response.data);
         } catch (error) {
-            // 400 ValidationException - 尝试压缩上下文后重试
+            // 400 ValidationException - Try compressing context and retry
             if (error.status === 400 && compressionLevel < 3) {
                 const newCompressionLevel = compressionLevel + 1;
-                log.warn(`非流式请求收到 400，尝试压缩上下文 (级别 ${newCompressionLevel}) 后重试...`);
-                
+                log.warn(`Non-streaming request received 400, trying to compress context (level ${newCompressionLevel}) and retry...`);
+
                 const compressedMessages = this._compressMessages(messages, newCompressionLevel);
-                
-                // 如果压缩后消息数量没有变化，说明无法再压缩，直接报错
+
+                // If compressed message count unchanged, cannot compress further, throw error
                 if (compressedMessages.length >= messages.length && newCompressionLevel > 1) {
-                    log.error('上下文已无法继续压缩，放弃重试');
+                    log.error('Context cannot be compressed further, giving up retry');
                     throw error;
                 }
                 
@@ -1089,14 +1089,14 @@ export class KiroClient {
     }
 
     /**
-     * 流式聊天请求 - 返回完整的 Claude 格式事件
-     * @param {Array} messages - 消息数组
-     * @param {string} model - 模型名称
-     * @param {Object} options - 选项
-     * @param {boolean} options.skipTokenRefresh - 跳过 token 自动刷新
+     * Streaming chat request - Returns complete Claude format events
+     * @param {Array} messages - Message array
+     * @param {string} model - Model name
+     * @param {Object} options - Options
+     * @param {boolean} options.skipTokenRefresh - Skip token auto-refresh
      */
     async *chatStream(messages, model = KIRO_CONSTANTS.DEFAULT_MODEL_NAME, options = {}, retryCount = 0) {
-        // 自动刷新 Token（除非明确跳过）
+        // Auto-refresh Token (unless explicitly skipped)
         // if (!options.skipTokenRefresh) {
         //     await this.ensureValidToken();
         // }
@@ -1135,7 +1135,7 @@ export class KiroClient {
 
                 for (const event of events) {
                     if (event.type === 'content' && event.data) {
-                        // 过滤重复内容
+                        // Filter duplicate content
                         if (lastContent === event.data) continue;
                         lastContent = event.data;
                         yield { type: 'content', content: event.data };
@@ -1174,22 +1174,22 @@ export class KiroClient {
                 }
             }
 
-            // 处理未完成的工具调用
+            // Handle incomplete tool calls
             if (currentToolCall) {
                 this._finalizeToolCall(currentToolCall, toolCalls);
                 yield { type: 'toolUse', toolUse: currentToolCall };
             }
         } catch (error) {
-            // 确保出错时关闭流
+            // Ensure stream is closed on error
             if (stream && typeof stream.destroy === 'function') {
                 stream.destroy();
             }
 
             const status = error.response?.status;
 
-            // 403 错误 - 尝试刷新 Token 后重试（仅当未跳过刷新时）
+            // 403 error - Try refreshing Token and retry (only when refresh not skipped)
             if (status === 403 && !options.skipTokenRefresh && retryCount === 0) {
-                log.warn('流式请求收到 403，尝试刷新 Token 后重试...');
+                log.warn('Streaming request received 403, trying to refresh Token and retry...');
                 const refreshed = await this.refreshAccessToken();
                 if (refreshed) {
                     yield* this.chatStream(messages, model, options, retryCount + 1);
@@ -1197,48 +1197,48 @@ export class KiroClient {
                 }
             }
 
-            // 400 ValidationException - 尝试压缩上下文后重试
+            // 400 ValidationException - Try compressing context and retry
             const compressionLevel = options._compressionLevel || 0;
             if (status === 400 && this._isValidationException(error) && compressionLevel < 3) {
                 const newCompressionLevel = compressionLevel + 1;
-                log.warn(`流式请求收到 400 ValidationException，尝试压缩上下文 (级别 ${newCompressionLevel}) 后重试...`);
-                
+                log.warn(`Streaming request received 400 ValidationException, trying to compress context (level ${newCompressionLevel}) and retry...`);
+
                 const compressedMessages = this._compressMessages(messages, newCompressionLevel);
-                
-                // 如果压缩后消息数量没有变化，说明无法再压缩，直接报错
+
+                // If compressed message count unchanged, cannot compress further, throw error
                 if (compressedMessages.length >= messages.length && newCompressionLevel > 1) {
-                    log.error('上下文已无法继续压缩，放弃重试');
+                    log.error('Context cannot be compressed further, giving up retry');
                 } else {
                     yield* this.chatStream(compressedMessages, model, { ...options, _compressionLevel: newCompressionLevel }, 0);
                     return;
                 }
             }
 
-            // 429 Too Many Requests - 指数退避重试
+            // 429 Too Many Requests - Exponential backoff retry
             if (status === 429 && retryCount < this.maxRetries) {
                 const delay = this.baseDelay * Math.pow(2, retryCount);
-                log.warn(`流式请求收到 429，${delay}ms 后重试... (${retryCount + 1}/${this.maxRetries})`);
+                log.warn(`Streaming request received 429, retrying in ${delay}ms... (${retryCount + 1}/${this.maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 yield* this.chatStream(messages, model, options, retryCount + 1);
                 return;
             }
 
-            // 5xx 服务器错误 - 重试
+            // 5xx Server error - Retry
             if (status >= 500 && status < 600 && retryCount < this.maxRetries) {
                 const delay = this.baseDelay * Math.pow(2, retryCount);
-                log.warn(`流式请求收到 ${status}，${delay}ms 后重试... (${retryCount + 1}/${this.maxRetries})`);
+                log.warn(`Streaming request received ${status}, retrying in ${delay}ms... (${retryCount + 1}/${this.maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 yield* this.chatStream(messages, model, options, retryCount + 1);
                 return;
             }
 
-            // 返回自定义错误消息，屏蔽原始 AWS 错误详情
+            // Return custom error message, mask original AWS error details
             const customMessage = this._getCustomErrorMessage(error);
             const customError = new Error(customMessage);
             customError.status = status;
             throw customError;
         } finally {
-            // 确保流被关闭
+            // Ensure stream is closed
             if (stream && typeof stream.destroy === 'function') {
                 stream.destroy();
             }
@@ -1246,7 +1246,7 @@ export class KiroClient {
     }
 
     /**
-     * 简化的流式聊天 - 只返回文本内容（向后兼容）
+     * Simplified streaming chat - Returns text content only (backward compatible)
      */
     async *chatStreamText(messages, model = KIRO_CONSTANTS.DEFAULT_MODEL_NAME, options = {}) {
         for await (const event of this.chatStream(messages, model, options)) {
@@ -1257,14 +1257,14 @@ export class KiroClient {
     }
 
     /**
-     * 获取支持的模型列表
+     * Get supported model list
      */
     getModels() {
         return KIRO_MODELS;
     }
 
     /**
-     * 从 API 获取可用模型列表
+     * Get available model list from API
      */
     async listAvailableModels() {
         const url = buildCodeWhispererUrl(KIRO_CONSTANTS.LIST_MODELS_URL, this.region);
@@ -1291,12 +1291,12 @@ export class KiroClient {
     }
 
     /**
-     * 获取使用限额
+     * Get usage limits
      */
     async getUsageLimits() {
         const url = buildCodeWhispererUrl(KIRO_CONSTANTS.USAGE_LIMITS_URL, this.region);
 
-        // 构建查询参数（参考 AIClient-2-API）
+        // Build query parameters (reference AIClient-2-API)
         const params = new URLSearchParams({
             isEmailRequired: 'true',
             origin: KIRO_CONSTANTS.ORIGIN_AI_EDITOR,

@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Kiro Account Manager</title>
     <script>
-        // 检查登录状态并重定向
+        // Check login status and redirect
         const authToken = localStorage.getItem('authToken');
         if (!authToken) {
             window.location.href = '/login.html';
@@ -15,6 +15,6 @@
     </script>
 </head>
 <body>
-    <p>正在跳转...</p>
+    <p>Redirecting...</p>
 </body>
 </html>

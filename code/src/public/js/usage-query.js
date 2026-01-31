@@ -1,4 +1,4 @@
-// ============ 公开用量查询页面 JS ============
+// ============ Public Usage Query Page JS ============
 
 document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('query-form');
@@ -13,12 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
         const apiKey = apiKeyInput.value.trim();
 
         if (!apiKey) {
-            showError('请输入 API 密钥');
+            showError('Please enter an API key');
             return;
         }
 
         if (!apiKey.startsWith('sk-')) {
-            showError('API 密钥格式不正确，应以 sk- 开头');
+            showError('Invalid API key format, should start with sk-');
             return;
         }
 
@@ -42,13 +42,13 @@ document.addEventListener('DOMContentLoaded', () => {
             const result = await response.json();
 
             if (!result.success) {
-                showError(result.error || '查询失败');
+                showError(result.error || 'Query failed');
                 return;
             }
 
             displayResults(result.data);
         } catch (err) {
-            showError('查询失败: ' + err.message);
+            showError('Query failed: ' + err.message);
         } finally {
             showLoading(false);
         }
@@ -57,19 +57,19 @@ document.addEventListener('DOMContentLoaded', () => {
     function displayResults(data) {
         const { keyInfo, usage, cost, limits } = data;
 
-        // 显示密钥信息
+        // Display key info
         document.getElementById('key-prefix').textContent = keyInfo.keyPrefix;
         const statusEl = document.getElementById('key-status');
-        statusEl.textContent = keyInfo.isActive ? '启用' : '禁用';
+        statusEl.textContent = keyInfo.isActive ? 'Enabled' : 'Disabled';
         statusEl.className = 'key-status ' + (keyInfo.isActive ? 'active' : 'inactive');
 
-        // 显示统计数据
+        // Display statistics
         document.getElementById('total-cost').textContent = '$' + cost.summary.totalCost.toFixed(4);
         document.getElementById('total-requests').textContent = formatNumber(cost.summary.totalRequests);
         document.getElementById('total-input-tokens').textContent = formatNumber(cost.summary.totalInputTokens);
         document.getElementById('total-output-tokens').textContent = formatNumber(cost.summary.totalOutputTokens);
 
-        // 显示按模型统计
+        // Display by model statistics
         const modelStatsBody = document.getElementById('model-stats-body');
         if (cost.models && cost.models.length > 0) {
             modelStatsBody.innerHTML = cost.models.map(m => `
@@ -84,30 +84,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 </tr>
             `).join('');
         } else {
-            modelStatsBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">暂无数据</td></tr>';
+            modelStatsBody.innerHTML = '<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No data</td></tr>';
         }
 
-        // 显示今日/本月用量
+        // Display today/monthly usage
         const periodStatsBody = document.getElementById('period-stats-body');
         periodStatsBody.innerHTML = `
             <tr>
-                <td>今日</td>
+                <td>Today</td>
                 <td>${formatNumber(usage.daily)}</td>
                 <td class="cost-value">$${usage.dailyCost.toFixed(4)}</td>
             </tr>
             <tr>
-       <td>本月</td>
+       <td>This Month</td>
                 <td>${formatNumber(usage.monthly)}</td>
                 <td class="cost-value">$${usage.monthlyCost.toFixed(4)}</td>
             </tr>
             <tr>
-                <td>总计</td>
+                <td>Total</td>
                 <td>${formatNumber(usage.total)}</td>
                 <td class="cost-value">$${usage.totalCost.toFixed(4)}</td>
             </tr>
         `;
 
-        // 显示配额限制
+        // Display quota limits
         const limitsInfo = document.getElementById('limits-info');
         const limitsGrid = document.getElementById('limits-grid');
 
@@ -118,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (usage.daily / limits.dailyLimit) * 100;
                 limitsHtml += `
                     <div class="limit-item">
-                        <span class="limit-label">每日请求</span>
+                        <span class="limit-label">Daily Requests</span>
                         <span class="limit-value ${percent >= 90 ? 'danger' : percent >= 70 ? 'warning' : ''}">${usage.daily} / ${limits.dailyLimit}</span>
                     </div>
                 `;
@@ -128,7 +128,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (usage.monthly / limits.monthlyLimit) * 100;
                 limitsHtml += `
                     <div class="limit-item">
-                        <span class="limit-label">每月请求</span>
+                        <span class="limit-label">Monthly Requests</span>
                         <span class="limit-value ${percent >= 90 ? 'danger' : percent >= 70 ? 'warning' : ''}">${usage.monthly} / ${limits.monthlyLimit}</span>
                     </div>
                 `;
@@ -138,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (usage.total / limits.totalLimit) * 100;
                 limitsHtml += `
                     <div class="limit-item">
-                        <span class="limit-label">总请求</span>
+                        <span class="limit-label">Total Requests</span>
                         <span class="limit-value ${percent >= 90 ? 'danger' : percent >= 70 ? 'warning' : ''}">${usage.total} / ${limits.totalLimit}</span>
                     </div>
                 `;
@@ -148,7 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (usage.dailyCost / limits.dailyCostLimit) * 100;
                 limitsHtml += `
                     <div class="limit-item">
-                        <span class="limit-label">每日费用</span>
+                        <span class="limit-label">Daily Cost</span>
                         <span class="limit-value ${percent >= 90 ? 'danger' : percent >= 70 ? 'warning' : ''}">$${usage.dailyCost.toFixed(2)} / $${limits.dailyCostLimit.toFixed(2)}</span>
                     </div>
                 `;
@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (usage.monthlyCost / limits.monthlyCostLimit) * 100;
                 limitsHtml += `
                     <div class="limit-item">
-                        <span class="limit-label">每月费用</span>
+                        <span class="limit-label">Monthly Cost</span>
                         <span class="limit-value ${percent >= 90 ? 'danger' : percent >= 70 ? 'warning' : ''}">$${usage.monthlyCost.toFixed(2)} / $${limits.monthlyCostLimit.toFixed(2)}</span>
                     </div>
                 `;
@@ -168,20 +168,20 @@ document.addEventListener('DOMContentLoaded', () => {
                 const percent = (usage.totalCost / limits.totalCostLimit) * 100;
                 limitsHtml += `
                     <div class="limit-item">
-                        <span class="limit-label">总费用</span>
+                        <span class="limit-label">Total Cost</span>
                         <span class="limit-value ${percent >= 90 ? 'danger' : percent >= 70 ? 'warning' : ''}">$${usage.totalCost.toFixed(2)} / $${limits.totalCostLimit.toFixed(2)}</span>
                     </div>
                 `;
             }
 
             if (limits.expiresInDays > 0 && limits.expireDate) {
-                // 直接显示原始时间字符串，不做时区转换
+                // Display original time string without timezone conversion
                 let expireDateStr = limits.expireDate;
-                // 如果是 ISO 格式 (2026-01-21T14:40:20.000Z)，转换为本地格式显示
+                // If ISO format (2026-01-21T14:40:20.000Z), convert to local format for display
                 if (expireDateStr.includes('T')) {
                     expireDateStr = expireDateStr.replace('T', ' ').replace(/\.\d{3}Z$/, '');
                 }
-                // 格式化为 YYYY/MM/DD HH:mm:ss
+                // Format as YYYY/MM/DD HH:mm:ss
                 expireDateStr = expireDateStr.replace(/-/g, '/');
 
                 const expDate = new Date(limits.expireDate);
@@ -191,12 +191,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 limitsHtml += `
                     <div class="limit-item">
-                        <span class="limit-label">过期时间</span>
-                        <span class="limit-value ${isExpired ? 'danger' : remainingDays <= 7 ? 'danger' : remainingDays <= 30 ? 'warning' : ''}">${isExpired ? '已过期' : expireDateStr}</span>
+                        <span class="limit-label">Expiration Time</span>
+                        <span class="limit-value ${isExpired ? 'danger' : remainingDays <= 7 ? 'danger' : remainingDays <= 30 ? 'warning' : ''}">${isExpired ? 'Expired' : expireDateStr}</span>
                     </div>
                     <div class="limit-item">
-                        <span class="limit-label">剩余天数</span>
-                        <span class="limit-value ${isExpired ? 'danger' : remainingDays <= 7 ? 'danger' : remainingDays <= 30 ? 'warning' : ''}">${isExpired ? '0' : remainingDays} 天</span>
+                        <span class="limit-label">Remaining Days</span>
+                        <span class="limit-value ${isExpired ? 'danger' : remainingDays <= 7 ? 'danger' : remainingDays <= 30 ? 'warning' : ''}">${isExpired ? '0' : remainingDays} days</span>
                     </div>
                 `;
             }

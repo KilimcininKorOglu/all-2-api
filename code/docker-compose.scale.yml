@@ -1,17 +1,17 @@
 version: '3.8'
 
-# 动态扩展版本 - 使用外部数据库 + Host 网络模式
-# 用法:
-#   启动: docker-compose -f docker-compose.scale.yml up -d
-#   扩容: 修改下方 api 实例数量后重新 up
+# Dynamic scaling version - External database + Host network mode
+# Usage:
+#   Start: docker-compose -f docker-compose.scale.yml up -d
+#   Scale: Modify the number of API instances below and run up again
 #
-# 环境变量配置（可在 .env 文件中设置）:
-#   BALANCER_PORT  - 负载均衡器端口 (默认: 13003)
-#   MYSQL_HOST     - MySQL 主机地址 (默认: 127.0.0.1)
-#   MYSQL_PORT     - MySQL 端口 (默认: 3306)
-#   MYSQL_USER     - MySQL 用户名 (默认: root)
-#   MYSQL_PASSWORD - MySQL 密码 (必填)
-#   MYSQL_DATABASE - 数据库名 (默认: kiro_api)
+# Environment variable configuration (can be set in .env file):
+#   BALANCER_PORT  - Load balancer port (default: 13003)
+#   MYSQL_HOST     - MySQL host address (default: 127.0.0.1)
+#   MYSQL_PORT     - MySQL port (default: 3306)
+#   MYSQL_USER     - MySQL username (default: root)
+#   MYSQL_PASSWORD - MySQL password (required)
+#   MYSQL_DATABASE - Database name (default: kiro_api)
 
 x-api-common: &api-common
   build: .

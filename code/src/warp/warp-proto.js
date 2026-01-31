@@ -1,6 +1,6 @@
 /**
- * Warp Protobuf 加载器
- * 使用 protobufjs 加载和编解码 Warp 协议消息
+ * Warp Protobuf Loader
+ * Load and encode/decode Warp protocol messages using protobufjs
  */
 
 import protobuf from 'protobufjs';
@@ -10,32 +10,32 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const PROTO_DIR = path.join(__dirname, '../..', 'warp-protobuf-master');
 
-// 缓存加载的 root 和消息类型
+// Cache loaded root and message types
 let root = null;
 let messageTypes = {};
 
 /**
- * 加载所有 proto 文件
- * @returns {Promise<Object>} 消息类型对象
+ * Load all proto files
+ * @returns {Promise<Object>} Message type object
  */
 export async function loadProtos() {
     if (root) return messageTypes;
 
-    // 创建新的 Root 实例
+    // Create new Root instance
     root = new protobuf.Root();
 
-    // 设置解析选项以支持 google.protobuf 类型
+    // Set parsing options to support google.protobuf types
     root.resolvePath = (origin, target) => {
-        // 处理 google/protobuf 导入
+        // Handle google/protobuf imports
         if (target.startsWith('google/protobuf/')) {
-            // protobufjs 内置了这些类型，返回 null 让它使用内置的
+            // protobufjs has these types built-in, return null to use built-in ones
             return null;
         }
-        // 其他文件从 PROTO_DIR 加载
+        // Load other files from PROTO_DIR
         return path.join(PROTO_DIR, target);
     };
 
-    // 按依赖顺序加载 proto 文件
+    // Load proto files in dependency order
     const protoFiles = [
         'options.proto',
         'citations.proto',
@@ -53,31 +53,31 @@ export async function loadProtos() {
         await root.load(path.join(PROTO_DIR, file), { keepCase: true });
     }
 
-    // 查找并缓存消息类型
+    // Find and cache message types
     messageTypes = {
-        // 请求/响应
+        // Request/Response
         Request: root.lookupType('warp.multi_agent.v1.Request'),
         ResponseEvent: root.lookupType('warp.multi_agent.v1.ResponseEvent'),
 
-        // 任务相关
+        // Task related
         Task: root.lookupType('warp.multi_agent.v1.Task'),
         TaskStatus: root.lookupType('warp.multi_agent.v1.TaskStatus'),
         Message: root.lookupType('warp.multi_agent.v1.Message'),
 
-        // 输入上下文
+        // Input context
         InputContext: root.lookupType('warp.multi_agent.v1.InputContext'),
 
-        // 文件内容
+        // File content
         FileContent: root.lookupType('warp.multi_agent.v1.FileContent'),
         FileContentLineRange: root.lookupType('warp.multi_agent.v1.FileContentLineRange'),
 
-        // 工具类型枚举
+        // Tool type enum
         ToolType: root.lookupEnum('warp.multi_agent.v1.ToolType'),
 
-        // 客户端动作
+        // Client actions
         ClientAction: root.lookupType('warp.multi_agent.v1.ClientAction'),
 
-        // 工具结果类型
+        // Tool result types
         RunShellCommandResult: root.lookupType('warp.multi_agent.v1.RunShellCommandResult'),
         ReadFilesResult: root.lookupType('warp.multi_agent.v1.ReadFilesResult'),
         ApplyFileDiffsResult: root.lookupType('warp.multi_agent.v1.ApplyFileDiffsResult'),
@@ -91,8 +91,8 @@ export async function loadProtos() {
 }
 
 /**
- * 获取消息类型（确保已加载）
- * @returns {Promise<Object>} 消息类型对象
+ * Get message types (ensure loaded)
+ * @returns {Promise<Object>} Message type object
  */
 export async function getMessageTypes() {
     if (!root) {
@@ -102,9 +102,9 @@ export async function getMessageTypes() {
 }
 
 /**
- * 编码 Request 消息
- * @param {Object} requestObj - 请求对象
- * @returns {Buffer} 编码后的二进制数据
+ * Encode Request message
+ * @param {Object} requestObj - Request object
+ * @returns {Buffer} Encoded binary data
  */
 export function encodeRequest(requestObj) {
     if (!messageTypes.Request) {
@@ -113,21 +113,21 @@ export function encodeRequest(requestObj) {
 
     const { Request } = messageTypes;
 
-    // 验证消息
+    // Validate message
     const errMsg = Request.verify(requestObj);
     if (errMsg) {
         throw new Error(`Invalid request: ${errMsg}`);
     }
 
-    // 创建并编码消息
+    // Create and encode message
     const message = Request.create(requestObj);
     return Buffer.from(Request.encode(message).finish());
 }
 
 /**
- * 解码 ResponseEvent 消息
- * @param {Buffer|Uint8Array} buffer - 二进制数据
- * @returns {Object} 解码后的响应事件对象
+ * Decode ResponseEvent message
+ * @param {Buffer|Uint8Array} buffer - Binary data
+ * @returns {Object} Decoded response event object
  */
 export function decodeResponseEvent(buffer) {
     if (!messageTypes.ResponseEvent) {
@@ -139,9 +139,9 @@ export function decodeResponseEvent(buffer) {
 }
 
 /**
- * 解码 Message 消息
- * @param {Buffer|Uint8Array} buffer - 二进制数据
- * @returns {Object} 解码后的消息对象
+ * Decode Message message
+ * @param {Buffer|Uint8Array} buffer - Binary data
+ * @returns {Object} Decoded message object
  */
 export function decodeMessage(buffer) {
     if (!messageTypes.Message) {
@@ -153,9 +153,9 @@ export function decodeMessage(buffer) {
 }
 
 /**
- * 将 ResponseEvent 转换为普通 JavaScript 对象
- * @param {Object} responseEvent - protobufjs 解码的对象
- * @returns {Object} 普通 JavaScript 对象
+ * Convert ResponseEvent to plain JavaScript object
+ * @param {Object} responseEvent - protobufjs decoded object
+ * @returns {Object} Plain JavaScript object
  */
 export function responseEventToObject(responseEvent) {
     if (!messageTypes.ResponseEvent) {
@@ -173,9 +173,9 @@ export function responseEventToObject(responseEvent) {
 }
 
 /**
- * 获取 ToolType 枚举值
- * @param {string} name - 工具类型名称
- * @returns {number} 枚举值
+ * Get ToolType enum value
+ * @param {string} name - Tool type name
+ * @returns {number} Enum value
  */
 export function getToolTypeValue(name) {
     if (!messageTypes.ToolType) {
@@ -186,9 +186,9 @@ export function getToolTypeValue(name) {
 }
 
 /**
- * 获取 ToolType 枚举名称
- * @param {number} value - 枚举值
- * @returns {string} 工具类型名称
+ * Get ToolType enum name
+ * @param {number} value - Enum value
+ * @returns {string} Tool type name
  */
 export function getToolTypeName(value) {
     if (!messageTypes.ToolType) {
@@ -203,14 +203,14 @@ export function getToolTypeName(value) {
 }
 
 /**
- * 创建 InputContext 对象
- * @param {Object} options - 选项
- * @param {string} options.pwd - 当前工作目录
- * @param {string} options.home - 用户主目录
- * @param {string} options.platform - 操作系统平台
- * @param {string} options.shellName - Shell 名称
- * @param {string} options.shellVersion - Shell 版本
- * @returns {Object} InputContext 对象
+ * Create InputContext object
+ * @param {Object} options - Options
+ * @param {string} options.pwd - Current working directory
+ * @param {string} options.home - User home directory
+ * @param {string} options.platform - Operating system platform
+ * @param {string} options.shellName - Shell name
+ * @param {string} options.shellVersion - Shell version
+ * @returns {Object} InputContext object
  */
 export function createInputContext(options = {}) {
     const {
@@ -243,9 +243,9 @@ export function createInputContext(options = {}) {
 }
 
 /**
- * 创建 TaskStatus 对象
- * @param {string} status - 状态名称: 'pending', 'in_progress', 'blocked', 'succeeded', 'failed', 'aborted'
- * @returns {Object} TaskStatus 对象
+ * Create TaskStatus object
+ * @param {string} status - Status name: 'pending', 'in_progress', 'blocked', 'succeeded', 'failed', 'aborted'
+ * @returns {Object} TaskStatus object
  */
 export function createTaskStatus(status = 'in_progress') {
     const statusMap = {
@@ -260,7 +260,7 @@ export function createTaskStatus(status = 'in_progress') {
     return statusMap[status] || statusMap['in_progress'];
 }
 
-// 导出 ToolType 枚举值常量（方便使用）
+// Export ToolType enum value constants (for convenience)
 export const TOOL_TYPES = {
     RUN_SHELL_COMMAND: 0,
     SEARCH_CODEBASE: 1,

@@ -1,6 +1,6 @@
 /**
- * Kiro API 统一服务
- * 提供统一的 Token 刷新、聊天、获取用量等方法
+ * Kiro API Unified Service
+ * Provides unified methods for Token refresh, chat, and usage retrieval
  */
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -13,7 +13,7 @@ import { getAxiosProxyConfig } from '../proxy.js';
 const log = logger.api;
 
 /**
- * 根据凭证生成唯一的机器码
+ * Generate unique machine ID based on credentials
  */
 function generateMachineId(credential) {
     const uniqueKey = credential.profileArn || credential.clientId || 'KIRO_DEFAULT';
@@ -21,7 +21,7 @@ function generateMachineId(credential) {
 }
 
 /**
- * 获取系统运行时信息
+ * Get system runtime information
  */
 function getSystemInfo() {
     const platform = os.platform();
@@ -37,7 +37,7 @@ function getSystemInfo() {
 }
 
 /**
- * 创建 axios 实例
+ * Create axios instance
  */
 function createAxiosInstance(credential) {
     const machineId = generateMachineId(credential);
@@ -61,18 +61,18 @@ function createAxiosInstance(credential) {
 }
 
 /**
- * 统一的 Kiro API 服务类
+ * Unified Kiro API Service Class
  */
 export class KiroAPI {
     /**
-     * 统一刷新 Token
-     * @param {Object} credential - 凭据对象
-     * @param {string} credential.refreshToken - 刷新令牌
-     * @param {string} credential.authMethod - 认证方式 (social/builder-id/IdC)
-     * @param {string} credential.region - 区域
-     * @param {string} credential.clientId - 客户端ID (builder-id/IdC 需要)
-     * @param {string} credential.clientSecret - 客户端密钥 (builder-id/IdC 需要)
-     * @returns {Promise<Object>} 刷新结果 {success, accessToken, refreshToken, expiresAt, error}
+     * Unified Token Refresh
+     * @param {Object} credential - Credential object
+     * @param {string} credential.refreshToken - Refresh token
+     * @param {string} credential.authMethod - Authentication method (social/builder-id/IdC)
+     * @param {string} credential.region - Region
+     * @param {string} credential.clientId - Client ID (required for builder-id/IdC)
+     * @param {string} credential.clientSecret - Client secret (required for builder-id/IdC)
+     * @returns {Promise<Object>} Refresh result {success, accessToken, refreshToken, expiresAt, error}
      */
     static async refreshToken(credential) {
         const {
@@ -84,17 +84,17 @@ export class KiroAPI {
         } = credential;
 
         if (!refreshToken) {
-            return { success: false, error: '缺少 refreshToken' };
+            return { success: false, error: 'Missing refreshToken' };
         }
 
-        log.info(`刷新 Token, 认证方式: ${authMethod}`);
+        log.info(`Refreshing Token, auth method: ${authMethod}`);
 
         try {
             let response;
             let newAccessToken, newRefreshToken, expiresAt;
 
             if (authMethod === KIRO_CONSTANTS.AUTH_METHOD_SOCIAL) {
-                // Social 认证方式 (Google/GitHub)
+                // Social authentication method (Google/GitHub)
                 const url = KIRO_CONSTANTS.REFRESH_URL.replace('{{region}}', region);
                 const requestBody = { refreshToken };
                 const requestHeaders = { 'Content-Type': 'application/json' };
@@ -113,20 +113,20 @@ export class KiroAPI {
                 expiresAt = response.data.expiresAt || null;
 
             } else if (authMethod === KIRO_CONSTANTS.AUTH_METHOD_BUILDER_ID || authMethod === KIRO_CONSTANTS.AUTH_METHOD_IDC) {
-                // Builder ID / IdC 认证方式 (OIDC)
+                // Builder ID / IdC authentication method (OIDC)
                 if (!clientId || !clientSecret) {
-                    log.error(`${authMethod} 缺少必要参数: clientId=${clientId ? '有值' : '空'}, clientSecret=${clientSecret ? '有值' : '空'}`);
-                    return { success: false, error: `${authMethod} 认证需要 clientId 和 clientSecret` };
+                    log.error(`${authMethod} missing required parameters: clientId=${clientId ? 'present' : 'empty'}, clientSecret=${clientSecret ? 'present' : 'empty'}`);
+                    return { success: false, error: `${authMethod} authentication requires clientId and clientSecret` };
                 }
 
-                // IdC 和 builder-id 都使用 oidc 端点 (与 kiro2api 保持一致)
+                // IdC and builder-id both use oidc endpoint (consistent with kiro2api)
                 const url = KIRO_CONSTANTS.REFRESH_IDC_URL.replace('{{region}}', region);
                 log.request('POST', url);
 
-                // 调试日志：打印请求参数（脱敏）
-                log.info(`刷新参数: clientId=${clientId.substring(0, 10)}..., clientSecret=${clientSecret.substring(0, 10)}..., refreshToken=${refreshToken.substring(0, 20)}...`);
+                // Debug log: print request parameters (sanitized)
+                log.info(`Refresh parameters: clientId=${clientId.substring(0, 10)}..., clientSecret=${clientSecret.substring(0, 10)}..., refreshToken=${refreshToken.substring(0, 20)}...`);
 
-                // 使用 JSON 格式发送请求（与 AIClient 一致）
+                // Send request in JSON format (consistent with AIClient)
                 const requestBody = {
                     refreshToken: refreshToken,
                     clientId: clientId,
@@ -142,7 +142,7 @@ export class KiroAPI {
                     ...getAxiosProxyConfig()
                 });
 
-                // 响应字段使用 camelCase（与 social 认证一致）
+                // Response fields use camelCase (consistent with social auth)
                 newAccessToken = response.data.accessToken || response.data.access_token;
                 newRefreshToken = response.data.refreshToken || response.data.refresh_token || refreshToken;
                 expiresAt = response.data.expiresAt
@@ -154,12 +154,12 @@ export class KiroAPI {
                         : null);
 
             } else {
-                return { success: false, error: `不支持的认证方式: ${authMethod}` };
+                return { success: false, error: `Unsupported authentication method: ${authMethod}` };
             }
 
-            log.success('Token 刷新成功');
-            log.info(`新 Token: ${newAccessToken.substring(0, 20)}...`);
-            log.info(`过期时间: ${expiresAt || '未知'}`);
+            log.success('Token refresh successful');
+            log.info(`New Token: ${newAccessToken.substring(0, 20)}...`);
+            log.info(`Expiration time: ${expiresAt || 'unknown'}`);
 
             return {
                 success: true,
@@ -169,9 +169,9 @@ export class KiroAPI {
             };
 
         } catch (error) {
-            // 打印完整的错误响应用于调试
+            // Print full error response for debugging
             if (error.response?.data) {
-                log.error(`AWS 响应详情: ${JSON.stringify(error.response.data)}`);
+                log.error(`AWS response details: ${JSON.stringify(error.response.data)}`);
             }
 
             const errorMsg = error.response?.data?.message
@@ -180,7 +180,7 @@ export class KiroAPI {
                 || error.message;
             const statusCode = error.response?.status;
 
-            log.fail(`Token 刷新失败: ${errorMsg}`, statusCode);
+            log.fail(`Token refresh failed: ${errorMsg}`, statusCode);
 
             return {
                 success: false,
@@ -191,12 +191,12 @@ export class KiroAPI {
     }
 
     /**
-     * 批量刷新 Token
-     * @param {Array} credentials - 凭据数组
-     * @param {Object} options - 选项
-     * @param {number} options.delay - 每个请求之间的延迟毫秒 (默认 2000)
-     * @param {Function} options.onProgress - 进度回调 (index, total, result)
-     * @returns {Promise<Object>} 批量刷新结果 {success, failed, results}
+     * Batch Token Refresh
+     * @param {Array} credentials - Credentials array
+     * @param {Object} options - Options
+     * @param {number} options.delay - Delay in milliseconds between each request (default 2000)
+     * @param {Function} options.onProgress - Progress callback (index, total, result)
+     * @returns {Promise<Object>} Batch refresh result {success, failed, results}
      */
     static async batchRefreshToken(credentials, options = {}) {
         const { delay = 2000, onProgress } = options;
@@ -226,7 +226,7 @@ export class KiroAPI {
                 onProgress(i + 1, credentials.length, result);
             }
 
-            // 延迟，避免请求过快
+            // Delay to avoid too frequent requests
             if (i < credentials.length - 1 && delay > 0) {
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
@@ -236,9 +236,9 @@ export class KiroAPI {
     }
 
     /**
-     * 检查 Token 是否即将过期
-     * @param {string} expiresAt - 过期时间 ISO 字符串
-     * @param {number} minutes - 提前多少分钟判定为即将过期 (默认 10)
+     * Check if Token is about to expire
+     * @param {string} expiresAt - Expiration time ISO string
+     * @param {number} minutes - How many minutes ahead to consider as expiring soon (default 10)
      * @returns {boolean}
      */
     static isTokenExpiringSoon(expiresAt, minutes = 10) {
@@ -253,9 +253,9 @@ export class KiroAPI {
     }
 
     /**
-     * 获取刷新 Token 的端点 URL
-     * @param {string} authMethod - 认证方式
-     * @param {string} region - 区域
+     * Get Token refresh endpoint URL
+     * @param {string} authMethod - Authentication method
+     * @param {string} region - Region
      * @returns {string}
      */
     static getRefreshEndpoint(authMethod, region = KIRO_CONSTANTS.DEFAULT_REGION) {
@@ -271,8 +271,8 @@ export class KiroAPI {
     }
 
     /**
-     * 获取认证方式的显示名称
-     * @param {string} authMethod - 认证方式
+     * Get display name for authentication method
+     * @param {string} authMethod - Authentication method
      * @returns {string}
      */
     static getAuthMethodName(authMethod) {
@@ -288,10 +288,10 @@ export class KiroAPI {
         }
     }
 
-    // ==================== 对话相关方法 ====================
+    // ==================== Chat Related Methods ====================
 
     /**
-     * 获取消息文本内容
+     * Get message text content
      * @private
      */
     static _getContentText(message) {
@@ -308,7 +308,7 @@ export class KiroAPI {
     }
 
     /**
-     * 合并相邻相同 role 的消息
+     * Merge adjacent messages with the same role
      * @private
      */
     static _mergeAdjacentMessages(messages) {
@@ -331,21 +331,21 @@ export class KiroAPI {
     }
 
     /**
-     * 构建聊天请求体
+     * Build chat request body
      * @private
      */
     static _buildChatRequest(messages, model, credential, options = {}) {
         const conversationId = uuidv4();
         const codewhispererModel = MODEL_MAPPING[model] || MODEL_MAPPING[KIRO_CONSTANTS.DEFAULT_MODEL_NAME] || model;
 
-        // 合并相邻相同 role 的消息
+        // Merge adjacent messages with the same role
         const mergedMessages = this._mergeAdjacentMessages(messages);
 
-        // 处理消息历史
+        // Process message history
         const history = [];
         const processedMessages = [...mergedMessages];
 
-        // 处理 system prompt
+        // Process system prompt
         let systemPrompt = options.system || '';
 
         if (systemPrompt && processedMessages.length > 0 && processedMessages[0].role === 'user') {
@@ -368,7 +368,7 @@ export class KiroAPI {
             });
         }
 
-        // 处理历史消息（除了最后一条）
+        // Process history messages (except the last one)
         for (let i = 0; i < processedMessages.length - 1; i++) {
             const msg = processedMessages[i];
             if (msg.role === 'user') {
@@ -388,7 +388,7 @@ export class KiroAPI {
             }
         }
 
-        // 当前消息
+        // Current message
         const currentMsg = processedMessages[processedMessages.length - 1];
         let currentContent = '';
 
@@ -435,7 +435,7 @@ export class KiroAPI {
     }
 
     /**
-     * 解析 AWS Event Stream 缓冲区
+     * Parse AWS Event Stream buffer
      * @private
      */
     static _parseEventStreamBuffer(buffer) {
@@ -501,7 +501,7 @@ export class KiroAPI {
                     events.push({ type: 'content', data: parsed.content });
                 }
             } catch (e) {
-                // JSON 解析失败，跳过
+                // JSON parse failed, skip
             }
 
             searchStart = jsonEnd + 1;
@@ -519,7 +519,7 @@ export class KiroAPI {
     }
 
     /**
-     * 解析响应（非流式）
+     * Parse response (non-streaming)
      * @private
      */
     static _parseResponse(rawData) {
@@ -537,7 +537,7 @@ export class KiroAPI {
     }
 
     /**
-     * 检查是否为可重试的 ValidationException
+     * Check if error is a retryable ValidationException
      * @private
      */
     static _isRetryableValidationException(error) {
@@ -549,7 +549,7 @@ export class KiroAPI {
     }
 
     /**
-     * 带重试的 API 调用
+     * API call with retry
      * @private
      */
     static async _callWithRetry(requestFn, maxRetries = 3, baseDelay = 1000, retryCount = 0) {
@@ -560,27 +560,27 @@ export class KiroAPI {
 
             if (status === 429 && retryCount < maxRetries) {
               const delay = baseDelay * Math.pow(2, retryCount);
-                log.warn(`收到 429，${delay}ms 后重试... (${retryCount + 1}/${maxRetries})`);
+                log.warn(`Received 429, retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this._callWithRetry(requestFn, maxRetries, baseDelay, retryCount + 1);
             }
 
-            // 400 ValidationException - 重试（AWS 临时性验证错误）
+            // 400 ValidationException - retry (AWS temporary validation error)
             if (status === 400 && retryCount < maxRetries && this._isRetryableValidationException(error)) {
                 const delay = baseDelay * Math.pow(2, retryCount);
-                log.warn(`收到 400 ValidationException，${delay}ms 后重试... (${retryCount + 1}/${maxRetries})`);
+                log.warn(`Received 400 ValidationException, retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this._callWithRetry(requestFn, maxRetries, baseDelay, retryCount + 1);
             }
 
             if (status >= 500 && status < 600 && retryCount < maxRetries) {
                 const delay = baseDelay * Math.pow(2, retryCount);
-                log.warn(`收到 ${status}，${delay}ms 后重试... (${retryCount + 1}/${maxRetries})`);
+                log.warn(`Received ${status}, retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
                 await new Promise(resolve => setTimeout(resolve, delay));
                 return this._callWithRetry(requestFn, maxRetries, baseDelay, retryCount + 1);
             }
 
-            // 转换为自定义错误，屏蔽原始 AWS 错误详情
+            // Convert to custom error, mask original AWS error details
             const customError = new Error(this._getCustomErrorMessage(error));
             customError.status = status;
             customError.isRetryable = status === 429 || status >= 500 || (status === 400 && this._isRetryableValidationException(error));
@@ -589,50 +589,50 @@ export class KiroAPI {
     }
 
     /**
-     * 获取自定义错误消息，屏蔽原始 AWS 错误详情
+     * Get custom error message, mask original AWS error details
      * @private
      */
     static _getCustomErrorMessage(error) {
         const status = error.response?.status;
 
-        // 记录原始错误到日志
+        // Log original error
         const originalError = error.response?.data?.message || error.response?.data?.error?.message || error.message;
-        log.error(`原始错误: ${status} - ${originalError}`);
+        log.error(`Original error: ${status} - ${originalError}`);
 
-        // 返回自定义错误消息
+        // Return custom error message
         if (status === 400) {
             if (this._isRetryableValidationException(error)) {
-                return '服务暂时不可用，请稍后重试';
+                return 'Service temporarily unavailable, please try again later';
             }
-            return '请求参数错误';
+            return 'Request parameter error';
         }
-        if (status === 401) return '认证失败，请重新登录';
-        if (status === 403) return '访问被拒绝，Token 可能已过期';
-        if (status === 429) return '请求过于频繁，请稍后重试';
-        if (status >= 500) return '服务器错误，请稍后重试';
+        if (status === 401) return 'Authentication failed, please login again';
+        if (status === 403) return 'Access denied, Token may have expired';
+        if (status === 429) return 'Too many requests, please try again later';
+        if (status >= 500) return 'Server error, please try again later';
 
-        return '请求失败，请稍后重试';
+        return 'Request failed, please try again later';
     }
 
     /**
-     * 统一聊天接口（非流式）
-     * @param {Object} credential - 凭据对象
-     * @param {string} credential.accessToken - 访问令牌
-     * @param {string} credential.profileArn - Profile ARN (social 认证需要)
-     * @param {string} credential.authMethod - 认证方式
-     * @param {string} credential.region - 区域
-     * @param {Array} messages - 消息数组 [{role: 'user'|'assistant', content: string}]
-     * @param {string} model - 模型名称
-     * @param {Object} options - 选项
-     * @param {string} options.system - 系统提示词
-     * @param {number} options.maxRetries - 最大重试次数
+     * Unified Chat Interface (non-streaming)
+     * @param {Object} credential - Credential object
+     * @param {string} credential.accessToken - Access token
+     * @param {string} credential.profileArn - Profile ARN (required for social auth)
+     * @param {string} credential.authMethod - Authentication method
+     * @param {string} credential.region - Region
+     * @param {Array} messages - Message array [{role: 'user'|'assistant', content: string}]
+     * @param {string} model - Model name
+     * @param {Object} options - Options
+     * @param {string} options.system - System prompt
+     * @param {number} options.maxRetries - Maximum retry count
      * @returns {Promise<Object>} {success, content, error}
      */
     static async chat(credential, messages, model = KIRO_CONSTANTS.DEFAULT_MODEL_NAME, options = {}) {
         const { accessToken, region = KIRO_CONSTANTS.DEFAULT_REGION } = credential;
 
         if (!accessToken) {
-            return { success: false, error: '缺少 accessToken' };
+            return { success: false, error: 'Missing accessToken' };
         }
 
         const axiosInstance = createAxiosInstance(credential);
@@ -661,7 +661,7 @@ export class KiroAPI {
 
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.message;
-            log.fail(`聊天请求失败: ${errorMsg}`, error.response?.status);
+            log.fail(`Chat request failed: ${errorMsg}`, error.response?.status);
             return {
                 success: false,
                 error: errorMsg,
@@ -671,18 +671,18 @@ export class KiroAPI {
     }
 
     /**
-     * 统一聊天接口（流式）
-     * @param {Object} credential - 凭据对象
-     * @param {Array} messages - 消息数组
-     * @param {string} model - 模型名称
-     * @param {Object} options - 选项
-     * @yields {string} 流式内容片段
+     * Unified Chat Interface (streaming)
+     * @param {Object} credential - Credential object
+     * @param {Array} messages - Message array
+     * @param {string} model - Model name
+     * @param {Object} options - Options
+     * @yields {string} Streaming content chunks
      */
     static async *chatStream(credential, messages, model = KIRO_CONSTANTS.DEFAULT_MODEL_NAME, options = {}) {
         const { accessToken, region = KIRO_CONSTANTS.DEFAULT_REGION } = credential;
 
         if (!accessToken) {
-            throw new Error('缺少 accessToken');
+            throw new Error('Missing accessToken');
         }
 
         const axiosInstance = createAxiosInstance(credential);
@@ -725,18 +725,18 @@ export class KiroAPI {
         }
     }
 
-    // ==================== 用量和模型相关方法 ====================
+    // ==================== Usage and Model Related Methods ====================
 
     /**
-     * 获取使用限额
-     * @param {Object} credential - 凭据对象
+     * Get usage limits
+     * @param {Object} credential - Credential object
      * @returns {Promise<Object>} {success, data, error}
      */
     static async getUsageLimits(credential) {
         const { accessToken, profileArn, authMethod, region = KIRO_CONSTANTS.DEFAULT_REGION } = credential;
 
         if (!accessToken) {
-            return { success: false, error: '缺少 accessToken' };
+            return { success: false, error: 'Missing accessToken' };
         }
 
         const axiosInstance = createAxiosInstance(credential);
@@ -774,7 +774,7 @@ export class KiroAPI {
 
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.message;
-            log.fail(`获取用量失败: ${errorMsg}`, error.response?.status);
+            log.fail(`Failed to get usage: ${errorMsg}`, error.response?.status);
             return {
                 success: false,
                 error: errorMsg,
@@ -784,15 +784,15 @@ export class KiroAPI {
     }
 
     /**
-     * 获取可用模型列表
-     * @param {Object} credential - 凭据对象
+     * Get available model list
+     * @param {Object} credential - Credential object
      * @returns {Promise<Object>} {success, data, error}
      */
     static async listModels(credential) {
         const { accessToken, region = KIRO_CONSTANTS.DEFAULT_REGION } = credential;
 
         if (!accessToken) {
-            return { success: false, error: '缺少 accessToken' };
+            return { success: false, error: 'Missing accessToken' };
         }
 
         const axiosInstance = createAxiosInstance(credential);
@@ -821,7 +821,7 @@ export class KiroAPI {
 
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.message;
-            log.fail(`获取模型列表失败: ${errorMsg}`, error.response?.status);
+            log.fail(`Failed to get model list: ${errorMsg}`, error.response?.status);
             return {
                 success: false,
                 error: errorMsg,
@@ -831,7 +831,7 @@ export class KiroAPI {
     }
 
     /**
-     * 获取本地支持的模型列表
+     * Get locally supported model list
      * @returns {Array}
      */
     static getLocalModels() {
@@ -839,7 +839,7 @@ export class KiroAPI {
     }
 
     /**
-     * 获取模型映射表
+     * Get model mapping table
      * @returns {Object}
      */
     static getModelMapping() {

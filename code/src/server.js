@@ -34,12 +34,12 @@ import bedrockRoutes from './bedrock/bedrock-routes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-// 格式化日期为本地时间字符串 (YYYY-MM-DD HH:mm:ss)
+// Format date as local time string (YYYY-MM-DD HH:mm:ss)
 function formatLocalDateTime(date) {
     if (!date) return null;
     const d = new Date(date);
-    // 转换为北京时间 (UTC+8)
-    const beijingOffset = 8 * 60; // 北京时间偏移分钟数
+    // Convert to Beijing time (UTC+8)
+    const beijingOffset = 8 * 60; // Beijing time offset in minutes
     const utcTime = d.getTime() + d.getTimezoneOffset() * 60 * 1000;
     const beijingTime = new Date(utcTime + beijingOffset * 60 * 1000);
 
@@ -56,19 +56,19 @@ const app = express();
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
-// 首页 - 重定向到用量查询页面（必须在静态文件中间件之前）
+// Homepage - redirect to usage query page (must be before static file middleware)
 app.get('/', (req, res) => {
     res.redirect('/pages/usage-query.html');
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
 
-// 信任代理，以便正确获取客户端 IP
+// Trust proxy to correctly get client IP
 app.set('trust proxy', true);
 
-// ============ CORS 配置 ============
+// ============ CORS Configuration ============
 
-// CORS 中间件
+// CORS middleware
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
@@ -93,28 +93,28 @@ let trialStore = null;
 let siteSettingsStore = null;
 let pricingStore = null;
 
-// 凭据 403 错误计数器
+// Credential 403 error counter
 const credential403Counter = new Map();
 
-// API 密钥 + IP 并发请求跟踪器 (key: `${apiKeyId}:${ip}`)
+// API key + IP concurrent request tracker (key: `${apiKeyId}:${ip}`)
 const apiKeyIpConcurrentRequests = new Map();
 
-// API 密钥速率限制跟踪器 (每分钟请求数)
+// API key rate limit tracker (requests per minute)
 const apiKeyRateLimiter = new Map();
 
-// ============ 凭据健康状态管理（参照 AIClient-2-API） ============
-// 凭据健康状态：{ isHealthy, errorCount, lastErrorTime, lastErrorMessage, lastUsed, usageCount }
+// ============ Credential Health Status Management (Reference: AIClient-2-API) ============
+// Credential health status: { isHealthy, errorCount, lastErrorTime, lastErrorMessage, lastUsed, usageCount }
 const credentialHealthStatus = new Map();
 
-// 健康状态配置
+// Health status configuration
 const CREDENTIAL_HEALTH_CONFIG = {
-    maxErrorCount: 3,           // 连续错误次数达到此值标记为不健康
-    recoveryTimeMs: 5 * 60 * 1000,  // 5分钟后尝试恢复
-    healthCheckIntervalMs: 10 * 60 * 1000  // 10分钟健康检查间隔
+    maxErrorCount: 3,           // Mark as unhealthy when consecutive errors reach this value
+    recoveryTimeMs: 5 * 60 * 1000,  // Try recovery after 5 minutes
+    healthCheckIntervalMs: 10 * 60 * 1000  // 10 minute health check interval
 };
 
 /**
- * 获取凭据健康状态
+ * Get credential health status
  */
 function getCredentialHealth(credentialId) {
     if (!credentialHealthStatus.has(credentialId)) {
@@ -131,7 +131,7 @@ function getCredentialHealth(credentialId) {
 }
 
 /**
- * 标记凭据为健康
+ * Mark credential as healthy
  */
 function markCredentialHealthy(credentialId) {
     const health = getCredentialHealth(credentialId);
@@ -142,7 +142,7 @@ function markCredentialHealthy(credentialId) {
 }
 
 /**
- * 标记凭据为不健康
+ * Mark credential as unhealthy
  */
 function markCredentialUnhealthy(credentialId, errorMessage) {
     const health = getCredentialHealth(credentialId);
@@ -152,12 +152,12 @@ function markCredentialUnhealthy(credentialId, errorMessage) {
 
     if (health.errorCount >= CREDENTIAL_HEALTH_CONFIG.maxErrorCount) {
         health.isHealthy = false;
-        // console.log(`[${getTimestamp()}] [凭据健康] 凭据 ${credentialId} 标记为不健康 (连续 ${health.errorCount} 次错误)`);
+        // console.log(`[${getTimestamp()}] [Credential Health] Credential ${credentialId} marked as unhealthy (${health.errorCount} consecutive errors)`);
     }
 }
 
 /**
- * 更新凭据使用记录（用于 LRU 选择）
+ * Update credential usage record (for LRU selection)
  */
 function updateCredentialUsage(credentialId) {
     const health = getCredentialHealth(credentialId);
@@ -166,7 +166,7 @@ function updateCredentialUsage(credentialId) {
 }
 
 /**
- * 检查凭据是否可以尝试恢复
+ * Check if credential can attempt recovery
  */
 function canAttemptRecovery(credentialId) {
     const health = getCredentialHealth(credentialId);
@@ -177,31 +177,31 @@ function canAttemptRecovery(credentialId) {
     return timeSinceError >= CREDENTIAL_HEALTH_CONFIG.recoveryTimeMs;
 }
 
-// ============ 凭据 Token 刷新锁 ============
-// 防止同一凭据并发刷新 token
+// ============ Credential Token Refresh Lock ============
+// Prevent concurrent token refresh for the same credential
 const credentialRefreshLocks = new Map();
 const credentialRefreshPromises = new Map();
 
 /**
- * 带锁的 token 刷新，确保同一凭据同一时间只有一个刷新操作
+ * Token refresh with lock, ensuring only one refresh operation at a time for the same credential
  * @returns {Promise<{success: boolean, credential?: object, error?: string}>}
  */
 async function refreshTokenWithLock(credential, store) {
     const credentialId = credential.id;
 
-    // 如果已经有刷新操作在进行，等待它完成
+    // If a refresh operation is already in progress, wait for it to complete
     if (credentialRefreshLocks.get(credentialId)) {
-        // console.log(`[${getTimestamp()}] [Token刷新] 凭据 ${credentialId} 正在刷新中，等待...`);
+        // console.log(`[${getTimestamp()}] [Token Refresh] Credential ${credentialId} is refreshing, waiting...`);
         const existingPromise = credentialRefreshPromises.get(credentialId);
         if (existingPromise) {
             return existingPromise;
         }
     }
 
-    // 设置锁
+    // Set lock
     credentialRefreshLocks.set(credentialId, true);
 
-    // 创建刷新 Promise
+    // Create refresh Promise
     const refreshPromise = (async () => {
         try {
             const refreshResult = await KiroAPI.refreshToken(credential);
@@ -212,17 +212,17 @@ async function refreshTokenWithLock(credential, store) {
                     expiresAt: refreshResult.expiresAt
                 });
                 const updatedCredential = await store.getById(credentialId);
-                // console.log(`[${getTimestamp()}] [Token刷新] 凭据 ${credentialId} 刷新成功`);
+                // console.log(`[${getTimestamp()}] [Token Refresh] Credential ${credentialId} refresh succeeded`);
                 return { success: true, credential: updatedCredential };
             } else {
-                // console.log(`[${getTimestamp()}] [Token刷新] 凭据 ${credentialId} 刷新失败: ${refreshResult.error}`);
+                // console.log(`[${getTimestamp()}] [Token Refresh] Credential ${credentialId} refresh failed: ${refreshResult.error}`);
                 return { success: false, error: refreshResult.error };
             }
         } catch (error) {
-            // console.log(`[${getTimestamp()}] [Token刷新] 凭据 ${credentialId} 刷新异常: ${error.message}`);
+            // console.log(`[${getTimestamp()}] [Token Refresh] Credential ${credentialId} refresh exception: ${error.message}`);
             return { success: false, error: error.message };
         } finally {
-            // 释放锁
+            // Release lock
             credentialRefreshLocks.set(credentialId, false);
             credentialRefreshPromises.delete(credentialId);
         }
@@ -232,20 +232,20 @@ async function refreshTokenWithLock(credential, store) {
     return refreshPromise;
 }
 
-// ============ 凭据级别并发控制 ============
-// 每个凭据最多1个并发请求，后续请求排队串行执行
+// ============ Credential-Level Concurrency Control ============
+// Each credential allows max 1 concurrent request, subsequent requests queue and execute serially
 
-// 凭据锁状态：true 表示正在使用
+// Credential lock state: true means in use
 const credentialLocks = new Map();
 
-// 凭据请求队列：每个凭据一个队列
+// Credential request queue: one queue per credential
 const credentialQueues = new Map();
 
-// 是否禁用凭据并发限制 (环境变量 DISABLE_CREDENTIAL_LOCK=true 时禁用)
+// Whether to disable credential concurrency limit (disabled when DISABLE_CREDENTIAL_LOCK=true)
 const DISABLE_CREDENTIAL_LOCK = process.env.DISABLE_CREDENTIAL_LOCK === 'true';
 
 /**
- * 获取凭据的请求队列
+ * Get the request queue for a credential
  */
 function getCredentialQueue(credentialId) {
     if (!credentialQueues.has(credentialId)) {
@@ -255,53 +255,53 @@ function getCredentialQueue(credentialId) {
 }
 
 /**
- * 获取凭据锁
- * @returns {Promise} 当获取到锁时 resolve
+ * Acquire credential lock
+ * @returns {Promise} Resolves when lock is acquired
  */
 function acquireCredentialLock(credentialId) {
     return new Promise((resolve) => {
-        // 如果禁用了凭据锁，直接放行
+        // If credential lock is disabled, proceed immediately
         if (DISABLE_CREDENTIAL_LOCK) {
             resolve();
             return;
         }
         
         if (!credentialLocks.get(credentialId)) {
-            // 凭据空闲，直接获取锁
+            // Credential is idle, acquire lock immediately
             credentialLocks.set(credentialId, true);
             resolve();
         } else {
-            // 凭据正在使用，加入队列等待
+            // Credential in use, add to queue and wait
             const queue = getCredentialQueue(credentialId);
             queue.push(resolve);
-            // console.log(`[${getTimestamp()}] [凭据队列] 凭据 ${credentialId} 正在使用，请求排队等待 (队列长度: ${queue.length})`);
+            // console.log(`[${getTimestamp()}] [Credential Queue] Credential ${credentialId} in use, request queued (queue length: ${queue.length})`);
         }
     });
 }
 
 /**
- * 释放凭据锁
+ * Release credential lock
  */
 function releaseCredentialLock(credentialId) {
-    // 如果禁用了凭据锁，直接返回
+    // If credential lock is disabled, return immediately
     if (DISABLE_CREDENTIAL_LOCK) {
         return;
     }
     
     const queue = getCredentialQueue(credentialId);
     if (queue.length > 0) {
-        // 队列中有等待的请求，取出下一个
+        // Queue has waiting requests, process the next one
         const nextResolve = queue.shift();
-        // console.log(`[${getTimestamp()}] [凭据队列] 凭据 ${credentialId} 处理下一个排队请求 (剩余队列: ${queue.length})`);
+        // console.log(`[${getTimestamp()}] [Credential Queue] Credential ${credentialId} processing next queued request (remaining queue: ${queue.length})`);
         nextResolve();
     } else {
-        // 没有等待的请求，释放锁
+        // No waiting requests, release lock
         credentialLocks.set(credentialId, false);
     }
 }
 
 /**
- * 获取凭据当前状态
+ * Get current credential status
  */
 function getCredentialQueueStatus(credentialId) {
     const isLocked = credentialLocks.get(credentialId) || false;
@@ -310,25 +310,25 @@ function getCredentialQueueStatus(credentialId) {
 }
 
 /**
- * LRU 凭据选择策略（参照 AIClient-2-API 的 ProviderPoolManager）
- * 优先级：健康 > 可恢复 > 空闲 > 最久未使用 > 队列最短
- * @param {Array} credentials - 凭据列表
- * @param {Array} excludeIds - 排除的凭据 ID 列表（用于 Fallback）
- * @returns {Object|null} 选中的凭据
+ * LRU credential selection strategy (based on AIClient-2-API's ProviderPoolManager)
+ * Priority: healthy > recoverable > idle > least recently used > shortest queue
+ * @param {Array} credentials - Credential list
+ * @param {Array} excludeIds - Credential IDs to exclude (for fallback)
+ * @returns {Object|null} Selected credential
  */
 function selectBestCredential(credentials, excludeIds = []) {
     if (credentials.length === 0) return null;
 
-    // 过滤掉排除的凭据
+    // Filter out excluded credentials
     let availableCredentials = credentials.filter(c => !excludeIds.includes(c.id));
     if (availableCredentials.length === 0) {
-        // 如果所有凭据都被排除，使用原始列表
+        // If all credentials are excluded, use the original list
         availableCredentials = credentials;
     }
 
     if (availableCredentials.length === 1) return availableCredentials[0];
 
-    // 获取每个凭据的综合状态
+    // Get comprehensive status for each credential
     const credentialsWithStatus = availableCredentials.map(c => {
         const health = getCredentialHealth(c.id);
         const queueStatus = getCredentialQueueStatus(c.id);
@@ -344,56 +344,56 @@ function selectBestCredential(credentials, excludeIds = []) {
         };
     });
 
-    // 分离健康和不健康的凭据
+    // Separate healthy and unhealthy credentials
     const healthyCredentials = credentialsWithStatus.filter(c => c.isHealthy);
     const recoverableCredentials = credentialsWithStatus.filter(c => !c.isHealthy && c.canRecover);
 
-    // 优先使用健康的凭据，其次是可恢复的
+    // Prefer healthy credentials, then recoverable ones
     let candidates = healthyCredentials.length > 0 ? healthyCredentials : recoverableCredentials;
     if (candidates.length === 0) {
-        // 如果没有健康或可恢复的凭据，使用所有凭据
+        // If no healthy or recoverable credentials, use all credentials
         candidates = credentialsWithStatus;
     }
 
-    // LRU 排序：优先选择空闲的，然后是最久未使用的
+    // LRU sorting: prefer idle ones, then least recently used
     candidates.sort((a, b) => {
-        // 1. 优先选择未锁定的（空闲）
+        // 1. Prefer unlocked (idle) ones
         if (!a.isLocked && b.isLocked) return -1;
         if (a.isLocked && !b.isLocked) return 1;
 
-        // 2. 如果都空闲或都锁定，选择最久未使用的（LRU）
+        // 2. If all idle or all locked, select least recently used (LRU)
         if (a.lastUsed !== b.lastUsed) {
-            return a.lastUsed - b.lastUsed;  // 时间戳小的（更早使用的）排前面
+            return a.lastUsed - b.lastUsed;  // Smaller timestamp (used earlier) comes first
         }
 
-        // 3. 如果最后使用时间相同，选择使用次数少的
+        // 3. If last used time is the same, select the one with fewer usage count
         if (a.usageCount !== b.usageCount) {
             return a.usageCount - b.usageCount;
         }
 
-        // 4. 如果都锁定，选择队列短的
+        // 4. If all locked, select the one with shortest queue
         return a.queueLength - b.queueLength;
     });
 
     const selected = candidates[0];
     if (!selected.isHealthy) {
-        // console.log(`[${getTimestamp()}] [凭据选择] 尝试恢复不健康凭据 ${selected.credential.id} (错误次数: ${selected.errorCount})`);
+        // console.log(`[${getTimestamp()}] [Credential Selection] Attempting to recover unhealthy credential ${selected.credential.id} (error count: ${selected.errorCount})`);
     } else if (selected.isLocked) {
-        // console.log(`[${getTimestamp()}] [凭据选择] 所有凭据都在使用，选择队列最短的凭据 ${selected.credential.id} (队列: ${selected.queueLength})`);
+        // console.log(`[${getTimestamp()}] [Credential Selection] All credentials in use, selecting credential with shortest queue ${selected.credential.id} (queue: ${selected.queueLength})`);
     }
 
     return selected.credential;
 }
 
 /**
- * 生成 API Key + IP 的组合键
+ * Generate combined key of API Key + IP
  */
 function getConcurrentKey(apiKeyId, clientIp) {
     return `${apiKeyId}:${clientIp || 'unknown'}`;
 }
 
 /**
- * 尝试获取并发槽位（原子操作：检查+增加）
+ * Try to acquire concurrent slot (atomic operation: check + increment)
  * @returns {Object} { success: boolean, current: number }
  */
 function tryAcquireConcurrentSlot(apiKeyId, clientIp, limit) {
@@ -407,7 +407,7 @@ function tryAcquireConcurrentSlot(apiKeyId, clientIp, limit) {
 }
 
 /**
- * 增加 API 密钥 + IP 的并发计数
+ * Increment concurrent count for API Key + IP
  */
 function incrementConcurrent(apiKeyId, clientIp) {
     const key = getConcurrentKey(apiKeyId, clientIp);
@@ -417,7 +417,7 @@ function incrementConcurrent(apiKeyId, clientIp) {
 }
 
 /**
- * 减少 API 密钥 + IP 的并发计数
+ * Decrement concurrent count for API Key + IP
  */
 function decrementConcurrent(apiKeyId, clientIp) {
     const key = getConcurrentKey(apiKeyId, clientIp);
@@ -428,7 +428,7 @@ function decrementConcurrent(apiKeyId, clientIp) {
 }
 
 /**
- * 获取 API 密钥 + IP 的当前并发数
+ * Get current concurrent count for API Key + IP
  */
 function getConcurrentCount(apiKeyId, clientIp) {
     const key = getConcurrentKey(apiKeyId, clientIp);
@@ -436,7 +436,7 @@ function getConcurrentCount(apiKeyId, clientIp) {
 }
 
 /**
- * 获取 API 密钥的总并发数（所有 IP 的总和）
+ * Get total concurrent count for API Key (sum of all IPs)
  */
 function getTotalConcurrentCount(apiKeyId) {
     let total = 0;
@@ -450,17 +450,17 @@ function getTotalConcurrentCount(apiKeyId) {
 }
 
 /**
- * 检查并记录速率限制
- * @returns {boolean} true 如果在限制内，false 如果超出限制
+ * Check and record rate limit
+ * @returns {boolean} true if within limit, false if exceeded
  */
 function checkRateLimit(apiKeyId, rateLimit) {
     if (!rateLimit || rateLimit <= 0) return true;
 
     const now = Date.now();
-    const windowStart = now - 60000; // 1分钟窗口
+    const windowStart = now - 60000; // 1 minute window
 
     let requests = apiKeyRateLimiter.get(apiKeyId) || [];
-    // 清理过期的请求记录
+    // Clean up expired request records
     requests = requests.filter(timestamp => timestamp > windowStart);
 
     if (requests.length >= rateLimit) {
@@ -474,98 +474,98 @@ function checkRateLimit(apiKeyId, rateLimit) {
 }
 
 /**
- * 检查 API 密钥的用量限制
- * @param {Object} keyRecord - API 密钥记录
- * @param {string} clientIp - 客户端 IP 地址
+ * Check API key usage limits
+ * @param {Object} keyRecord - API key record
+ * @param {string} clientIp - Client IP address
  * @returns {Object} { allowed: boolean, reason?: string }
  */
 async function checkUsageLimits(keyRecord, clientIp) {
     const { id, dailyLimit, monthlyLimit, totalLimit, concurrentLimit, rateLimit, dailyCostLimit, monthlyCostLimit, totalCostLimit, expiresInDays, createdAt } = keyRecord;
 
-    // 检查有效期
+    // Check validity period
     if (expiresInDays > 0 && createdAt) {
-        // createdAt 是数据库存储的北京时间字符串 "YYYY-MM-DD HH:mm:ss"
-        // 解析时指定为北京时间（UTC+8）
+        // createdAt is a Beijing time string stored in database "YYYY-MM-DD HH:mm:ss"
+        // Parse as Beijing time (UTC+8)
         const createDateStr = createdAt.replace(' ', 'T') + '+08:00';
         const createDate = new Date(createDateStr);
         const expireDate = new Date(createDate.getTime() + expiresInDays * 24 * 60 * 60 * 1000);
         const now = new Date();
-        // console.log(`[API Key 过期检查] createdAt: ${createdAt}, createDate: ${createDate.toISOString()}, expireDate: ${expireDate.toISOString()}, now: ${now.toISOString()}, expired: ${now > expireDate}`);
+        // console.log(`[API Key Expiry Check] createdAt: ${createdAt}, createDate: ${createDate.toISOString()}, expireDate: ${expireDate.toISOString()}, now: ${now.toISOString()}, expired: ${now > expireDate}`);
         if (now > expireDate) {
-            return { allowed: false, reason: `密钥已过期 (有效期 ${expiresInDays} 天)` };
+            return { allowed: false, reason: `Key expired (validity period ${expiresInDays} days)` };
         }
     }
 
-    // 检查并发限制 (基于 API Key + IP) - 使用原子操作
+    // Check concurrent limit (based on API Key + IP) - using atomic operation
     if (concurrentLimit > 0) {
         const result = tryAcquireConcurrentSlot(id, clientIp, concurrentLimit);
-        // console.log(`[${getTimestamp()}] [并发检查] API Key ${id} | IP: ${clientIp} | 当前并发: ${result.current} | 限制: ${concurrentLimit} | 结果: ${result.success ? '通过' : '拒绝'}`);
+        // console.log(`[${getTimestamp()}] [Concurrent Check] API Key ${id} | IP: ${clientIp} | Current: ${result.current} | Limit: ${concurrentLimit} | Result: ${result.success ? 'Pass' : 'Reject'}`);
         if (!result.success) {
-            return { allowed: false, reason: `并发请求数已达上限 (${concurrentLimit})`, concurrentAcquired: false };
+            return { allowed: false, reason: `Concurrent request limit reached (${concurrentLimit})`, concurrentAcquired: false };
         }
-        // 标记已获取并发槽位，后续不需要再调用 incrementConcurrent
+        // Mark that concurrent slot was acquired, no need to call incrementConcurrent later
         return { allowed: true, concurrentAcquired: true };
     }
 
-    // 检查速率限制
+    // Check rate limit
     if (rateLimit > 0 && !checkRateLimit(id, rateLimit)) {
-        return { allowed: false, reason: `请求频率超限 (${rateLimit}/分钟)` };
+        return { allowed: false, reason: `Rate limit exceeded (${rateLimit}/minute)` };
     }
 
     const now = new Date();
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-    // 检查用量限制
+    // Check usage limits
     if (dailyLimit > 0 || monthlyLimit > 0 || totalLimit > 0) {
-        // 获取今日用量
+        // Get daily usage
         if (dailyLimit > 0) {
             const dailyStats = await apiLogStore.getStatsForApiKey(id, { startDate: todayStart });
             if (dailyStats.requestCount >= dailyLimit) {
-                return { allowed: false, reason: `今日请求数已达上限 (${dailyLimit})` };
+                return { allowed: false, reason: `Daily request limit reached (${dailyLimit})` };
             }
         }
 
-        // 获取本月用量
+        // Get monthly usage
         if (monthlyLimit > 0) {
             const monthlyStats = await apiLogStore.getStatsForApiKey(id, { startDate: monthStart });
             if (monthlyStats.requestCount >= monthlyLimit) {
-                return { allowed: false, reason: `本月请求数已达上限 (${monthlyLimit})` };
+                return { allowed: false, reason: `Monthly request limit reached (${monthlyLimit})` };
             }
         }
 
-        // 获取总用量
+        // Get total usage
         if (totalLimit > 0) {
             const totalStats = await apiLogStore.getStatsForApiKey(id, {});
             if (totalStats.requestCount >= totalLimit) {
-                return { allowed: false, reason: `总请求数已达上限 (${totalLimit})` };
+                return { allowed: false, reason: `Total request limit reached (${totalLimit})` };
             }
         }
     }
 
-    // 检查金额限制
+    // Check cost limits
     if (dailyCostLimit > 0 || monthlyCostLimit > 0 || totalCostLimit > 0) {
-        // 获取今日费用
+        // Get daily cost
         if (dailyCostLimit > 0) {
             const dailyCost = await calculateApiKeyCost(id, { startDate: todayStart });
             if (dailyCost >= dailyCostLimit) {
-                return { allowed: false, reason: `今日费用已达上限 ($${dailyCostLimit.toFixed(2)})` };
+                return { allowed: false, reason: `Daily cost limit reached ($${dailyCostLimit.toFixed(2)})` };
             }
         }
 
-        // 获取本月费用
+        // Get monthly cost
         if (monthlyCostLimit > 0) {
             const monthlyCost = await calculateApiKeyCost(id, { startDate: monthStart });
             if (monthlyCost >= monthlyCostLimit) {
-                return { allowed: false, reason: `本月费用已达上限 ($${monthlyCostLimit.toFixed(2)})` };
+                return { allowed: false, reason: `Monthly cost limit reached ($${monthlyCostLimit.toFixed(2)})` };
             }
         }
 
-        // 获取总费用
+        // Get total cost
         if (totalCostLimit > 0) {
             const totalCost = await calculateApiKeyCost(id, {});
             if (totalCost >= totalCostLimit) {
-                return { allowed: false, reason: `总费用已达上限 ($${totalCostLimit.toFixed(2)})` };
+                return { allowed: false, reason: `Total cost limit reached ($${totalCostLimit.toFixed(2)})` };
             }
         }
     }
@@ -574,7 +574,7 @@ async function checkUsageLimits(keyRecord, clientIp) {
 }
 
 /**
- * 计算 API 密钥的费用
+ * Calculate API key cost
  */
 async function calculateApiKeyCost(apiKeyId, options = {}) {
     const modelStats = await apiLogStore.getStatsByModel(apiKeyId, options);
@@ -587,27 +587,27 @@ async function calculateApiKeyCost(apiKeyId, options = {}) {
 }
 
 /**
- * 记录凭据 403 错误，连续 2 次则移动到错误表
+ * Record credential 403 error, move to error table after 2 consecutive errors
  */
 async function recordCredential403Error(credentialId, errorMessage) {
     const count = (credential403Counter.get(credentialId) || 0) + 1;
     credential403Counter.set(credentialId, count);
 
-    // console.log(`[${getTimestamp()}] [凭据监控] 凭据 ${credentialId} 第 ${count} 次 403 错误`);
+    // console.log(`[${getTimestamp()}] [Credential Monitor] Credential ${credentialId} 403 error #${count}`);
 
     if (count >= 2) {
         try {
-            await store.moveToError(credentialId, `连续 ${count} 次 403 错误: ${errorMessage}`);
+            await store.moveToError(credentialId, `${count} consecutive 403 errors: ${errorMessage}`);
             credential403Counter.delete(credentialId);
-            // console.log(`[${getTimestamp()}] [凭据监控] 凭据 ${credentialId} 已移动到错误表`);
+            // console.log(`[${getTimestamp()}] [Credential Monitor] Credential ${credentialId} moved to error table`);
         } catch (e) {
-            console.error(`[${getTimestamp()}] [凭据监控] 移动凭据失败: ${e.message}`);
+            console.error(`[${getTimestamp()}] [Credential Monitor] Failed to move credential: ${e.message}`);
         }
     }
 }
 
 /**
- * 清除凭据 403 错误计数（请求成功时调用）
+ * Clear credential 403 error count (called on successful request)
  */
 function clearCredential403Counter(credentialId) {
     if (credential403Counter.has(credentialId)) {
@@ -615,30 +615,30 @@ function clearCredential403Counter(credentialId) {
     }
 }
 
-// ============ 工具函数 ============
+// ============ Utility Functions ============
 
 /**
- * 获取客户端真实 IP 地址
+ * Get client's real IP address
  */
 function getClientIp(req) {
     let ip = null;
 
-    // 优先从 X-Forwarded-For 获取（代理场景）
+    // First try X-Forwarded-For (proxy scenario)
     const forwarded = req.headers['x-forwarded-for'];
     if (forwarded) {
-        // X-Forwarded-For 可能包含多个 IP，取第一个
+        // X-Forwarded-For may contain multiple IPs, take the first one
         ip = forwarded.split(',')[0].trim();
     }
-    // 其次从 X-Real-IP 获取（Nginx 等代理）
+    // Then try X-Real-IP (Nginx and similar proxies)
     else if (req.headers['x-real-ip']) {
         ip = req.headers['x-real-ip'];
     }
-    // 最后使用 socket 连接的 IP
+    // Finally use socket connection IP
     else {
         ip = req.ip || req.socket?.remoteAddress || 'unknown';
     }
 
-    // 处理 IPv6 格式的 IPv4 地址 (::ffff:192.168.1.1 -> 192.168.1.1)
+    // Handle IPv4 addresses in IPv6 format (::ffff:192.168.1.1 -> 192.168.1.1)
     if (ip && ip.startsWith('::ffff:')) {
         ip = ip.substring(7);
     }
@@ -647,26 +647,26 @@ function getClientIp(req) {
 }
 
 /**
- * 生成密码哈希
+ * Generate password hash
  */
 function hashPassword(password) {
     return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 /**
- * 生成 API 密钥
- * @param {string} customKey - 可选的自定义密钥
+ * Generate API key
+ * @param {string} customKey - Optional custom key
  */
 function generateApiKey(customKey = null) {
     let key;
     if (customKey && customKey.trim()) {
-        // 使用自定义密钥，如果没有 sk- 前缀则自动添加
+        // Use custom key, auto-add sk- prefix if not present
         key = customKey.trim();
         if (!key.startsWith('sk-')) {
             key = 'sk-' + key;
         }
     } else {
-        // 自动生成密钥
+        // Auto-generate key
         key = 'sk-' + crypto.randomBytes(32).toString('hex');
     }
     const hash = crypto.createHash('sha256').update(key).digest('hex');
@@ -675,7 +675,7 @@ function generateApiKey(customKey = null) {
 }
 
 /**
- * 验证 API 密钥
+ * Verify API key
  */
 async function verifyApiKey(key) {
     const hash = crypto.createHash('sha256').update(key).digest('hex');
@@ -683,7 +683,7 @@ async function verifyApiKey(key) {
 }
 
 /**
- * 简单的 session 存储（生产环境应使用 Redis 等）
+ * Simple session storage (production should use Redis etc.)
  */
 const sessions = new Map();
 
@@ -696,7 +696,7 @@ function createSession(userId) {
 function getSession(token) {
     const session = sessions.get(token);
     if (!session) return null;
-    // 24小时过期
+    // 24 hour expiry
     if (Date.now() - session.createdAt > 24 * 60 * 60 * 1000) {
         sessions.delete(token);
         return null;
@@ -709,25 +709,25 @@ function deleteSession(token) {
 }
 
 /**
- * 认证中间件
+ * Authentication middleware
  */
 async function authMiddleware(req, res, next) {
     const token = req.headers['authorization']?.replace('Bearer ', '');
     if (!token) {
-        return res.status(401).json({ success: false, error: '未登录' });
+        return res.status(401).json({ success: false, error: 'Not logged in' });
     }
     const session = getSession(token);
     if (!session) {
-        return res.status(401).json({ success: false, error: '登录已过期' });
+        return res.status(401).json({ success: false, error: 'Login expired' });
     }
     req.userId = session.userId;
     req.user = await userStore.getById(session.userId);
     next();
 }
 
-// ============ 公开 API 端点（无需认证）============
+// ============ Public API Endpoints (No Authentication Required) ============
 
-// 健康检查端点 (参考 AIClient-2-API)
+// Health check endpoint (based on AIClient-2-API)
 app.get('/health', (req, res) => {
     res.json({
         status: 'healthy',
@@ -737,7 +737,7 @@ app.get('/health', (req, res) => {
     });
 });
 
-// 获取客户端 IP (用于状态页面)
+// Get client IP (for status page)
 app.get('/api/client-ip', (req, res) => {
     const ip = req.headers['x-forwarded-for']?.split(',')[0]?.trim() ||
                req.headers['x-real-ip'] ||
@@ -746,7 +746,7 @@ app.get('/api/client-ip', (req, res) => {
     res.json({ ip });
 });
 
-// 负载均衡状态 (单节点模式)
+// Load balancer status (single node mode)
 app.get('/lb/status', (req, res) => {
     const port = process.env.PORT || 13004;
     res.json({
@@ -766,7 +766,7 @@ app.get('/lb/status', (req, res) => {
     });
 });
 
-// 模型列表端点 - OpenAI 格式
+// Model list endpoint - OpenAI format
 app.get('/v1/models', (req, res) => {
     const models = Object.keys(KIRO_CONSTANTS.MODEL_MAPPING || {});
     const defaultModels = [
@@ -796,9 +796,9 @@ app.get('/v1/models', (req, res) => {
     });
 });
 
-// ============ 认证 API ============
+// ============ Authentication API ============
 
-// 检查是否需要初始化（是否有用户）
+// Check if initialization is needed (whether users exist)
 app.get('/api/auth/status', async (req, res) => {
     try {
         const hasUsers = await userStore.hasUsers();
@@ -808,18 +808,18 @@ app.get('/api/auth/status', async (req, res) => {
     }
 });
 
-// 初始化管理员账户
+// Initialize admin account
 app.post('/api/auth/setup', async (req, res) => {
     try {
         if (await userStore.hasUsers()) {
-            return res.status(400).json({ success: false, error: '系统已初始化' });
+            return res.status(400).json({ success: false, error: 'System already initialized' });
         }
         const { username, password } = req.body;
         if (!username || !password) {
-            return res.status(400).json({ success: false, error: '用户名和密码是必需的' });
+            return res.status(400).json({ success: false, error: 'Username and password are required' });
         }
         if (password.length < 6) {
-            return res.status(400).json({ success: false, error: '密码至少6位' });
+            return res.status(400).json({ success: false, error: 'Password must be at least 6 characters' });
         }
         const passwordHash = hashPassword(password);
         const userId = await userStore.create(username, passwordHash, true);
@@ -830,20 +830,20 @@ app.post('/api/auth/setup', async (req, res) => {
     }
 });
 
-// 登录
+// Login
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { username, password } = req.body;
         if (!username || !password) {
-            return res.status(400).json({ success: false, error: '用户名和密码是必需的' });
+            return res.status(400).json({ success: false, error: 'Username and password are required' });
         }
         const user = await userStore.getByUsername(username);
         if (!user) {
-            return res.status(401).json({ success: false, error: '用户名或密码错误' });
+            return res.status(401).json({ success: false, error: 'Invalid username or password' });
         }
         const passwordHash = hashPassword(password);
         if (user.passwordHash !== passwordHash) {
-            return res.status(401).json({ success: false, error: '用户名或密码错误' });
+            return res.status(401).json({ success: false, error: 'Invalid username or password' });
         }
         const token = createSession(user.id);
         res.json({ success: true, data: { token, userId: user.id, username: user.username, isAdmin: user.isAdmin } });
@@ -852,7 +852,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-// 登出
+// Logout
 app.post('/api/auth/logout', (req, res) => {
     const token = req.headers['authorization']?.replace('Bearer ', '');
     if (token) {
@@ -861,7 +861,7 @@ app.post('/api/auth/logout', (req, res) => {
     res.json({ success: true });
 });
 
-// 获取当前用户信息
+// Get current user info
 app.get('/api/auth/me', authMiddleware, async (req, res) => {
     res.json({
         success: true,
@@ -873,43 +873,43 @@ app.get('/api/auth/me', authMiddleware, async (req, res) => {
     });
 });
 
-// 修改密码
+// Change password
 app.post('/api/auth/change-password', authMiddleware, async (req, res) => {
     try {
         const { oldPassword, newPassword } = req.body;
 
         if (!oldPassword || !newPassword) {
-            return res.status(400).json({ success: false, error: '请提供旧密码和新密码' });
+            return res.status(400).json({ success: false, error: 'Please provide old and new password' });
         }
 
         if (newPassword.length < 6) {
-            return res.status(400).json({ success: false, error: '新密码长度至少6位' });
+            return res.status(400).json({ success: false, error: 'New password must be at least 6 characters' });
         }
 
-        // 验证旧密码
+        // Verify old password
         const user = await userStore.getById(req.user.id);
         if (!user) {
-            return res.status(404).json({ success: false, error: '用户不存在' });
+            return res.status(404).json({ success: false, error: 'User does not exist' });
         }
 
         const oldPasswordHash = hashPassword(oldPassword);
         if (user.passwordHash !== oldPasswordHash) {
-            return res.status(400).json({ success: false, error: '旧密码错误' });
+            return res.status(400).json({ success: false, error: 'Old password is incorrect' });
         }
 
-        // 更新密码
+        // Update password
         const newPasswordHash = hashPassword(newPassword);
         await userStore.updatePassword(req.user.id, newPasswordHash);
 
-        res.json({ success: true, message: '密码修改成功' });
+        res.json({ success: true, message: 'Password changed successfully' });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ============ 站点设置 API ============
+// ============ Site Settings API ============
 
-// 获取站点设置（公开接口，无需登录）
+// Get site settings (public interface, no login required)
 app.get('/api/site-settings', async (req, res) => {
     try {
         const settings = await siteSettingsStore.get();
@@ -919,14 +919,14 @@ app.get('/api/site-settings', async (req, res) => {
     }
 });
 
-// 更新站点设置（管理员接口）
+// Update site settings (admin interface)
 app.put('/api/site-settings', authMiddleware, async (req, res) => {
     try {
         const { siteName, siteLogo, siteSubtitle } = req.body;
 
-        // 验证 siteLogo 长度
+        // Validate siteLogo length
         if (siteLogo && siteLogo.length > 10) {
-            return res.status(400).json({ success: false, error: 'Logo 文字最多 10 个字符' });
+            return res.status(400).json({ success: false, error: 'Logo text maximum 10 characters' });
         }
 
         const settings = await siteSettingsStore.update({
@@ -941,21 +941,21 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
     }
 });
 
-// ============ 试用申请 API ============
+// ============ Trial Application API ============
 
-// 提交试用申请（公开接口，无需登录）
+// Submit trial application (public interface, no login required)
 app.post('/api/trial/apply', async (req, res) => {
     try {
         const { xianyuName, email, source, orderScreenshot } = req.body;
 
         if (!xianyuName || !email) {
-            return res.status(400).json({ success: false, error: '咸鱼名称和邮箱是必填项' });
+            return res.status(400).json({ success: false, error: 'Xianyu name and email are required' });
         }
 
-        // 验证邮箱格式
+        // Validate email format
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
         if (!emailRegex.test(email)) {
-            return res.status(400).json({ success: false, error: '邮箱格式不正确' });
+            return res.status(400).json({ success: false, error: 'Invalid email format' });
         }
 
         const id = await trialStore.add({
@@ -965,28 +965,28 @@ app.post('/api/trial/apply', async (req, res) => {
             orderScreenshot: orderScreenshot || null
         });
 
-        res.json({ success: true, data: { id, message: '申请提交成功，请等待审核' } });
+        res.json({ success: true, data: { id, message: 'Application submitted successfully, please wait for review' } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// 查询申请状态（公开接口，根据邮箱查询）
+// Query application status (public interface, query by email)
 app.get('/api/trial/query', async (req, res) => {
     try {
         const { email } = req.query;
 
         if (!email) {
-            return res.status(400).json({ success: false, error: '请提供邮箱地址' });
+            return res.status(400).json({ success: false, error: 'Please provide email address' });
         }
 
         const application = await trialStore.getLatestByEmail(email);
 
         if (!application) {
-            return res.status(404).json({ success: false, error: '未找到相关申请记录' });
+            return res.status(404).json({ success: false, error: 'Application record not found' });
         }
 
-        // 返回申请信息（隐藏截图数据以减少传输）
+        // Return application info (hide screenshot data to reduce transmission)
         const result = {
             id: application.id,
             xianyuName: application.xianyuName,
@@ -997,7 +997,7 @@ app.get('/api/trial/query', async (req, res) => {
             createdAt: application.createdAt
         };
 
-        // 如果已通过，返回 API Key 信息
+        // If approved, return API Key info
         if (application.status === 'approved') {
             result.apiKey = application.apiKey;
             result.apiKeyExpiresAt = application.apiKeyExpiresAt;
@@ -1010,7 +1010,7 @@ app.get('/api/trial/query', async (req, res) => {
     }
 });
 
-// 获取申请列表（管理员接口）
+// Get application list (admin interface)
 app.get('/api/trial/admin/list', authMiddleware, async (req, res) => {
     try {
         const { status, page, pageSize } = req.query;
@@ -1021,7 +1021,7 @@ app.get('/api/trial/admin/list', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取申请统计（管理员接口）
+// Get application statistics (admin interface)
 app.get('/api/trial/admin/stats', authMiddleware, async (req, res) => {
     try {
         const stats = await trialStore.getStats();
@@ -1031,7 +1031,7 @@ app.get('/api/trial/admin/stats', authMiddleware, async (req, res) => {
     }
 });
 
-// 审批通过（管理员接口）
+// Approve application (admin interface)
 app.post('/api/trial/admin/:id/approve', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
@@ -1039,29 +1039,29 @@ app.post('/api/trial/admin/:id/approve', authMiddleware, async (req, res) => {
 
         const application = await trialStore.getById(id);
         if (!application) {
-            return res.status(404).json({ success: false, error: '申请不存在' });
+            return res.status(404).json({ success: false, error: 'Application does not exist' });
         }
 
         if (application.status !== 'pending') {
-            return res.status(400).json({ success: false, error: '该申请已处理' });
+            return res.status(400).json({ success: false, error: 'This application has already been processed' });
         }
 
-        // 生成 API Key
+        // Generate API Key
         const { key, hash, prefix } = generateApiKey();
 
-        // 计算过期时间
+        // Calculate expiration time
         const expiresAt = new Date(Date.now() + expireHours * 60 * 60 * 1000);
 
-        // 创建 API Key 记录（关联到管理员用户）
-        const keyId = await apiKeyStore.create(req.userId, `试用-${application.xianyuName}`, key, hash, prefix);
+        // Create API Key record (associated with admin user)
+        const keyId = await apiKeyStore.create(req.userId, `Trial-${application.xianyuName}`, key, hash, prefix);
 
-        // 设置 API Key 限制
+        // Set API Key limits
         await apiKeyStore.updateLimits(keyId, {
             totalCostLimit: costLimit,
             expiresInDays: Math.ceil(expireHours / 24)
         });
 
-        // 更新申请状态
+        // Update application status
         await trialStore.approve(id, req.userId, key, expiresAt, costLimit);
 
         res.json({
@@ -1070,7 +1070,7 @@ app.post('/api/trial/admin/:id/approve', authMiddleware, async (req, res) => {
                 apiKey: key,
                 expiresAt,
                 costLimit,
-                message: '审批通过，API Key 已生成'
+                message: 'Approved, API Key generated'
             }
         });
     } catch (error) {
@@ -1078,7 +1078,7 @@ app.post('/api/trial/admin/:id/approve', authMiddleware, async (req, res) => {
     }
 });
 
-// 审批拒绝（管理员接口）
+// Reject application (admin interface)
 app.post('/api/trial/admin/:id/reject', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
@@ -1086,39 +1086,39 @@ app.post('/api/trial/admin/:id/reject', authMiddleware, async (req, res) => {
 
         const application = await trialStore.getById(id);
         if (!application) {
-            return res.status(404).json({ success: false, error: '申请不存在' });
+            return res.status(404).json({ success: false, error: 'Application does not exist' });
         }
 
         if (application.status !== 'pending') {
-            return res.status(400).json({ success: false, error: '该申请已处理' });
+            return res.status(400).json({ success: false, error: 'This application has already been processed' });
         }
 
         await trialStore.reject(id, req.userId, reason);
 
-        res.json({ success: true, data: { message: '已拒绝申请' } });
+        res.json({ success: true, data: { message: 'Application rejected' } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// 删除申请记录（管理员接口）
+// Delete application record (admin interface)
 app.delete('/api/trial/admin/:id', authMiddleware, async (req, res) => {
     try {
         const { id } = req.params;
         await trialStore.delete(id);
-        res.json({ success: true, data: { message: '删除成功' } });
+        res.json({ success: true, data: { message: 'Deleted successfully' } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// ============ API 密钥管理 ============
+// ============ API Key Management ============
 
-// 获取当前用户的 API 密钥列表
+// Get current user's API key list
 app.get('/api/keys', authMiddleware, async (req, res) => {
     try {
         const keys = req.user.isAdmin ? await apiKeyStore.getAll() : await apiKeyStore.getByUserId(req.userId);
-        // 返回完整信息（包含 keyValue）
+        // Return full info (including keyValue)
         const safeKeys = keys.map(k => ({
             id: k.id,
             userId: k.userId,
@@ -1136,29 +1136,29 @@ app.get('/api/keys', authMiddleware, async (req, res) => {
     }
 });
 
-// 创建 API 密钥
+// Create API key
 app.post('/api/keys', authMiddleware, async (req, res) => {
     try {
         const { name, customKey } = req.body;
         if (!name) {
-            return res.status(400).json({ success: false, error: '密钥名称是必需的' });
+            return res.status(400).json({ success: false, error: 'Key name is required' });
         }
         const { key, hash, prefix } = generateApiKey(customKey);
 
-        // 检查密钥是否已存在
+        // Check if key already exists
         const existingKey = await apiKeyStore.getByKeyHash(hash);
         if (existingKey) {
-            return res.status(400).json({ success: false, error: '该密钥已存在' });
+            return res.status(400).json({ success: false, error: 'This key already exists' });
         }
 
         const id = await apiKeyStore.create(req.userId, name, key, hash, prefix);
-        // 只在创建时返回完整密钥
+        // Only return full key on creation
         res.json({
             success: true,
             data: {
                 id,
                 name,
-                key, // 完整密钥，只显示一次
+                key, // Full key, shown only once
                 keyPrefix: prefix,
                 createdAt: new Date().toISOString()
             }
@@ -1168,14 +1168,14 @@ app.post('/api/keys', authMiddleware, async (req, res) => {
     }
 });
 
-// 删除 API 密钥
+// Delete API key
 app.delete('/api/keys/:id', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const keys = await apiKeyStore.getByUserId(req.userId);
         const key = keys.find(k => k.id === id);
         if (!key && !req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '无权删除此密钥' });
+            return res.status(403).json({ success: false, error: 'No permission to delete this key' });
         }
         await apiKeyStore.delete(id);
         res.json({ success: true });
@@ -1184,16 +1184,16 @@ app.delete('/api/keys/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// 禁用/启用 API 密钥
+// Disable/Enable API key
 app.post('/api/keys/:id/toggle', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const keys = await apiKeyStore.getByUserId(req.userId);
         const key = keys.find(k => k.id === id);
         if (!key && !req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '无权操作此密钥' });
+            return res.status(403).json({ success: false, error: 'No permission to operate this key' });
         }
-        // 获取当前状态
+        // Get current status
         const allKeys = await apiKeyStore.getAll();
         const targetKey = allKeys.find(k => k.id === id);
         if (targetKey.isActive) {
@@ -1207,17 +1207,17 @@ app.post('/api/keys/:id/toggle', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取单个 API 密钥详情（包含限制配置）
+// Get single API key details (including limit configuration)
 app.get('/api/keys/:id', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const key = await apiKeyStore.getById(id);
         if (!key) {
-            return res.status(404).json({ success: false, error: '密钥不存在' });
+            return res.status(404).json({ success: false, error: 'Key does not exist' });
         }
-        // 检查权限
+        // Check permissions
         if (key.userId !== req.userId && !req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '无权查看此密钥' });
+            return res.status(403).json({ success: false, error: 'No permission to view this key' });
         }
         res.json({ success: true, data: key });
     } catch (error) {
@@ -1225,22 +1225,22 @@ app.get('/api/keys/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// 更新 API 密钥限制配置
+// Update API key limit configuration
 app.put('/api/keys/:id/limits', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const key = await apiKeyStore.getById(id);
         if (!key) {
-            return res.status(404).json({ success: false, error: '密钥不存在' });
+            return res.status(404).json({ success: false, error: 'Key does not exist' });
         }
-        // 检查权限（只有管理员可以修改限制）
+        // Check permissions (only admin can modify limits)
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '只有管理员可以修改限制配置' });
+            return res.status(403).json({ success: false, error: 'Only administrators can modify limit settings' });
         }
 
         const { dailyLimit, monthlyLimit, totalLimit, concurrentLimit, rateLimit, dailyCostLimit, monthlyCostLimit, totalCostLimit, expiresInDays } = req.body;
 
-        // 验证参数
+        // Validate parameters
         const limits = {};
         if (dailyLimit !== undefined) {
             limits.dailyLimit = Math.max(0, parseInt(dailyLimit) || 0);
@@ -1257,7 +1257,7 @@ app.put('/api/keys/:id/limits', authMiddleware, async (req, res) => {
         if (rateLimit !== undefined) {
             limits.rateLimit = Math.max(0, parseInt(rateLimit) || 0);
         }
-        // 金额限制
+        // Cost limits
         if (dailyCostLimit !== undefined) {
             limits.dailyCostLimit = Math.max(0, parseFloat(dailyCostLimit) || 0);
         }
@@ -1267,14 +1267,14 @@ app.put('/api/keys/:id/limits', authMiddleware, async (req, res) => {
         if (totalCostLimit !== undefined) {
             limits.totalCostLimit = Math.max(0, parseFloat(totalCostLimit) || 0);
         }
-        // 有效期
+        // Validity period
         if (expiresInDays !== undefined) {
             limits.expiresInDays = Math.max(0, parseInt(expiresInDays) || 0);
         }
 
         await apiKeyStore.updateLimits(id, limits);
 
-        // 返回更新后的密钥信息
+        // Return updated key info
         const updatedKey = await apiKeyStore.getById(id);
         res.json({ success: true, data: updatedKey });
     } catch (error) {
@@ -1282,22 +1282,22 @@ app.put('/api/keys/:id/limits', authMiddleware, async (req, res) => {
     }
 });
 
-// 续费 API 密钥（增加有效期天数）
+// Renew API key (add validity days)
 app.post('/api/keys/:id/renew', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const key = await apiKeyStore.getById(id);
         if (!key) {
-            return res.status(404).json({ success: false, error: '密钥不存在' });
+            return res.status(404).json({ success: false, error: 'Key does not exist' });
         }
-        // 检查权限（只有管理员可以续费）
+        // Check permissions (only admin can renew)
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '只有管理员可以续费' });
+            return res.status(403).json({ success: false, error: 'Only administrators can renew' });
         }
 
         const { days } = req.body;
         if (!days || days <= 0) {
-            return res.status(400).json({ success: false, error: '续费天数必须大于 0' });
+            return res.status(400).json({ success: false, error: 'Renewal days must be greater than 0' });
         }
 
         const result = await apiKeyStore.renew(id, parseInt(days));
@@ -1307,45 +1307,45 @@ app.post('/api/keys/:id/renew', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取 API 密钥的当前用量统计（包含限制对比）
+// Get API key current usage statistics (including limit comparison)
 app.get('/api/keys/:id/limits-status', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const key = await apiKeyStore.getById(id);
         if (!key) {
-            return res.status(404).json({ success: false, error: '密钥不存在' });
+            return res.status(404).json({ success: false, error: 'Key does not exist' });
         }
-        // 检查权限
+        // Check permissions
         if (key.userId !== req.userId && !req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '无权查看此密钥' });
+            return res.status(403).json({ success: false, error: 'No permission to view this key' });
         }
 
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-        // 获取各时间段的用量
+        // Get usage for each time period
         const dailyStats = await apiLogStore.getStatsForApiKey(id, { startDate: todayStart });
         const monthlyStats = await apiLogStore.getStatsForApiKey(id, { startDate: monthStart });
         const totalStats = await apiLogStore.getStatsForApiKey(id, {});
 
-        // 获取当前并发数（所有 IP 的总和）
+        // Get current concurrent count (sum of all IPs)
         const currentConcurrent = getTotalConcurrentCount(id);
 
-        // 计算费用
+        // Calculate cost
         const dailyCost = calculateApiKeyCost(id, { startDate: todayStart });
         const monthlyCost = calculateApiKeyCost(id, { startDate: monthStart });
         const totalCost = calculateApiKeyCost(id, {});
 
-        // 计算有效期剩余天数
+        // Calculate remaining validity days
         let remainingDays = null;
         let expireDate = null;
         if (key.expiresInDays > 0 && key.createdAt) {
-            // createdAt 是数据库存储的北京时间字符串 "YYYY-MM-DD HH:mm:ss"
-            // 解析时指定为北京时间（UTC+8）
+            // createdAt is a Beijing time string stored in database "YYYY-MM-DD HH:mm:ss"
+            // Parse as Beijing time (UTC+8)
             const createDateStr = key.createdAt.replace(' ', 'T') + '+08:00';
             const createDate = new Date(createDateStr);
-            // 添加天数
+            // Add days
             expireDate = new Date(createDate.getTime() + key.expiresInDays * 24 * 60 * 60 * 1000);
             remainingDays = Math.max(0, Math.ceil((expireDate - now) / (24 * 60 * 60 * 1000)));
         }
@@ -1391,19 +1391,19 @@ app.get('/api/keys/:id/limits-status', authMiddleware, async (req, res) => {
     }
 });
 
-// ============ 外部 API 转发（通过 API 密钥认证）============
+// ============ External API Forwarding (via API Key Authentication) ============
 
 /**
- * 执行带 Fallback 的 API 请求（参照 AIClient-2-API 的 handleStreamRequest）
- * @param {Object} options - 请求选项
- * @returns {Promise<Object>} 响应结果
+ * Execute API request with fallback (based on AIClient-2-API's handleStreamRequest)
+ * @param {Object} options - Request options
+ * @returns {Promise<Object>} Response result
  */
 async function executeWithFallback(options) {
     const {
         credentials,
         requestModel,
         requestBody,
-        maxRetries = 2,  // 最多尝试的凭据数量
+        maxRetries = 2,  // Maximum number of credentials to try
         excludeIds = [],
         stream = false
     } = options;
@@ -1412,7 +1412,7 @@ async function executeWithFallback(options) {
     const triedCredentialIds = [...excludeIds];
 
     for (let attempt = 0; attempt < maxRetries && attempt < credentials.length; attempt++) {
-        // 选择凭据（排除已尝试过的）
+        // Select credential (excluding already tried ones)
         const credential = selectBestCredential(credentials, triedCredentialIds);
         if (!credential) {
             break;
@@ -1421,37 +1421,37 @@ async function executeWithFallback(options) {
         triedCredentialIds.push(credential.id);
 
         try {
-            // 获取凭据锁
+            // Acquire credential lock
             await acquireCredentialLock(credential.id);
 
-            // 检查并刷新 token
+            // Check and refresh token
             let activeCredential = credential;
             if (credential.refreshToken && isTokenExpiringSoon(credential)) {
-                // console.log(`[${getTimestamp()}] [Fallback] 凭据 ${credential.id} token 即将过期，先刷新...`);
+                // console.log(`[${getTimestamp()}] [Fallback] Credential ${credential.id} token expiring soon, refreshing first...`);
                 const refreshResult = await refreshTokenWithLock(credential, store);
                 if (refreshResult.success && refreshResult.credential) {
                     activeCredential = refreshResult.credential;
                 }
             }
 
-            // 更新使用记录
+            // Update usage record
             updateCredentialUsage(credential.id);
 
-            // 创建服务并执行请求
+            // Create service and execute request
             const service = new KiroService(activeCredential);
 
             if (stream) {
-                // 流式请求 - 返回生成器
+                // Streaming request - return generator
                 return {
                     success: true,
                     credential: activeCredential,
                     generator: service.generateContentStream(requestModel, requestBody)
                 };
             } else {
-                // 非流式请求
+                // Non-streaming request
                 const response = await service.generateContent(requestModel, requestBody);
 
-                // 请求成功，标记凭据为健康
+                // Request successful, mark credential as healthy
                 markCredentialHealthy(credential.id);
                 releaseCredentialLock(credential.id);
 
@@ -1462,48 +1462,48 @@ async function executeWithFallback(options) {
                 };
             }
         } catch (error) {
-            // 释放凭据锁
+            // Release credential lock
             releaseCredentialLock(credential.id);
 
             const errorStatus = error.status || error.response?.status;
             lastError = error;
 
-            // console.log(`[${getTimestamp()}] [Fallback] 凭据 ${credential.id} 请求失败 (${errorStatus}): ${error.message}`);
+            // console.log(`[${getTimestamp()}] [Fallback] Credential ${credential.id} request failed (${errorStatus}): ${error.message}`);
 
-            // 根据错误类型决定是否标记为不健康
+            // Decide whether to mark as unhealthy based on error type
             if (errorStatus === 401 || errorStatus === 403) {
-                // 认证错误 - 标记为不健康，尝试下一个凭据
+                // Authentication error - mark as unhealthy, try next credential
                 markCredentialUnhealthy(credential.id, error.message);
-                // console.log(`[${getTimestamp()}] [Fallback] 尝试下一个凭据... (已尝试 ${attempt + 1}/${maxRetries})`);
+                // console.log(`[${getTimestamp()}] [Fallback] Trying next credential... (tried ${attempt + 1}/${maxRetries})`);
                 continue;
             } else if (errorStatus === 429) {
-                // 速率限制 - 标记为不健康，尝试下一个凭据
+                // Rate limit - mark as unhealthy, try next credential
                 markCredentialUnhealthy(credential.id, 'Rate limited');
-                // console.log(`[${getTimestamp()}] [Fallback] 凭据 ${credential.id} 被限流，尝试下一个凭据...`);
+                // console.log(`[${getTimestamp()}] [Fallback] Credential ${credential.id} rate limited, trying next credential...`);
                 continue;
             } else if (errorStatus >= 500) {
-                // 服务器错误 - 不标记为不健康（可能是临时问题），但尝试下一个凭据
-                // console.log(`[${getTimestamp()}] [Fallback] 服务器错误 ${errorStatus}，尝试下一个凭据...`);
+                // Server error - don't mark as unhealthy (may be temporary), but try next credential
+                // console.log(`[${getTimestamp()}] [Fallback] Server error ${errorStatus}, trying next credential...`);
                 continue;
             } else {
-                // 其他错误（如请求格式错误）- 不重试，直接返回错误
+                // Other errors (e.g., request format error) - no retry, return error directly
                 throw error;
             }
         }
     }
 
-    // 所有凭据都失败了
+    // All credentials failed
     throw lastError || new Error('All credentials failed');
 }
 
-// Claude API 兼容接口
+// Claude API compatible interface
 app.post('/v1/messages', async (req, res) => {
     const startTime = Date.now();
     const requestId = 'req_' + Date.now() + Math.random().toString(36).substring(2, 8);
     const clientIp = getClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
 
-    // 日志数据
+    // Log data
     let logData = {
         requestId,
         ipAddress: clientIp,
@@ -1522,7 +1522,7 @@ app.post('/v1/messages', async (req, res) => {
         const reqModel = req.body?.model;
         const reqStream = req.body?.stream;
 
-        // 打印请求日志
+        // Print request log
         console.log(`[${getTimestamp()}] /v1/messages | ip=${clientIp} | key=${keyPrefix}*** | model=${reqModel || '?'} | stream=${Boolean(reqStream)}`);
 
         if (!apiKey) {
@@ -1542,11 +1542,11 @@ app.post('/v1/messages', async (req, res) => {
             return res.status(401).json({ error: { type: 'authentication_error', message: 'Invalid API key' } });
         }
 
-        // 记录 API 密钥信息
+        // Record API key info
         logData.apiKeyId = keyRecord.id;
         logData.apiKeyPrefix = keyRecord.keyPrefix;
 
-        // 检查用量限制（包含并发限制检查，基于 API Key + IP）
+        // Check usage limits (including concurrent limit check, based on API Key + IP)
         const limitCheck = await checkUsageLimits(keyRecord, clientIp);
         if (!limitCheck.allowed) {
             logData.statusCode = 429;
@@ -1556,57 +1556,57 @@ app.post('/v1/messages', async (req, res) => {
             return res.status(429).json({ error: { type: 'rate_limit_error', message: limitCheck.reason } });
         }
 
-        // 如果并发限制检查时没有获取槽位，则手动增加并发计数
+        // If concurrent slot wasn't acquired during limit check, manually increment concurrent count
         if (!limitCheck.concurrentAcquired) {
             incrementConcurrent(keyRecord.id, clientIp);
         }
 
-        // 更新最后使用时间
+        // Update last used time
         await apiKeyStore.updateLastUsed(keyRecord.id);
 
-        // ============ Model-Provider 路由支持（参照 AIClient-2-API）============
-        // 通过请求头 Model-Provider 或模型名称前缀指定 Provider
+        // ============ Model-Provider Routing Support (based on AIClient-2-API) ============
+        // Specify provider via Model-Provider header or model name prefix
         const modelProvider = req.headers['model-provider'] || req.headers['x-model-provider'] || '';
         const { model } = req.body;
 
-        // 检查是否需要路由到 Gemini
+        // Check if routing to Gemini is needed
         const isGeminiProvider = modelProvider.toLowerCase() === 'gemini' ||
                                  modelProvider.toLowerCase() === 'gemini-antigravity' ||
                                  (model && model.toLowerCase().startsWith('gemini'));
 
         if (isGeminiProvider) {
-            // 路由到 Gemini Antigravity 处理
-            // console.log(`[${getTimestamp()}] [API] 请求 ${requestId} 路由到 Gemini Provider | Model: ${model}`);
+            // Route to Gemini Antigravity handler
+            // console.log(`[${getTimestamp()}] [API] Request ${requestId} routed to Gemini Provider | Model: ${model}`);
             logData.path = '/v1/messages (gemini)';
 
-            // 释放并发槽位（Gemini 处理函数会重新获取）
+            // Release concurrent slot (Gemini handler will re-acquire)
             decrementConcurrent(keyRecord.id, clientIp);
 
-            // 调用 Gemini 处理函数
+            // Call Gemini handler
             return handleGeminiAntigravityRequest(req, res);
         }
 
-        // 检查是否需要路由到 Orchids
+        // Check if routing to Orchids is needed
         const isOrchidsProvider = modelProvider.toLowerCase() === 'orchids' ||
                                   (model && ORCHIDS_MODELS.includes(model));
         
-        // 详细的路由日志
-        console.log(`[${getTimestamp()}] [路由] model=${model || 'none'} | provider=${modelProvider || 'none'} | isOrchids=${isOrchidsProvider} | ORCHIDS_MODELS=${ORCHIDS_MODELS.join(',')}`);
+        // Detailed routing log
+        console.log(`[${getTimestamp()}] [Routing] model=${model || 'none'} | provider=${modelProvider || 'none'} | isOrchids=${isOrchidsProvider} | ORCHIDS_MODELS=${ORCHIDS_MODELS.join(',')}`);
 
         if (isOrchidsProvider) {
-            // 路由到 Orchids 处理
-            console.log(`[${getTimestamp()}] [API] 请求路由到 Orchids Provider | Model: ${model}`);
+            // Route to Orchids handler
+            console.log(`[${getTimestamp()}] [API] Request routed to Orchids Provider | Model: ${model}`);
             logData.path = '/v1/messages (orchids)';
 
             const { messages, max_tokens, stream, system } = req.body;
 
-            // 使用负载均衡器获取 Orchids 凭证（带锁定机制）
+            // Use load balancer to get Orchids credential (with locking mechanism)
             let orchidsCredential = null;
             if (orchidsLoadBalancer) {
                 orchidsCredential = await orchidsLoadBalancer.getNextAccountExcluding([]);
             }
             
-            // 回退：如果负载均衡器未初始化，使用传统方式
+            // Fallback: if load balancer not initialized, use traditional method
             if (!orchidsCredential) {
                 const orchidsCredentials = await orchidsStore.getAll();
                 if (orchidsCredentials.length === 0) {
@@ -1619,7 +1619,7 @@ app.post('/v1/messages', async (req, res) => {
                 orchidsCredential = orchidsCredentials.find(c => c.isActive) || orchidsCredentials[0];
             }
             
-            console.log(`[${getTimestamp()}] [Orchids] /v1/messages 使用账号: ${orchidsCredential.name} (${orchidsCredential.email || 'N/A'})`);
+            console.log(`[${getTimestamp()}] [Orchids] /v1/messages Using account: ${orchidsCredential.name} (${orchidsCredential.email || 'N/A'})`);
             logData.credentialId = orchidsCredential.id;
             logData.credentialName = orchidsCredential.name;
             logData.model = model || 'claude-sonnet-4-5';
@@ -1645,7 +1645,7 @@ app.post('/v1/messages', async (req, res) => {
                         }
                         logData.outputTokens = outputTokens;
                         logData.statusCode = 200;
-                        // 记录成功
+                        // Record success
                         if (orchidsLoadBalancer) {
                             orchidsLoadBalancer.scheduleSuccessCount(orchidsCredential.id);
                         }
@@ -1657,7 +1657,7 @@ app.post('/v1/messages', async (req, res) => {
                         res.write(`event: error\ndata: ${JSON.stringify(errorEvent)}\n\n`);
                         logData.statusCode = 500;
                         logData.errorMessage = streamError.message;
-                        // 记录失败
+                        // Record failure
                         if (orchidsLoadBalancer) {
                             orchidsLoadBalancer.scheduleFailureCount(orchidsCredential.id);
                         }
@@ -1668,7 +1668,7 @@ app.post('/v1/messages', async (req, res) => {
                     logData.outputTokens = response.usage?.output_tokens || 0;
                     logData.statusCode = 200;
                     res.json(response);
-                    // 记录成功
+                    // Record success
                     if (orchidsLoadBalancer) {
                         orchidsLoadBalancer.scheduleSuccessCount(orchidsCredential.id);
                     }
@@ -1677,12 +1677,12 @@ app.post('/v1/messages', async (req, res) => {
                 logData.statusCode = 500;
                 logData.errorMessage = error.message;
                 res.status(500).json({ error: { type: 'api_error', message: error.message } });
-                // 记录失败
+                // Record failure
                 if (orchidsLoadBalancer) {
                     orchidsLoadBalancer.scheduleFailureCount(orchidsCredential.id);
                 }
             } finally {
-                // 释放账号锁定
+                // Release account lock
                 if (orchidsLoadBalancer && orchidsCredential) {
                     orchidsLoadBalancer.unlockAccount(orchidsCredential.id);
                 }
@@ -1692,14 +1692,14 @@ app.post('/v1/messages', async (req, res) => {
             return;
         }
 
-        // ============ 默认使用 Kiro/Claude Provider ============
+        // ============ Default to Kiro/Claude Provider ============
         const { messages, max_tokens, stream, system, tools, thinking } = req.body;
 
-        // 记录请求信息
+        // Record request info
         logData.model = model || 'claude-sonnet-4-20250514';
         logData.stream = !!stream;
 
-        // 获取所有可用凭据
+        // Get all available credentials
         const credentials = await store.getAll();
         if (credentials.length === 0) {
             decrementConcurrent(keyRecord.id, clientIp);
@@ -1709,20 +1709,20 @@ app.post('/v1/messages', async (req, res) => {
             return res.status(503).json({ error: { type: 'service_error', message: 'No available credentials' } });
         }
 
-        // 构建请求体
+        // Build request body
         const requestBody = { messages, system, tools };
         const messageId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 8);
         const requestModel = model || 'claude-sonnet-4-20250514';
 
-        // 粗略估算输入 token 数
+        // Roughly estimate input token count
         const inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
         logData.inputTokens = inputTokens;
 
-        // 打印请求日志
-        // console.log(`[${getTimestamp()}] [API] 请求 ${requestId} | IP: ${clientIp} | Key: ${keyRecord.keyPrefix} | Model: ${requestModel} | Stream: ${!!stream} | 可用凭据: ${credentials.length}`);
+        // Print request log
+        // console.log(`[${getTimestamp()}] [API] Request ${requestId} | IP: ${clientIp} | Key: ${keyRecord.keyPrefix} | Model: ${requestModel} | Stream: ${!!stream} | Available credentials: ${credentials.length}`);
 
         if (stream) {
-            // ============ 流式响应（带 Fallback）============
+            // ============ Streaming Response (with Fallback) ============
             await apiLogStore.create({ ...logData, durationMs: 0 });
 
             res.setHeader('Content-Type', 'text/event-stream');
@@ -1737,7 +1737,7 @@ app.post('/v1/messages', async (req, res) => {
             let streamStarted = false;
 
             try {
-                // 使用 Fallback 机制获取凭据和生成器
+                // Use fallback mechanism to get credential and generator
                 const result = await executeWithFallback({
                     credentials,
                     requestModel,
@@ -1750,9 +1750,9 @@ app.post('/v1/messages', async (req, res) => {
                 logData.credentialId = credential.id;
                 logData.credentialName = credential.name;
 
-                console.log(`[${getTimestamp()}] [API] 使用账号: ${credential.name}`);
+                console.log(`[${getTimestamp()}] [API] Using account: ${credential.name}`);
 
-                // 发送 message_start 事件
+                // Send message_start event
                 res.write(`event: message_start\ndata: ${JSON.stringify({
                     type: 'message_start',
                     message: {
@@ -1767,7 +1767,7 @@ app.post('/v1/messages', async (req, res) => {
                     }
                 })}\n\n`);
 
-                // 发送 content_block_start 事件
+                // Send content_block_start event
                 res.write(`event: content_block_start\ndata: ${JSON.stringify({
                     type: 'content_block_start',
                     index: 0,
@@ -1776,7 +1776,7 @@ app.post('/v1/messages', async (req, res) => {
 
                 streamStarted = true;
 
-                // 处理流式响应
+                // Process streaming response
                 for await (const event of result.generator) {
                     if (event.type === 'content_block_delta' && event.delta?.text) {
                         fullText += event.delta.text;
@@ -1792,16 +1792,16 @@ app.post('/v1/messages', async (req, res) => {
                     }
                 }
 
-                // 流式响应成功，标记凭据为健康
+                // Streaming response successful, mark credential as healthy
                 markCredentialHealthy(credential.id);
 
-                // 发送 content_block_stop 事件
+                // Send content_block_stop event
                 res.write(`event: content_block_stop\ndata: ${JSON.stringify({
                     type: 'content_block_stop',
                     index: 0
                 })}\n\n`);
 
-                // 处理工具调用
+                // Handle tool calls
                 if (toolCalls.length > 0) {
                     for (let i = 0; i < toolCalls.length; i++) {
                         const tc = toolCalls[i];
@@ -1825,7 +1825,7 @@ app.post('/v1/messages', async (req, res) => {
                     }
                 }
 
-                // 发送 message_delta 和 message_stop 事件
+                // Send message_delta and message_stop events
                 res.write(`event: message_delta\ndata: ${JSON.stringify({
                     type: 'message_delta',
                     delta: { stop_reason: hasToolUse ? 'tool_use' : 'end_turn', stop_sequence: null },
@@ -1835,17 +1835,17 @@ app.post('/v1/messages', async (req, res) => {
                 res.write(`event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
                 res.end();
 
-                // 更新日志
+                // Update log
                 const durationMs = Date.now() - startTime;
                 console.log(`  ✓ ${durationMs}ms | in=${inputTokens} out=${outputTokens}`);
                 await apiLogStore.update(requestId, { outputTokens, statusCode: 200, durationMs });
 
-                // 释放凭据锁
+                // Release credential lock
                 releaseCredentialLock(credential.id);
                 decrementConcurrent(keyRecord.id, clientIp);
 
             } catch (streamError) {
-                // 释放资源
+                // Release resources
                 if (credential) {
                     releaseCredentialLock(credential.id);
                     markCredentialUnhealthy(credential.id, streamError.message);
@@ -1864,16 +1864,16 @@ app.post('/v1/messages', async (req, res) => {
                     durationMs
                 });
 
-                // 屏蔽特定的错误消息，返回友好提示
+                // Mask specific error messages, return user-friendly message
                 let userFriendlyMessage = streamError.message;
                 if (errorStatus === 403 && (
                     streamError.message.includes('AccessDeniedException') ||
                     streamError.message.includes('Please run /login') ||
-                    streamError.message.includes('服务处理错误')
+                    streamError.message.includes('Service processing error')
                 )) {
-                    userFriendlyMessage = '服务暂时不可用，请稍后重试';
+                    userFriendlyMessage = 'Service temporarily unavailable, please try again later';
                 } else if (errorStatus === 400 && streamError.message.includes('ValidationException')) {
-                    userFriendlyMessage = '上下文超出限制，或工具参数过多，请关闭窗口，重新对话，或恢复对话';
+                    userFriendlyMessage = 'Context limit exceeded, or too many tool parameters. Please close the window and restart the conversation.';
                 }
 
                 if (streamStarted) {
@@ -1884,7 +1884,7 @@ app.post('/v1/messages', async (req, res) => {
                 }
             }
         } else {
-            // ============ 非流式响应（带 Fallback）============
+            // ============ Non-streaming Response (with Fallback) ============
             let credential = null;
 
             try {
@@ -1900,11 +1900,11 @@ app.post('/v1/messages', async (req, res) => {
                 logData.credentialId = credential.id;
                 logData.credentialName = credential.name;
 
-                console.log(`[${getTimestamp()}] [API] 使用账号: ${credential.name}`);
+                console.log(`[${getTimestamp()}] [API] Using account: ${credential.name}`);
 
                 const response = result.response;
 
-                // 构建响应内容
+                // Build response content
                 const content = [];
                 let outputTokens = 0;
                 let stopReason = 'end_turn';
@@ -1955,23 +1955,23 @@ app.post('/v1/messages', async (req, res) => {
                 logData.errorMessage = error.message;
                 await apiLogStore.create({ ...logData, durationMs });
 
-                // 屏蔽特定的错误消息，返回友好提示
+                // Mask specific error messages, return user-friendly message
                 let userFriendlyMessage = error.message;
                 if (errorStatus === 403 && (
                     error.message.includes('AccessDeniedException') ||
                     error.message.includes('Please run /login') ||
-                    error.message.includes('服务处理错误')
+                    error.message.includes('Service processing error')
                 )) {
-                    userFriendlyMessage = '服务暂时不可用，请稍后重试';
+                    userFriendlyMessage = 'Service temporarily unavailable, please try again later';
                 } else if (errorStatus === 400 && error.message.includes('ValidationException')) {
-                    userFriendlyMessage = '请求参数验证失败，请检查输入';
+                    userFriendlyMessage = 'Request parameter validation failed, please check input';
                 }
 
                 res.status(errorStatus).json({ error: { type: 'api_error', message: userFriendlyMessage } });
             }
         }
     } catch (error) {
-        // 减少并发计数（如果已经增加过）
+        // Decrement concurrent count (if previously incremented)
         if (logData.apiKeyId) {
             decrementConcurrent(logData.apiKeyId, clientIp);
         }
@@ -1984,21 +1984,21 @@ app.post('/v1/messages', async (req, res) => {
 
         console.error(`  ✗ ${durationMs}ms | error: ${error.message}`);
 
-        // 记录错误日志
+        // Record error log
         if (!logData.apiKeyId) {
             await apiLogStore.create(logData);
         }
 
-        // 屏蔽特定的错误消息，返回友好提示
+        // Mask specific error messages, return user-friendly message
         let userFriendlyMessage = error.message;
         if (outerErrorStatus === 403 && (
             error.message.includes('AccessDeniedException') ||
             error.message.includes('Please run /login') ||
-            error.message.includes('服务处理错误')
+            error.message.includes('Service processing error')
         )) {
-            userFriendlyMessage = '服务暂时不可用，请稍后重试';
+            userFriendlyMessage = 'Service temporarily unavailable, please try again later';
         } else if (outerErrorStatus === 400 && error.message.includes('ValidationException')) {
-            userFriendlyMessage = '请求参数验证失败，请检查输入';
+            userFriendlyMessage = 'Request parameter validation failed, please check input';
         }
 
         if (!res.headersSent) {
@@ -2008,44 +2008,44 @@ app.post('/v1/messages', async (req, res) => {
                 res.write(`event: error\ndata: ${JSON.stringify({ type: 'error', error: { type: 'api_error', message: userFriendlyMessage } })}\n\n`);
                 res.end();
             } catch (e) {
-                // 忽略写入错误
+                // Ignore write errors
             }
         }
     }
 });
 
 
-// ============ Gemini Antigravity API 端点 ============
+// ============ Gemini Antigravity API Endpoints ============
 
-// Gemini 凭证池选择 - LRU 策略（最久未使用优先）
+// Gemini credential pool selection - LRU strategy (least recently used first)
 async function selectGeminiCredential(requestedModel = null, excludeIds = []) {
     const allCredentials = await geminiStore.getAllActive();
     if (allCredentials.length === 0) return null;
 
-    // 过滤掉排除的凭证
+    // Filter out excluded credentials
     let availableCredentials = allCredentials.filter(c => !excludeIds.includes(c.id));
     if (availableCredentials.length === 0) {
-        // 如果所有凭证都被排除，重置排除列表
+        // If all credentials are excluded, reset exclude list
         availableCredentials = allCredentials;
     }
 
-    // 过滤健康的凭证（错误次数小于阈值 且 projectId 不为空）
+    // Filter healthy credentials (error count below threshold and projectId not empty)
     const maxErrorCount = 5;
     let healthyCredentials = availableCredentials.filter(c =>
         (c.errorCount || 0) < maxErrorCount && c.projectId
     );
 
-    // 如果没有健康凭证，尝试只过滤 projectId 不为空的
+    // If no healthy credentials, try to filter only those with non-empty projectId
     if (healthyCredentials.length === 0) {
         healthyCredentials = availableCredentials.filter(c => c.projectId);
     }
 
-    // 如果仍然没有，使用所有可用凭证（会触发 onboarding）
+    // If still none, use all available credentials (will trigger onboarding)
     if (healthyCredentials.length === 0) {
         healthyCredentials = availableCredentials;
     }
 
-    // LRU 策略：按最后使用时间排序，优先选择最久未使用的
+    // LRU strategy: sort by last used time, prefer least recently used
     healthyCredentials.sort((a, b) => {
         const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
         const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
@@ -2056,7 +2056,7 @@ async function selectGeminiCredential(requestedModel = null, excludeIds = []) {
     return healthyCredentials[0];
 }
 
-// Gemini Token 过期检查（提前 50 分钟刷新）
+// Gemini Token expiry check (refresh 50 minutes early)
 function isGeminiTokenExpiringSoon(credential, minutes = 50) {
     if (!credential.expiresAt) return false;
     try {
@@ -2069,7 +2069,7 @@ function isGeminiTokenExpiringSoon(credential, minutes = 50) {
     }
 }
 
-// Gemini Token 刷新（带锁）
+// Gemini Token refresh (with lock)
 const geminiRefreshLocks = new Map();
 const geminiRefreshPromises = new Map();
 
@@ -2089,7 +2089,7 @@ async function refreshGeminiTokenWithLock(credential) {
                 return { success: false, error: 'No refresh token' };
             }
 
-            // console.log(`[${getTimestamp()}] [Gemini Token] 刷新凭证 ${credentialId} (${credential.name})...`);
+            // console.log(`[${getTimestamp()}] [Gemini Token] Refreshing credential ${credentialId} (${credential.name})...`);
             const result = await refreshGeminiToken(credential.refreshToken);
 
             await geminiStore.update(credentialId, {
@@ -2100,10 +2100,10 @@ async function refreshGeminiTokenWithLock(credential) {
             await geminiStore.resetErrorCount(credentialId);
 
             const updatedCredential = await geminiStore.getById(credentialId);
-            // console.log(`[${getTimestamp()}] [Gemini Token] 凭证 ${credentialId} 刷新成功`);
+            // console.log(`[${getTimestamp()}] [Gemini Token] Credential ${credentialId} refresh succeeded`);
             return { success: true, credential: updatedCredential };
         } catch (error) {
-            // console.log(`[${getTimestamp()}] [Gemini Token] 凭证 ${credentialId} 刷新失败: ${error.message}`);
+            // console.log(`[${getTimestamp()}] [Gemini Token] Credential ${credentialId} refresh failed: ${error.message}`);
             await geminiStore.incrementErrorCount(credentialId, error.message);
             return { success: false, error: error.message };
         } finally {
@@ -2116,17 +2116,17 @@ async function refreshGeminiTokenWithLock(credential) {
     return refreshPromise;
 }
 
-// Gemini API - Claude 格式兼容 (/gemini-antigravity/v1/messages)
+// Gemini API - Claude format compatible (/gemini-antigravity/v1/messages)
 app.post('/gemini-antigravity/v1/messages', handleGeminiAntigravityRequest);
-app.post('/v1/gemini/messages', handleGeminiAntigravityRequest);  // 兼容旧路径
+app.post('/v1/gemini/messages', handleGeminiAntigravityRequest);  // Legacy path compatible
 
-// Orchids API - Claude 格式兼容 (/orchids/v1/messages)
+// Orchids API - Claude format compatible (/orchids/v1/messages)
 app.post('/orchids/v1/messages', handleOrchidsRequest);
-app.post('/v1/orchids/messages', handleOrchidsRequest);  // 兼容路径
+app.post('/v1/orchids/messages', handleOrchidsRequest);  // Legacy path compatible
 
 /**
- * Orchids API 请求处理函数
- * 支持负载均衡和故障转移（参考 orchids-api-main 的 handler.go）
+ * Orchids API request handler function
+ * Supports load balancing and failover (based on orchids-api-main's handler.go)
  */
 async function handleOrchidsRequest(req, res) {
     const startTime = Date.now();
@@ -2134,7 +2134,7 @@ async function handleOrchidsRequest(req, res) {
     const clientIp = getClientIp(req);
     const userAgent = req.headers['user-agent'] || '';
 
-    // 重试配置
+    // Retry configuration
     const MAX_RETRY_COUNT = 3;
     const BASE_RETRY_DELAY = 100; // ms
 
@@ -2156,7 +2156,7 @@ async function handleOrchidsRequest(req, res) {
     let currentCredential = null;
 
     try {
-        // API Key 认证
+        // API Key authentication
         const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
         if (!apiKey) {
             logData.statusCode = 401;
@@ -2176,7 +2176,7 @@ async function handleOrchidsRequest(req, res) {
         logData.apiKeyId = keyRecord.id;
         logData.apiKeyPrefix = keyRecord.keyPrefix;
 
-        // 检查用量限制
+        // Check usage limits
         const limitCheck = await checkUsageLimits(keyRecord, clientIp);
         if (!limitCheck.allowed) {
             logData.statusCode = 429;
@@ -2193,16 +2193,16 @@ async function handleOrchidsRequest(req, res) {
 
         const { model, messages, max_tokens, stream, system } = req.body;
 
-        // 使用负载均衡器选择账号
+        // Use load balancer to select account
         const selectAccount = async () => {
             if (orchidsLoadBalancer) {
                 const credential = await orchidsLoadBalancer.getNextAccountExcluding(failedAccountIds);
                 if (credential) {
-                    console.log(`[${getTimestamp()}] [Orchids] 使用账号: ${credential.name} (${credential.email || 'N/A'})`);
+                    console.log(`[${getTimestamp()}] [Orchids] Using account: ${credential.name} (${credential.email || 'N/A'})`);
                     return credential;
                 }
             }
-            // 回退到传统方式
+            // Fallback to traditional method
             const orchidsCredentials = await orchidsStore.getAll();
             if (orchidsCredentials.length === 0) return null;
             return orchidsCredentials.find(c => c.isActive && !failedAccountIds.includes(c.id)) 
@@ -2224,13 +2224,13 @@ async function handleOrchidsRequest(req, res) {
         logData.model = model || 'claude-sonnet-4-5';
         logData.stream = !!stream;
 
-        // 粗略估算输入 token 数
+        // Roughly estimate input token count
         const inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
         logData.inputTokens = inputTokens;
 
         const requestBody = { messages, system, max_tokens };
 
-        // 执行请求（带重试逻辑）
+        // Execute request (with retry logic)
         const executeRequest = async (credential) => {
             const orchidsService = new OrchidsChatService(credential);
             
@@ -2260,13 +2260,13 @@ async function handleOrchidsRequest(req, res) {
             }
         };
 
-        // 主请求循环（带故障转移）
+        // Main request loop (with failover)
         let lastError = null;
         while (retryCount <= MAX_RETRY_COUNT) {
             try {
                 const result = await executeRequest(currentCredential);
                 if (result.success) {
-                    // 请求成功，记录成功计数
+                    // Request successful, record success count
                     if (orchidsLoadBalancer) {
                         orchidsLoadBalancer.scheduleSuccessCount(currentCredential.id);
                         await orchidsLoadBalancer.markAccountActive(currentCredential.id);
@@ -2275,41 +2275,41 @@ async function handleOrchidsRequest(req, res) {
                 }
             } catch (error) {
                 lastError = error;
-                console.error(`[${getTimestamp()}] [Orchids] 账号 ${currentCredential.name} 请求失败: ${error.message}`);
+                console.error(`[${getTimestamp()}] [Orchids] Account ${currentCredential.name} request failed: ${error.message}`);
 
-                // 记录失败
+                // Record failure
                 if (orchidsLoadBalancer) {
                     orchidsLoadBalancer.scheduleFailureCount(currentCredential.id);
                 }
                 failedAccountIds.push(currentCredential.id);
                 retryCount++;
 
-                // 检查是否超过最大重试次数
+                // Check if max retry count exceeded
                 if (retryCount >= MAX_RETRY_COUNT) {
-                    console.log(`[${getTimestamp()}] [Orchids] 已达到最大重试次数 (${MAX_RETRY_COUNT})，停止重试`);
+                    console.log(`[${getTimestamp()}] [Orchids] Reached max retry count (${MAX_RETRY_COUNT}), stopping retry`);
                     break;
                 }
 
-                console.log(`[${getTimestamp()}] [Orchids] 尝试切换账号 (重试 ${retryCount}/${MAX_RETRY_COUNT}, 已排除 ${failedAccountIds.length} 个)`);
+                console.log(`[${getTimestamp()}] [Orchids] Attempting to switch account (retry ${retryCount}/${MAX_RETRY_COUNT}, excluded ${failedAccountIds.length})`);
 
-                // 指数退避
+                // Exponential backoff
                 const backoff = Math.pow(2, retryCount - 1) * BASE_RETRY_DELAY;
                 await new Promise(resolve => setTimeout(resolve, backoff));
 
-                // 选择新账号
+                // Select new account
                 const newCredential = await selectAccount();
                 if (!newCredential || failedAccountIds.includes(newCredential.id)) {
-                    console.log(`[${getTimestamp()}] [Orchids] 无更多可用账号`);
+                    console.log(`[${getTimestamp()}] [Orchids] No more available accounts`);
                     break;
                 }
                 currentCredential = newCredential;
                 logData.credentialId = currentCredential.id;
                 logData.credentialName = currentCredential.name;
-                console.log(`[${getTimestamp()}] [Orchids] 切换到账号: ${currentCredential.name}`);
+                console.log(`[${getTimestamp()}] [Orchids] Switched to account: ${currentCredential.name}`);
             }
         }
 
-        // 如果所有重试都失败
+        // If all retries failed
         if (lastError && !res.headersSent) {
             const errorEvent = {
                 type: 'error',
@@ -2325,7 +2325,7 @@ async function handleOrchidsRequest(req, res) {
             logData.errorMessage = lastError.message;
         }
 
-        console.log(`[${getTimestamp()}] [Orchids] ${requestId} | 完成 | 重试=${retryCount} | 耗时=${Date.now() - startTime}ms`);
+        console.log(`[${getTimestamp()}] [Orchids] ${requestId} | Complete | retries=${retryCount} | duration=${Date.now() - startTime}ms`);
 
     } catch (error) {
         logData.statusCode = 500;
@@ -2334,12 +2334,12 @@ async function handleOrchidsRequest(req, res) {
             res.status(500).json({ error: { type: 'api_error', message: error.message } });
         }
     } finally {
-        // 释放所有使用过的账号
+        // Release all used accounts
         if (orchidsLoadBalancer) {
             if (currentCredential) {
                 orchidsLoadBalancer.unlockAccount(currentCredential.id);
             }
-            // 释放失败的账号
+            // Release failed accounts
             for (const failedId of failedAccountIds) {
                 if (failedId !== currentCredential?.id) {
                     orchidsLoadBalancer.unlockAccount(failedId);
@@ -2372,11 +2372,11 @@ async function handleGeminiAntigravityRequest(req, res) {
 
     let credential = null;
     let keyRecord = null;
-    const maxRetries = 3;  // 最大重试次数
-    const triedCredentialIds = [];  // 已尝试的凭证 ID
+    const maxRetries = 3;  // Maximum retry count
+    const triedCredentialIds = [];  // Tried credential IDs
 
     try {
-        // API Key 认证
+        // API Key authentication
         const apiKey = req.headers['x-api-key'] || req.headers['authorization']?.replace('Bearer ', '');
         if (!apiKey) {
             logData.statusCode = 401;
@@ -2396,7 +2396,7 @@ async function handleGeminiAntigravityRequest(req, res) {
         logData.apiKeyId = keyRecord.id;
         logData.apiKeyPrefix = keyRecord.keyPrefix;
 
-        // 检查用量限制
+        // Check usage limits
         const limitCheck = await checkUsageLimits(keyRecord, clientIp);
         if (!limitCheck.allowed) {
             logData.statusCode = 429;
@@ -2417,17 +2417,17 @@ async function handleGeminiAntigravityRequest(req, res) {
         logData.model = requestModel;
         logData.stream = !!stream;
 
-        // 转换 Claude 格式消息到 Gemini 格式（只需转换一次）
+        // Convert Claude format messages to Gemini format (only need to convert once)
         const contents = claudeToGeminiMessages(messages);
         const requestBody = { contents };
 
-        // 添加系统提示
+        // Add system prompt
         if (system) {
             const systemText = typeof system === 'string' ? system : (Array.isArray(system) ? system.map(s => s.text || s).join('\n') : String(system));
             requestBody.systemInstruction = { parts: [{ text: systemText }] };
         }
 
-        // 添加生成配置
+        // Add generation config
         if (max_tokens) {
             requestBody.generationConfig = { maxOutputTokens: max_tokens };
         }
@@ -2435,14 +2435,14 @@ async function handleGeminiAntigravityRequest(req, res) {
         const inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
         logData.inputTokens = inputTokens;
 
-        // 429 重试循环
+        // 429 retry loop
         let lastError = null;
         for (let retryCount = 0; retryCount <= maxRetries; retryCount++) {
-            // 选择 Gemini 凭证（排除已尝试的）
+            // Select Gemini credential (excluding already tried ones)
             credential = await selectGeminiCredential(requestModel, triedCredentialIds);
             if (!credential) {
                 if (triedCredentialIds.length > 0) {
-                    // 所有凭证都试过了，报错
+                    // All credentials tried, throw error
                     decrementConcurrent(keyRecord.id, clientIp);
                     logData.statusCode = 429;
                     logData.errorMessage = 'All Gemini credentials rate limited';
@@ -2460,23 +2460,23 @@ async function handleGeminiAntigravityRequest(req, res) {
             logData.credentialId = credential.id;
             logData.credentialName = credential.name;
 
-            // console.log(`[${getTimestamp()}] [Gemini API] 请求 ${requestId} | IP: ${clientIp} | Key: ${keyRecord.keyPrefix} | Cred: ${credential.name} | Model: ${requestModel} | Stream: ${!!stream} | Retry: ${retryCount}`);
+            // console.log(`[${getTimestamp()}] [Gemini API] Request ${requestId} | IP: ${clientIp} | Key: ${keyRecord.keyPrefix} | Cred: ${credential.name} | Model: ${requestModel} | Stream: ${!!stream} | Retry: ${retryCount}`);
 
-            // 检查并刷新 Token（如果即将过期）
+            // Check and refresh Token (if expiring soon)
             if (credential.refreshToken && isGeminiTokenExpiringSoon(credential)) {
-                // console.log(`[${getTimestamp()}] [Gemini API] 凭证 ${credential.id} Token 即将过期，先刷新...`);
+                // console.log(`[${getTimestamp()}] [Gemini API] Credential ${credential.id} Token expiring soon, refreshing first...`);
                 const refreshResult = await refreshGeminiTokenWithLock(credential);
                 if (refreshResult.success && refreshResult.credential) {
                     credential = refreshResult.credential;
                 }
             }
 
-            // 创建 Antigravity 服务
+            // Create Antigravity service
             const service = AntigravityApiService.fromCredentials(credential);
 
             try {
                 if (stream) {
-                    // ============ 流式响应 ============
+                    // ============ Streaming Response ============
                     await apiLogStore.create({ ...logData, durationMs: 0 });
 
                     res.setHeader('Content-Type', 'text/event-stream');
@@ -2485,7 +2485,7 @@ async function handleGeminiAntigravityRequest(req, res) {
 
                     const messageId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 8);
 
-                    // 发送 message_start 事件
+                    // Send message_start event
                     res.write(`event: message_start\ndata: ${JSON.stringify({
                         type: 'message_start',
                         message: {
@@ -2500,7 +2500,7 @@ async function handleGeminiAntigravityRequest(req, res) {
                         }
                     })}\n\n`);
 
-                    // 发送 content_block_start 事件
+                    // Send content_block_start event
                     res.write(`event: content_block_start\ndata: ${JSON.stringify({
                         type: 'content_block_start',
                         index: 0,
@@ -2525,7 +2525,7 @@ async function handleGeminiAntigravityRequest(req, res) {
                             }
                         }
 
-                        // 提取 usageMetadata
+                        // Extract usageMetadata
                         if (chunk?.usageMetadata) {
                             if (chunk.usageMetadata.candidatesTokenCount) {
                                 outputTokens = chunk.usageMetadata.candidatesTokenCount;
@@ -2533,7 +2533,7 @@ async function handleGeminiAntigravityRequest(req, res) {
                         }
                     }
 
-                    // 发送结束事件
+                    // Send end events
                     res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
                     res.write(`event: message_delta\ndata: ${JSON.stringify({
                         type: 'message_delta',
@@ -2543,7 +2543,7 @@ async function handleGeminiAntigravityRequest(req, res) {
                     res.write(`event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
                     res.end();
 
-                    // 更新日志和凭证状态
+                    // Update log and credential status
                     await apiLogStore.update(requestId, {
                         outputTokens,
                         durationMs: Date.now() - startTime
@@ -2552,14 +2552,14 @@ async function handleGeminiAntigravityRequest(req, res) {
 
                     // console.log(`[${getTimestamp()}] [Gemini] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${Date.now() - startTime}ms | in:${inputTokens} out:${outputTokens}`);
                     decrementConcurrent(keyRecord.id, clientIp);
-                    return;  // 成功，退出
+                    return;  // Success, exit
 
                 } else {
-                    // ============ 非流式响应 ============
+                    // ============ Non-streaming Response ============
                     const response = await service.generateContent(requestModel, requestBody);
                     const claudeResponse = geminiToClaudeResponse(response, requestModel);
 
-                    // 更新 token 统计
+                    // Update token statistics
                     const outputTokens = claudeResponse.usage?.output_tokens || 0;
                     logData.outputTokens = outputTokens;
                     logData.durationMs = Date.now() - startTime;
@@ -2570,7 +2570,7 @@ async function handleGeminiAntigravityRequest(req, res) {
 
                     // console.log(`[${getTimestamp()}] [Gemini] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${Date.now() - startTime}ms | in:${inputTokens} out:${outputTokens}`);
 
-                    return res.json(claudeResponse);  // 成功，退出
+                    return res.json(claudeResponse);  // Success, exit
                 }
 
             } catch (apiError) {
@@ -2578,25 +2578,25 @@ async function handleGeminiAntigravityRequest(req, res) {
                 const errorStatus = apiError.response?.status || apiError.status;
                 const errorMessage = apiError.message || 'Unknown error';
 
-                console.error(`[${getTimestamp()}] [Gemini API] 凭证 ${credential.name} 错误: ${errorMessage} (status: ${errorStatus})`);
+                console.error(`[${getTimestamp()}] [Gemini API] Credential ${credential.name} error: ${errorMessage} (status: ${errorStatus})`);
 
-                // 增加错误计数
+                // Increment error count
                 await geminiStore.incrementErrorCount(credential.id, errorMessage);
 
-                // 如果是 429 错误，尝试下一个凭证
+                // If 429 error, try next credential
                 if (errorStatus === 429) {
-                    // console.log(`[${getTimestamp()}] [Gemini API] 凭证 ${credential.name} 触发 429，尝试切换账号...`);
-                    // 短暂延迟后重试
+                    // console.log(`[${getTimestamp()}] [Gemini API] Credential ${credential.name} triggered 429, trying to switch account...`);
+                    // Brief delay before retry
                     await new Promise(resolve => setTimeout(resolve, 500));
-                    continue;  // 继续下一次循环，尝试其他凭证
+                    continue;  // Continue to next iteration, try other credentials
                 }
 
-                // 其他错误直接抛出
+                // Other errors throw directly
                 throw apiError;
             }
         }
 
-        // 所有重试都失败了
+        // All retries failed
         throw lastError || new Error('All retries failed');
 
     } catch (error) {
@@ -2608,7 +2608,7 @@ async function handleGeminiAntigravityRequest(req, res) {
             await apiLogStore.create(logData);
         }
 
-        console.error(`[${getTimestamp()}] [Gemini API] 错误 ${requestId} | ${error.message}`);
+        console.error(`[${getTimestamp()}] [Gemini API] Error ${requestId} | ${error.message}`);
 
         if (keyRecord) {
             decrementConcurrent(keyRecord.id, clientIp);
@@ -2620,7 +2620,7 @@ async function handleGeminiAntigravityRequest(req, res) {
     }
 }
 
-// OpenAI API 兼容接口
+// OpenAI API compatible interface
 app.post('/v1/chat/completions', async (req, res) => {
     const startTime = Date.now();
     const requestId = 'chatcmpl-' + Date.now() + Math.random().toString(36).substring(2, 8);
@@ -2659,7 +2659,7 @@ app.post('/v1/chat/completions', async (req, res) => {
         logData.apiKeyId = keyRecord.id;
         logData.apiKeyPrefix = keyRecord.keyPrefix;
 
-        // 检查用量限制（包含并发限制检查，基于 API Key + IP）
+        // Check usage limits (including concurrent limit check, based on API Key + IP)
         const limitCheck = await checkUsageLimits(keyRecord, clientIp);
         if (!limitCheck.allowed) {
             logData.statusCode = 429;
@@ -2668,7 +2668,7 @@ app.post('/v1/chat/completions', async (req, res) => {
             return res.status(429).json({ error: { message: limitCheck.reason, type: 'rate_limit_error' } });
         }
 
-        // 如果并发限制检查时没有获取槽位，则手动增加并发计数
+        // If concurrent slot wasn't acquired during limit check, manually increment concurrent count
         if (!limitCheck.concurrentAcquired) {
             incrementConcurrent(keyRecord.id, clientIp);
         }
@@ -2677,7 +2677,7 @@ app.post('/v1/chat/completions', async (req, res) => {
 
         const { model, messages, max_tokens, stream, temperature, top_p, tools, tool_choice } = req.body;
 
-        // 转换 OpenAI 消息格式到 Claude 格式
+        // Convert OpenAI message format to Claude format
         let systemPrompt = '';
         const convertedMessages = [];
 
@@ -2709,28 +2709,28 @@ app.post('/v1/chat/completions', async (req, res) => {
             return res.status(503).json({ error: { message: 'No available credentials', type: 'server_error' } });
         }
 
-        // 智能选择凭据（优先选择空闲的，如果都忙则选择队列最短的）
+        // Smart credential selection (prefer idle ones, if all busy select shortest queue)
         let credential = selectBestCredential(credentials);
-        // console.log(`[${getTimestamp()}] [凭据分发] 选择凭据 ${credential.id} (${credential.name}) | 可用凭据数: ${credentials.length}`);
+        // console.log(`[${getTimestamp()}] [Credential Dispatch] Selected credential ${credential.id} (${credential.name}) | Available credentials: ${credentials.length}`);
         logData.credentialId = credential.id;
         logData.credentialName = credential.name;
 
-        // 获取凭据锁（如果凭据正在使用，会排队等待）
+        // Acquire credential lock (if credential in use, will queue and wait)
         await acquireCredentialLock(credential.id);
 
-        // 检查并刷新 token（如果即将过期）- 必须在获取锁之后执行
+        // Check and refresh token (if expiring soon) - must execute after acquiring lock
         if (credential.refreshToken && isTokenExpiringSoon(credential)) {
-            // console.log(`[${getTimestamp()}] [OpenAI API] 凭据 ${credential.id} token 即将过期，先刷新...`);
+            // console.log(`[${getTimestamp()}] [OpenAI API] Credential ${credential.id} token expiring soon, refreshing first...`);
             const refreshResult = await refreshTokenWithLock(credential, store);
             if (refreshResult.success && refreshResult.credential) {
                 credential = refreshResult.credential;
             }
         }
 
-        // 使用 KiroService（与 /v1/messages 保持一致）
+        // Use KiroService (consistent with /v1/messages)
         const service = new KiroService(credential);
 
-        // OpenAI 模型映射到 Claude 模型
+        // OpenAI model mapping to Claude model
         const modelMapping = {
             'gpt-4': 'claude-sonnet-4-20250514',
             'gpt-4-turbo': 'claude-sonnet-4-20250514',
@@ -2743,7 +2743,7 @@ app.post('/v1/chat/completions', async (req, res) => {
         };
         const claudeModel = modelMapping[model] || model || 'claude-sonnet-4-20250514';
 
-        // 转换 OpenAI 工具格式到 Claude 格式
+        // Convert OpenAI tool format to Claude format
         let claudeTools = null;
         if (tools && Array.isArray(tools) && tools.length > 0) {
             claudeTools = tools.map(tool => ({
@@ -2753,7 +2753,7 @@ app.post('/v1/chat/completions', async (req, res) => {
             }));
         }
 
-        // 构建 Claude 请求体
+        // Build Claude request body
         const requestBody = {
             messages: convertedMessages,
             system: systemPrompt || undefined,
@@ -2763,7 +2763,7 @@ app.post('/v1/chat/completions', async (req, res) => {
         const inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
         logData.inputTokens = inputTokens;
 
-        // console.log(`[${getTimestamp()}] [OpenAI API] 请求 ${requestId} | IP: ${clientIp} | Key: ${keyRecord.keyPrefix} | Model: ${model} -> ${claudeModel} | Stream: ${!!stream}`);
+        // console.log(`[${getTimestamp()}] [OpenAI API] Request ${requestId} | IP: ${clientIp} | Key: ${keyRecord.keyPrefix} | Model: ${model} -> ${claudeModel} | Stream: ${!!stream}`);
 
         if (stream) {
             await apiLogStore.create({ ...logData, durationMs: 0 });
@@ -2799,7 +2799,7 @@ app.post('/v1/chat/completions', async (req, res) => {
                     }
                 }
 
-                // 发送工具调用（如果有）
+                // Send tool calls (if any)
                 if (toolCalls.length > 0) {
                     const toolCallsChunk = {
                         id: requestId,
@@ -2843,29 +2843,29 @@ app.post('/v1/chat/completions', async (req, res) => {
                 const durationMs = Date.now() - startTime;
                 await apiLogStore.update(requestId, { outputTokens, statusCode: 200, durationMs });
 
-                // 减少并发计数
+                // Decrement concurrent count
                 decrementConcurrent(keyRecord.id, clientIp);
 
-                // 释放凭据锁
+                // Release credential lock
                 releaseCredentialLock(credential.id);
 
                 // console.log(`[${getTimestamp()}] [OpenAI] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${durationMs}ms | in:${inputTokens} out:${outputTokens}`);
 
             } catch (streamError) {
-                // 减少并发计数
+                // Decrement concurrent count
                 decrementConcurrent(keyRecord.id, clientIp);
 
-                // 释放凭据锁
+                // Release credential lock
                 releaseCredentialLock(credential.id);
 
                 const durationMs = Date.now() - startTime;
                 await apiLogStore.update(requestId, { statusCode: 500, errorMessage: streamError.message, durationMs });
-                // console.error(`[${getTimestamp()}] [OpenAI API] 错误 ${requestId} | ${streamError.message}`);
+                // console.error(`[${getTimestamp()}] [OpenAI API] Error ${requestId} | ${streamError.message}`);
                 res.write(`data: ${JSON.stringify({ error: { message: streamError.message, type: 'server_error' } })}\n\n`);
                 res.end();
             }
         } else {
-            // 非流式响应
+            // Non-streaming response
             const response = await service.generateContent(claudeModel, requestBody);
 
             let outputTokens = 0;
@@ -2876,21 +2876,21 @@ app.post('/v1/chat/completions', async (req, res) => {
 
             await apiLogStore.create({ ...logData, outputTokens, durationMs });
 
-            // 减少并发计数
+            // Decrement concurrent count
             decrementConcurrent(keyRecord.id, clientIp);
 
-            // 释放凭据锁
+            // Release credential lock
             releaseCredentialLock(credential.id);
 
             // console.log(`[${getTimestamp()}] [OpenAI] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${durationMs}ms | in:${inputTokens} out:${outputTokens}`);
 
-            // 构建响应
+            // Build response
             const message = {
                 role: 'assistant',
                 content: responseText
             };
 
-            // 添加工具调用（如果有）
+            // Add tool calls (if any)
             if (response.toolCalls && response.toolCalls.length > 0) {
                 message.tool_calls = response.toolCalls.map((tc, idx) => ({
                     id: tc.toolUseId,
@@ -2920,12 +2920,12 @@ app.post('/v1/chat/completions', async (req, res) => {
             });
         }
     } catch (error) {
-        // 减少并发计数（如果已经增加过）
+        // Decrement concurrent count (if previously incremented)
         if (logData.apiKeyId) {
             decrementConcurrent(logData.apiKeyId, clientIp);
         }
 
-        // 释放凭据锁（如果已经获取过）
+        // Release credential lock (if previously acquired)
         if (logData.credentialId) {
             releaseCredentialLock(logData.credentialId);
         }
@@ -2935,7 +2935,7 @@ app.post('/v1/chat/completions', async (req, res) => {
         logData.errorMessage = error.message;
         logData.durationMs = durationMs;
         await apiLogStore.create(logData);
-        console.error(`[${getTimestamp()}] [OpenAI API] 错误 ${requestId} | ${error.message}`);
+        console.error(`[${getTimestamp()}] [OpenAI API] Error ${requestId} | ${error.message}`);
 
         if (!res.headersSent) {
             res.status(500).json({ error: { message: error.message, type: 'server_error' } });
@@ -2946,13 +2946,13 @@ app.post('/v1/chat/completions', async (req, res) => {
     }
 });
 
-// ============ API 路由 ============
+// ============ API Routes ============
 
-// 获取凭据列表
+// Get credentials list
 app.get('/api/credentials', async (req, res) => {
     try {
         const credentials = await store.getAll();
-        // 隐藏敏感信息
+        // Hide sensitive info
         const safeCredentials = credentials.map(c => ({
             ...c,
             accessToken: c.accessToken ? '***' + c.accessToken.slice(-8) : null,
@@ -2965,23 +2965,23 @@ app.get('/api/credentials', async (req, res) => {
     }
 });
 
-// 获取单个凭据
+// Get single credential
 app.get('/api/credentials/:id', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const showFull = req.query.full === 'true';
         const credential = await store.getById(id);
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
 
-        // 根据参数决定是否隐藏敏感信息
+        // Decide whether to hide sensitive info based on parameters
         let responseData;
         if (showFull) {
-            // 详情页面需要完整信息
+            // Detail page needs full info
             responseData = credential;
         } else {
-            // 列表页面隐藏敏感信息
+            // List page hides sensitive info
             responseData = {
                 ...credential,
                 accessToken: credential.accessToken ? '***' + credential.accessToken.slice(-8) : null,
@@ -2995,23 +2995,23 @@ app.get('/api/credentials/:id', async (req, res) => {
     }
 });
 
-// 添加凭据
+// Add credential
 app.post('/api/credentials', async (req, res) => {
     try {
         const { email, region, provider, refreshToken, authMethod, clientId, clientSecret } = req.body;
         
         if (!refreshToken) {
-            return res.status(400).json({ success: false, error: 'refreshToken 是必需的' });
+            return res.status(400).json({ success: false, error: 'refreshToken is required' });
         }
         
-        // IdC 认证需要 clientId 和 clientSecret
+        // IdC authentication requires clientId and clientSecret
         if (authMethod === 'IdC' || authMethod === 'builder-id') {
             if (!clientId || !clientSecret) {
-                return res.status(400).json({ success: false, error: 'IdC/builder-id 认证需要 clientId 和 clientSecret' });
+                return res.status(400).json({ success: false, error: 'IdC/builder-id authentication requires clientId and clientSecret' });
             }
         }
         
-        // 先刷新 token 获取 accessToken
+        // Refresh token first to get accessToken
         const refreshResult = await KiroAPI.refreshToken({
             refreshToken,
             authMethod: authMethod || 'social',
@@ -3021,13 +3021,13 @@ app.post('/api/credentials', async (req, res) => {
         });
         
         if (!refreshResult.success) {
-            return res.status(400).json({ success: false, error: `Token 刷新失败: ${refreshResult.error}` });
+            return res.status(400).json({ success: false, error: `Token refresh failed: ${refreshResult.error}` });
         }
         
-        // 生成名称
+        // Generate name
         const name = email || `account_${Date.now()}`;
         
-        // 保存到数据库
+        // Save to database
         const id = await store.add({
             name,
             accessToken: refreshResult.accessToken,
@@ -3040,15 +3040,15 @@ app.post('/api/credentials', async (req, res) => {
             expiresAt: refreshResult.expiresAt
         });
         
-        // console.log(`[${getTimestamp()}] 添加凭据成功: id=${id}, name=${name}, authMethod=${authMethod || 'social'}`);
+        // console.log(`[${getTimestamp()}] Credential added successfully: id=${id}, name=${name}, authMethod=${authMethod || 'social'}`);
         res.json({ success: true, id, name });
     } catch (error) {
-        console.error(`[${getTimestamp()}] 添加凭据失败:`, error.message);
+        console.error(`[${getTimestamp()}] Failed to add credential:`, error.message);
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// 删除凭据
+// Delete credential
 app.delete('/api/credentials/:id', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
@@ -3059,7 +3059,7 @@ app.delete('/api/credentials/:id', async (req, res) => {
     }
 });
 
-// 设置活跃凭据
+// Set active credential
 app.post('/api/credentials/:id/activate', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
@@ -3070,13 +3070,13 @@ app.post('/api/credentials/:id/activate', async (req, res) => {
     }
 });
 
-// 从文件导入凭据
+// Import credential from file
 app.post('/api/credentials/import', async (req, res) => {
     try {
         const { filePath, name } = req.body;
 
         if (!filePath) {
-            return res.status(400).json({ success: false, error: '文件路径是必需的' });
+            return res.status(400).json({ success: false, error: 'File path is required' });
         }
 
         const id = await store.importFromFile(filePath, name);
@@ -3086,17 +3086,17 @@ app.post('/api/credentials/import', async (req, res) => {
     }
 });
 
-// 批量导入 Google/Social 账号
+// Batch import Google/Social accounts
 app.post('/api/credentials/batch-import', async (req, res) => {
     try {
         const { accounts, region } = req.body;
 
         if (!accounts || !Array.isArray(accounts)) {
-            return res.status(400).json({ success: false, error: 'accounts 必须是数组' });
+            return res.status(400).json({ success: false, error: 'accounts must be an array' });
         }
 
         if (accounts.length === 0) {
-            return res.status(400).json({ success: false, error: 'accounts 数组不能为空' });
+            return res.status(400).json({ success: false, error: 'accounts array cannot be empty' });
         }
 
         const results = await store.batchImportSocialAccounts(accounts, region || 'us-east-1');
@@ -3106,41 +3106,41 @@ app.post('/api/credentials/batch-import', async (req, res) => {
     }
 });
 
-// ==================== OAuth 登录 API ====================
+// ==================== OAuth Login API ====================
 
-// 存储活跃的 OAuth 认证实例
+// Store active OAuth authentication instances
 const activeOAuthSessions = new Map();
 
 /**
- * 生成凭据名称
+ * Generate credential name
  */
 function generateCredentialName(provider) {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     return `${provider}-${timestamp}`;
 }
 
-// 启动 OAuth 登录 (Builder ID)
+// Start OAuth login (Builder ID)
 app.post('/api/oauth/builder-id/start', async (req, res) => {
     try {
         const {
             saveToConfigs = false,
-            saveToDatabase = true,  // 默认直接保存到数据库
-            saveToFile = false,     // 默认不保存到文件
-            name,                   // 可选的凭据名称
+            saveToDatabase = true,  // Default to save directly to database
+            saveToFile = false,     // Default to not save to file
+            name,                   // Optional credential name
             region = 'us-east-1'
         } = req.body;
 
         const sessionId = crypto.randomBytes(16).toString('hex');
         let credentialId = null;
 
-        // 创建成功回调，用于保存到数据库
+        // Create success callback to save to database
         const onSuccess = saveToDatabase ? async (credentials) => {
             const credName = name || generateCredentialName('BuilderID');
             credentialId = await store.add({
                 name: credName,
                 ...credentials
             });
-            // console.log(`[OAuth] 凭据已保存到数据库，ID: ${credentialId}, 名称: ${credName}`);
+            // console.log(`[OAuth] Credential saved to database, ID: ${credentialId}, Name: ${credName}`);
         } : null;
 
         const auth = new KiroAuth({
@@ -3152,7 +3152,7 @@ app.post('/api/oauth/builder-id/start', async (req, res) => {
 
         const result = await auth.startBuilderIDAuth();
 
-        // 存储会话
+        // Store session
         activeOAuthSessions.set(sessionId, {
             auth,
             provider: 'BuilderID',
@@ -3162,7 +3162,7 @@ app.post('/api/oauth/builder-id/start', async (req, res) => {
             startTime: Date.now()
         });
 
-        // 5分钟后自动清理会话
+        // Auto cleanup session after 5 minutes
         setTimeout(() => {
             const session = activeOAuthSessions.get(sessionId);
             if (session) {
@@ -3187,11 +3187,11 @@ app.post('/api/oauth/builder-id/start', async (req, res) => {
     }
 });
 
-// 启动 OAuth 登录 (Social Auth - Google/GitHub)
+// Start OAuth login (Social Auth - Google/GitHub)
 app.post('/api/oauth/social/start', async (req, res) => {
     try {
         const {
-            provider = 'Google',  // 'Google' 或 'Github'
+            provider = 'Google',  // 'Google' or 'Github'
             saveToDatabase = true,
             saveToFile = false,
             name,
@@ -3201,7 +3201,7 @@ app.post('/api/oauth/social/start', async (req, res) => {
         const sessionId = crypto.randomBytes(16).toString('hex');
         let credentialId = null;
 
-        // 创建成功回调，用于保存到数据库
+        // Create success callback to save to database
         const onSuccess = saveToDatabase ? async (credentials) => {
             const credName = name || generateCredentialName(provider);
             credentialId = await store.add({
@@ -3209,7 +3209,7 @@ app.post('/api/oauth/social/start', async (req, res) => {
                 provider: provider,
                 ...credentials
             });
-            // console.log(`[OAuth] Social Auth 凭据已保存到数据库，ID: ${credentialId}, 名称: ${credName}`);
+            // console.log(`[OAuth] Social Auth credential saved to database, ID: ${credentialId}, Name: ${credName}`);
         } : null;
 
         const auth = new KiroAuth({
@@ -3220,7 +3220,7 @@ app.post('/api/oauth/social/start', async (req, res) => {
 
         const result = await auth.startSocialAuth(provider);
 
-        // 存储会话
+        // Store session
         activeOAuthSessions.set(sessionId, {
             auth,
             provider: provider,
@@ -3229,7 +3229,7 @@ app.post('/api/oauth/social/start', async (req, res) => {
             startTime: Date.now()
         });
 
-        // 5分钟后自动清理会话
+        // Auto cleanup session after 5 minutes
         setTimeout(() => {
             const session = activeOAuthSessions.get(sessionId);
             if (session) {
@@ -3253,13 +3253,13 @@ app.post('/api/oauth/social/start', async (req, res) => {
     }
 });
 
-// 检查 OAuth 会话状态
+// Check OAuth session status
 app.get('/api/oauth/session/:sessionId', (req, res) => {
     const { sessionId } = req.params;
     const session = activeOAuthSessions.get(sessionId);
 
     if (!session) {
-        return res.status(404).json({ success: false, error: '会话不存在或已过期' });
+        return res.status(404).json({ success: false, error: 'Session does not exist or has expired' });
     }
 
     const credPath = session.auth.getLastCredentialsPath();
@@ -3280,7 +3280,7 @@ app.get('/api/oauth/session/:sessionId', (req, res) => {
     });
 });
 
-// 关闭 OAuth 会话
+// Close OAuth session
 app.delete('/api/oauth/session/:sessionId', (req, res) => {
     const { sessionId } = req.params;
     const session = activeOAuthSessions.get(sessionId);
@@ -3293,7 +3293,7 @@ app.delete('/api/oauth/session/:sessionId', (req, res) => {
     res.json({ success: true });
 });
 
-// 从 configs 目录加载所有凭据
+// Load all credentials from configs directory
 app.get('/api/oauth/configs', async (req, res) => {
     try {
         const auth = new KiroAuth();
@@ -3304,13 +3304,13 @@ app.get('/api/oauth/configs', async (req, res) => {
     }
 });
 
-// 从 configs 目录导入凭据到数据库
+// Import credentials from configs directory to database
 app.post('/api/oauth/configs/import', async (req, res) => {
     try {
         const { credPath, name } = req.body;
 
         if (!credPath) {
-            return res.status(400).json({ success: false, error: '凭据路径是必需的' });
+            return res.status(400).json({ success: false, error: 'Credential path is required' });
         }
 
         const id = await store.importFromFile(credPath, name);
@@ -3320,7 +3320,7 @@ app.post('/api/oauth/configs/import', async (req, res) => {
     }
 });
 
-// 批量从 configs 目录导入所有凭据
+// Batch import all credentials from configs directory
 app.post('/api/oauth/configs/import-all', async (req, res) => {
     try {
         const auth = new KiroAuth();
@@ -3350,16 +3350,16 @@ app.post('/api/oauth/configs/import-all', async (req, res) => {
     }
 });
 
-// ==================== 凭据测试 ====================
+// ==================== Credential Test ====================
 
-// 测试凭据
+// Test credential
 app.post('/api/credentials/:id/test', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const credential = await store.getById(id);
 
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
 
         const client = new KiroClient({
@@ -3374,31 +3374,31 @@ app.post('/api/credentials/:id/test', async (req, res) => {
         });
 
         const response = await client.chat([
-            { role: 'user', content: '请回复"测试成功"' }
+            { role: 'user', content: 'Please reply "Test successful"' }
         ]);
 
         res.json({
             success: true,
             data: {
-                message: '凭据有效',
+                message: 'Credential is valid',
                 response: response.substring(0, 100)
             }
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `凭据测试失败: ${error.message}`
+            error: `Credential test failed: ${error.message}`
         });
     }
 });
 
-// 获取可用模型列表
+// Get available models list
 app.get('/api/models', async (req, res) => {
     try {
-        // 优先使用活跃凭据
+        // Prefer active credential
         const activeCredential = await store.getActive();
         if (!activeCredential) {
-            return res.status(400).json({ success: false, error: '没有活跃的凭据，请先激活一个凭据' });
+            return res.status(400).json({ success: false, error: 'No active credential, please activate one first' });
         }
 
         const client = new KiroClient({
@@ -3417,19 +3417,19 @@ app.get('/api/models', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `获取模型列表失败: ${error.message}`
+            error: `Failed to get model list: ${error.message}`
         });
     }
 });
 
-// 获取指定凭据的可用模型列表
+// Get available models list for specified credential
 app.get('/api/credentials/:id/models', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const credential = await store.getById(id);
 
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
 
         const client = new KiroClient({
@@ -3448,17 +3448,17 @@ app.get('/api/credentials/:id/models', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `获取模型列表失败: ${error.message}`
+            error: `Failed to get model list: ${error.message}`
         });
     }
 });
 
-// 获取使用限额
+// Get usage limits
 app.get('/api/usage', async (req, res) => {
     try {
         const activeCredential = await store.getActive();
         if (!activeCredential) {
-            return res.status(400).json({ success: false, error: '没有活跃的凭据，请先激活一个凭据' });
+            return res.status(400).json({ success: false, error: 'No active credential, please activate one first' });
         }
 
         const client = new KiroClient({
@@ -3477,22 +3477,22 @@ app.get('/api/usage', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `获取使用限额失败: ${error.message}`
+            error: `Failed to get usage limits: ${error.message}`
         });
     }
 });
 
-// 获取指定凭据的使用限额
+// Get usage limits for specified credential
 app.get('/api/credentials/:id/usage', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         let credential = await store.getById(id);
 
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
 
-        // 尝试获取用量的函数
+        // Function to try to get usage
         const tryGetUsage = async (cred) => {
             const client = new KiroClient({
                 accessToken: cred.accessToken,
@@ -3509,47 +3509,47 @@ app.get('/api/credentials/:id/usage', async (req, res) => {
 
         try {
             const usage = await tryGetUsage(credential);
-            // 保存用量到数据库
+            // Save usage to database
             await store.updateUsage(id, usage);
             res.json({ success: true, data: usage });
         } catch (error) {
             const status = error.response?.status;
-            // 403 错误时尝试刷新 Token 后重试
+            // On 403 error, try to refresh Token and retry
             if (status === 403 && credential.refreshToken) {
-                // console.log(`[${getTimestamp()}] 凭据 ${id} 获取用量返回 403，尝试刷新 Token...`);
+                // console.log(`[${getTimestamp()}] Credential ${id} get usage returned 403, trying to refresh Token...`);
 
                 const refreshResult = await KiroAPI.refreshToken(credential);
 
                 if (refreshResult.success) {
-                    // 更新数据库中的凭据
+                    // Update credential in database
                     await store.update(id, {
                         accessToken: refreshResult.accessToken,
                         refreshToken: refreshResult.refreshToken,
                         expiresAt: refreshResult.expiresAt
                     });
 
-                    // 重新获取凭据并重试
+                    // Re-fetch credential and retry
                     credential = await store.getById(id);
                     try {
                         const usage = await tryGetUsage(credential);
-                        // 保存用量到数据库
+                        // Save usage to database
                         await store.updateUsage(id, usage);
                         res.json({ success: true, data: usage });
                     } catch (retryError) {
-                        // 刷新后仍然失败，移动到错误表
-                        await store.moveToError(id, `刷新后获取用量仍失败: ${retryError.message}`);
-                        // console.log(`[${getTimestamp()}] 凭据 ${id} 刷新后获取用量仍失败，已移动到错误表`);
+                        // Still failed after refresh, move to error table
+                        await store.moveToError(id, `Still failed to get usage after refresh: ${retryError.message}`);
+                        // console.log(`[${getTimestamp()}] Credential ${id} still failed to get usage after refresh, moved to error table`);
                         res.status(500).json({
                             success: false,
-                            error: `获取使用限额失败: ${retryError.message}`
+                            error: `Failed to get usage limits: ${retryError.message}`
                         });
                     }
                 } else {
-                    // 刷新失败，移动到错误表
+                    // Refresh failed, move to error table
                     await store.moveToError(id, refreshResult.error);
                     res.status(403).json({
                         success: false,
-                        error: `Token 刷新失败: ${refreshResult.error}`
+                        error: `Token refresh failed: ${refreshResult.error}`
                     });
                 }
             } else {
@@ -3559,45 +3559,45 @@ app.get('/api/credentials/:id/usage', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `获取使用限额失败: ${error.message}`
+            error: `Failed to get usage limits: ${error.message}`
         });
     }
 });
 
-// 刷新 Token
+// Refresh Token
 app.post('/api/credentials/:id/refresh', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const credential = await store.getById(id);
 
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
 
         if (!credential.refreshToken) {
-            return res.status(400).json({ success: false, error: '该凭据没有 refreshToken，无法刷新' });
+            return res.status(400).json({ success: false, error: 'This credential has no refreshToken, cannot refresh' });
         }
 
-        // 使用统一的 KiroAPI 刷新 Token
+        // Use unified KiroAPI to refresh Token
         const result = await KiroAPI.refreshToken(credential);
 
         if (!result.success) {
-            // 将失败的凭据移动到错误表
+            // Move failed credential to error table
             try {
                 await store.moveToError(id, result.error);
-                // console.log(`凭据 ${id} 刷新失败，已移动到错误表: ${result.error}`);
+                // console.log(`Credential ${id} refresh failed, moved to error table: ${result.error}`);
             } catch (moveError) {
-                console.error(`移动凭据到错误表失败: ${moveError.message}`);
+                console.error(`Failed to move credential to error table: ${moveError.message}`);
             }
 
             return res.status(500).json({
                 success: false,
-                error: `Token 刷新失败: ${result.error}`,
+                error: `Token refresh failed: ${result.error}`,
                 movedToError: true
             });
         }
 
-        // 更新数据库中的凭据
+        // Update credential in database
         await store.update(id, {
             accessToken: result.accessToken,
             refreshToken: result.refreshToken,
@@ -3607,23 +3607,23 @@ app.post('/api/credentials/:id/refresh', async (req, res) => {
         res.json({
             success: true,
             data: {
-                message: 'Token 刷新成功',
+                message: 'Token refresh successful',
                 expiresAt: result.expiresAt
             }
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `Token 刷新失败: ${error.message}`
+            error: `Token refresh failed: ${error.message}`
         });
     }
 });
 
-// 获取错误凭据列表
+// Get error credentials list
 app.get('/api/error-credentials', async (req, res) => {
     try {
         const errors = await store.getAllErrors();
-        // 隐藏敏感信息
+        // Hide sensitive info
         const safeErrors = errors.map(c => ({
             ...c,
             accessToken: c.accessToken ? '***' + c.accessToken.slice(-8) : null,
@@ -3636,38 +3636,38 @@ app.get('/api/error-credentials', async (req, res) => {
     }
 });
 
-// 刷新错误凭据的 Token
+// Refresh error credential's Token
 app.post('/api/error-credentials/:id/refresh', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const errorCred = await store.getErrorById(id);
 
         if (!errorCred) {
-            return res.status(404).json({ success: false, error: '错误凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Error credential does not exist' });
         }
 
         if (!errorCred.refreshToken) {
-            return res.status(400).json({ success: false, error: '该凭据没有 refreshToken，无法刷新' });
+            return res.status(400).json({ success: false, error: 'This credential has no refreshToken, cannot refresh' });
         }
 
-        // 使用统一的 KiroAPI 刷新 Token
+        // Use unified KiroAPI to refresh Token
         const result = await KiroAPI.refreshToken(errorCred);
 
         if (!result.success) {
             return res.status(500).json({
                 success: false,
-                error: `Token 刷新失败: ${result.error}`
+                error: `Token refresh failed: ${result.error}`
             });
         }
 
-        // 刷新成功，恢复到正常表
+        // Refresh successful, restore to normal table
         const newId = await store.restoreFromError(id, result.accessToken, result.refreshToken, result.expiresAt);
-        // console.log(`错误凭据 ${id} 刷新成功，已恢复到正常表，新 ID: ${newId}`);
+        // console.log(`Error credential ${id} refresh successful, restored to normal table, new ID: ${newId}`);
 
         res.json({
             success: true,
             data: {
-                message: 'Token 刷新成功，凭据已恢复',
+                message: 'Token refresh successful, credential restored',
                 newId,
                 expiresAt: result.expiresAt
             }
@@ -3675,12 +3675,12 @@ app.post('/api/error-credentials/:id/refresh', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `Token 刷新失败: ${error.message}`
+            error: `Token refresh failed: ${error.message}`
         });
     }
 });
 
-// 删除错误凭据
+// Delete error credential
 app.delete('/api/error-credentials/:id', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
@@ -3691,37 +3691,37 @@ app.delete('/api/error-credentials/:id', async (req, res) => {
     }
 });
 
-// 手动恢复错误凭据（不刷新 token）
+// Manually restore error credential (without refreshing token)
 app.post('/api/error-credentials/:id/restore', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const errorCred = await store.getErrorById(id);
 
         if (!errorCred) {
-            return res.status(404).json({ success: false, error: '错误凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Error credential does not exist' });
         }
 
         const newId = await store.restoreFromError(id);
         res.json({
             success: true,
-            data: { message: '凭据已恢复', newId }
+            data: { message: 'Credential restored', newId }
         });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// 刷新错误凭据的用量（成功则恢复到正常表）
+// Refresh error credential's usage (restore to normal table if successful)
 app.get('/api/error-credentials/:id/usage', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const errorCred = await store.getErrorById(id);
 
         if (!errorCred) {
-            return res.status(404).json({ success: false, error: '错误凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Error credential does not exist' });
         }
 
-        // 创建临时客户端获取用量
+        // Create temporary client to get usage
         const client = new KiroClient({
             accessToken: errorCred.accessToken,
             refreshToken: errorCred.refreshToken,
@@ -3731,31 +3731,31 @@ app.get('/api/error-credentials/:id/usage', async (req, res) => {
 
         const usage = await client.getUsageLimits();
 
-        // 用量获取成功，说明账户正常，恢复到正常表
+        // Usage fetch successful, account is normal, restore to normal table
         const newId = await store.restoreFromError(id);
-        // console.log(`[${getTimestamp()}] 错误凭据 ${id} 用量获取成功，已恢复到正常表，新 ID: ${newId}`);
+        // console.log(`[${getTimestamp()}] Error credential ${id} usage fetch successful, restored to normal table, new ID: ${newId}`);
 
         res.json({
             success: true,
             data: usage,
             restored: true,
             newId: newId,
-            message: '用量获取成功，账户已恢复到正常列表'
+            message: 'Usage fetch successful, account restored to normal list'
         });
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: `获取用量失败: ${error.message}`
+            error: `Failed to get usage: ${error.message}`
         });
     }
 });
 
-// ============ Gemini Antigravity 凭证管理 ============
-// 路由已抽离到 gemini/gemini-routes.js，在 start() 中初始化
+// ============ Gemini Antigravity Credential Management ============
+// Routes extracted to gemini/gemini-routes.js, initialized in start()
 
-// ============ 模型定价管理 ============
+// ============ Model Pricing Management ============
 
-// 获取所有定价配置
+// Get all pricing configurations
 app.get('/api/pricing', authMiddleware, async (req, res) => {
     try {
         const pricing = await pricingStore.getAll();
@@ -3765,12 +3765,12 @@ app.get('/api/pricing', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取单个定价配置
+// Get single pricing configuration
 app.get('/api/pricing/:id', authMiddleware, async (req, res) => {
     try {
         const pricing = await pricingStore.getById(parseInt(req.params.id));
         if (!pricing) {
-            return res.status(404).json({ success: false, error: '定价配置不存在' });
+            return res.status(404).json({ success: false, error: 'Pricing configuration does not exist' });
         }
         res.json({ success: true, data: pricing });
     } catch (error) {
@@ -3778,17 +3778,17 @@ app.get('/api/pricing/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// 添加定价配置
+// Add pricing configuration
 app.post('/api/pricing', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
         
         const { modelName, displayName, provider, inputPrice, outputPrice, isActive, sortOrder } = req.body;
         
         if (!modelName || inputPrice === undefined || outputPrice === undefined) {
-            return res.status(400).json({ success: false, error: '模型名称、输入价格和输出价格是必需的' });
+            return res.status(400).json({ success: false, error: 'Model name, input price and output price are required' });
         }
         
         const id = await pricingStore.add({
@@ -3801,7 +3801,7 @@ app.post('/api/pricing', authMiddleware, async (req, res) => {
             sortOrder
         });
         
-        // 刷新动态定价缓存
+        // Refresh dynamic pricing cache
         const pricingMap = await pricingStore.getPricingMap();
         setDynamicPricing(pricingMap);
         
@@ -3811,17 +3811,17 @@ app.post('/api/pricing', authMiddleware, async (req, res) => {
     }
 });
 
-// 更新定价配置
+// Update pricing configuration
 app.put('/api/pricing/:id', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
         
         const id = parseInt(req.params.id);
         const pricing = await pricingStore.getById(id);
         if (!pricing) {
-            return res.status(404).json({ success: false, error: '定价配置不存在' });
+            return res.status(404).json({ success: false, error: 'Pricing configuration does not exist' });
         }
         
         const { modelName, displayName, provider, inputPrice, outputPrice, isActive, sortOrder } = req.body;
@@ -3836,7 +3836,7 @@ app.put('/api/pricing/:id', authMiddleware, async (req, res) => {
             sortOrder
         });
         
-        // 刷新动态定价缓存
+        // Refresh dynamic pricing cache
         const pricingMap = await pricingStore.getPricingMap();
         setDynamicPricing(pricingMap);
         
@@ -3846,17 +3846,17 @@ app.put('/api/pricing/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// 删除定价配置
+// Delete pricing configuration
 app.delete('/api/pricing/:id', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
         
         const id = parseInt(req.params.id);
         await pricingStore.delete(id);
         
-        // 刷新动态定价缓存
+        // Refresh dynamic pricing cache
         const pricingMap = await pricingStore.getPricingMap();
         setDynamicPricing(pricingMap);
         
@@ -3866,21 +3866,21 @@ app.delete('/api/pricing/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// 批量导入定价配置
+// Batch import pricing configurations
 app.post('/api/pricing/batch-import', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
         
         const { pricing } = req.body;
         if (!pricing || !Array.isArray(pricing)) {
-            return res.status(400).json({ success: false, error: '请提供定价配置数组' });
+            return res.status(400).json({ success: false, error: 'Please provide pricing configuration array' });
         }
         
         const results = await pricingStore.batchImport(pricing);
         
-        // 刷新动态定价缓存
+        // Refresh dynamic pricing cache
         const pricingMap = await pricingStore.getPricingMap();
         setDynamicPricing(pricingMap);
         
@@ -3890,16 +3890,16 @@ app.post('/api/pricing/batch-import', authMiddleware, async (req, res) => {
     }
 });
 
-// 重置为默认定价配置
+// Reset to default pricing configuration
 app.post('/api/pricing/reset-default', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
         
         const results = await pricingStore.initDefaultPricing();
         
-        // 刷新动态定价缓存
+        // Refresh dynamic pricing cache
         const pricingMap = await pricingStore.getPricingMap();
         setDynamicPricing(pricingMap);
         
@@ -3909,13 +3909,13 @@ app.post('/api/pricing/reset-default', authMiddleware, async (req, res) => {
     }
 });
 
-// ============ API 日志管理 ============
+// ============ API Log Management ============
 
-// 获取错误日志列表（状态码 >= 400）
+// Get error log list (status code >= 400)
 app.get('/api/error-logs', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { page = 1, pageSize = 50, startDate, endDate } = req.query;
@@ -3933,11 +3933,11 @@ app.get('/api/error-logs', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取日志列表（分页）
+// Get log list (paginated)
 app.get('/api/logs', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { page = 1, pageSize = 50, apiKeyId, ipAddress, startDate, endDate } = req.query;
@@ -3957,16 +3957,16 @@ app.get('/api/logs', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取单个日志详情
+// Get single log details
 app.get('/api/logs/:requestId', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const log = await apiLogStore.getByRequestId(req.params.requestId);
         if (!log) {
-            return res.status(404).json({ success: false, error: '日志不存在' });
+            return res.status(404).json({ success: false, error: 'Log does not exist' });
         }
 
         res.json({ success: true, data: log });
@@ -3975,11 +3975,11 @@ app.get('/api/logs/:requestId', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取日志统计信息
+// Get log statistics
 app.get('/api/logs-stats', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { startDate, endDate, apiKeyId } = req.query;
@@ -3996,11 +3996,11 @@ app.get('/api/logs-stats', authMiddleware, async (req, res) => {
     }
 });
 
-// 按 IP 统计请求
+// Statistics by IP
 app.get('/api/logs-stats/by-ip', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { startDate, endDate, limit = 20 } = req.query;
@@ -4017,27 +4017,27 @@ app.get('/api/logs-stats/by-ip', authMiddleware, async (req, res) => {
     }
 });
 
-// 手动清理旧日志
+// Manually clean old logs
 app.post('/api/logs/cleanup', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { daysToKeep = 30 } = req.body;
         await apiLogStore.cleanOldLogs(parseInt(daysToKeep));
 
-        res.json({ success: true, data: { message: `已清理 ${daysToKeep} 天前的日志` } });
+        res.json({ success: true, data: { message: `Cleaned logs older than ${daysToKeep} days` } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
 });
 
-// 删除单条日志
+// Delete single log entry
 app.delete('/api/logs/:id', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const id = parseInt(req.params.id);
@@ -4049,11 +4049,11 @@ app.delete('/api/logs/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取所有 API Key 的用量统计
+// Get usage statistics for all API Keys
 app.get('/api/logs-stats/by-api-key', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { startDate, endDate } = req.query;
@@ -4069,23 +4069,23 @@ app.get('/api/logs-stats/by-api-key', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取 API Key 费用统计（按模型分类）
+// Get API Key cost statistics (grouped by model)
 app.get('/api/keys/:id/cost', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const { startDate, endDate } = req.query;
 
-        // 检查权限：管理员或密钥所有者
+        // Check permission: admin or key owner
         const keys = await apiKeyStore.getByUserId(req.userId);
         const key = keys.find(k => k.id === id);
         if (!key && !req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '无权查看此密钥费用' });
+            return res.status(403).json({ success: false, error: 'No permission to view this key cost' });
         }
 
-        // 获取按模型分组的统计
+        // Get statistics grouped by model
         const modelStats = await apiLogStore.getStatsByModel(id, { startDate, endDate });
 
-        // 计算每个模型的费用
+        // Calculate cost for each model
         let totalInputCost = 0;
         let totalOutputCost = 0;
         let totalInputTokens = 0;
@@ -4128,19 +4128,19 @@ app.get('/api/keys/:id/cost', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取所有 API Key 的费用统计汇总
+// Get cost statistics summary for all API Keys
 app.get('/api/logs-stats/cost', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { startDate, endDate } = req.query;
 
-        // 获取所有日志按模型分组统计
+        // Get all logs grouped by model
         const modelStats = await apiLogStore.getAllStatsByModel({ startDate, endDate });
 
-        // 计算费用
+        // Calculate cost
         let totalInputCost = 0;
         let totalOutputCost = 0;
         let totalInputTokens = 0;
@@ -4164,7 +4164,7 @@ app.get('/api/logs-stats/cost', authMiddleware, async (req, res) => {
             };
         });
 
-        // 按 API Key 统计
+        // Statistics by API Key
         const keyStats = await apiLogStore.getCostByApiKey({ startDate, endDate });
         const keyCosts = [];
         for (const stat of keyStats) {
@@ -4205,17 +4205,17 @@ app.get('/api/logs-stats/cost', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取单个 API Key 的用量统计
+// Get usage statistics for a single API Key
 app.get('/api/keys/:id/usage', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const { startDate, endDate } = req.query;
 
-        // 检查权限：管理员或密钥所有者
+        // Check permission: admin or key owner
         const keys = await apiKeyStore.getByUserId(req.userId);
         const key = keys.find(k => k.id === id);
         if (!key && !req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '无权查看此密钥用量' });
+            return res.status(403).json({ success: false, error: 'No permission to view this key usage' });
         }
 
         const stats = await apiLogStore.getStatsForApiKey(id, {
@@ -4229,11 +4229,11 @@ app.get('/api/keys/:id/usage', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取按日期统计的用量（用于图表）
+// Get usage statistics by date (for charts)
 app.get('/api/logs-stats/by-date', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { startDate, endDate, apiKeyId } = req.query;
@@ -4250,11 +4250,11 @@ app.get('/api/logs-stats/by-date', authMiddleware, async (req, res) => {
     }
 });
 
-// 获取按时间间隔统计的用量（默认20分钟）
+// Get usage statistics by time interval (default 20 minutes)
 app.get('/api/logs-stats/by-interval', authMiddleware, async (req, res) => {
     try {
         if (!req.user.isAdmin) {
-            return res.status(403).json({ success: false, error: '需要管理员权限' });
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
         }
 
         const { startDate, endDate, apiKeyId, interval } = req.query;
@@ -4272,7 +4272,7 @@ app.get('/api/logs-stats/by-interval', authMiddleware, async (req, res) => {
     }
 });
 
-// 流式对话
+// Streaming conversation
 app.post('/api/chat/:id', async (req, res) => {
     const credentialId = parseInt(req.params.id);
 
@@ -4280,16 +4280,16 @@ app.post('/api/chat/:id', async (req, res) => {
         const credential = await store.getById(credentialId);
 
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
 
         const { message, model, history, skipTokenRefresh } = req.body;
 
         if (!message) {
-            return res.status(400).json({ success: false, error: '消息内容是必需的' });
+            return res.status(400).json({ success: false, error: 'Message content is required' });
         }
 
-        // 获取凭据锁（如果凭据正在使用，会排队等待）
+        // Acquire credential lock (if credential in use, will queue and wait)
         await acquireCredentialLock(credentialId);
 
         const client = new KiroClient({
@@ -4303,38 +4303,38 @@ app.post('/api/chat/:id', async (req, res) => {
             expiresAt: credential.expiresAt
         });
 
-        // 构建消息数组
+        // Build message array
         const messages = [];
         if (history && Array.isArray(history)) {
             messages.push(...history);
         }
         messages.push({ role: 'user', content: message });
 
-        // 设置 SSE 响应头
+        // Set SSE response headers
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
 
-        // 流式输出
+        // Stream output
         for await (const event of client.chatStream(messages, model || 'claude-sonnet-4-20250514', { skipTokenRefresh: skipTokenRefresh !== false })) {
             if (event.type === 'content') {
                 res.write(`data: ${JSON.stringify({ content: event.content })}\n\n`);
             }
         }
 
-        // 释放凭据锁
+        // Release credential lock
         releaseCredentialLock(credentialId);
 
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
     } catch (error) {
-        // 释放凭据锁
+        // Release credential lock
         releaseCredentialLock(credentialId);
 
         if (!res.headersSent) {
             res.status(500).json({
                 success: false,
-                error: `对话失败: ${error.message}`
+                error: `Conversation failed: ${error.message}`
             });
         } else {
             res.write(`data: ${JSON.stringify({ error: error.message })}\n\n`);
@@ -4343,7 +4343,7 @@ app.post('/api/chat/:id', async (req, res) => {
     }
 });
 
-// 非流式对话
+// Non-streaming conversation
 app.post('/api/chat/:id/sync', async (req, res) => {
     const credentialId = parseInt(req.params.id);
 
@@ -4351,16 +4351,16 @@ app.post('/api/chat/:id/sync', async (req, res) => {
         const credential = await store.getById(credentialId);
 
         if (!credential) {
-            return res.status(404).json({ success: false, error: '凭据不存在' });
+            return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
 
         const { message, model, history, skipTokenRefresh } = req.body;
 
         if (!message) {
-            return res.status(400).json({ success: false, error: '消息内容是必需的' });
+            return res.status(400).json({ success: false, error: 'Message content is required' });
         }
 
-        // 获取凭据锁（如果凭据正在使用，会排队等待）
+        // Acquire credential lock (if credential in use, will queue and wait)
         await acquireCredentialLock(credentialId);
 
         const client = new KiroClient({
@@ -4374,7 +4374,7 @@ app.post('/api/chat/:id/sync', async (req, res) => {
             expiresAt: credential.expiresAt
         });
 
-        // 构建消息数组
+        // Build message array
         const messages = [];
         if (history && Array.isArray(history)) {
             messages.push(...history);
@@ -4383,7 +4383,7 @@ app.post('/api/chat/:id/sync', async (req, res) => {
 
         const response = await client.chat(messages, model || 'claude-sonnet-4-20250514', { skipTokenRefresh: skipTokenRefresh !== false });
 
-        // 释放凭据锁
+        // Release credential lock
         releaseCredentialLock(credentialId);
 
         res.json({
@@ -4391,19 +4391,19 @@ app.post('/api/chat/:id/sync', async (req, res) => {
             data: { response }
         });
     } catch (error) {
-        // 释放凭据锁
+        // Release credential lock
         releaseCredentialLock(credentialId);
 
         res.status(500).json({
             success: false,
-            error: `对话失败: ${error.message}`
+            error: `Conversation failed: ${error.message}`
         });
     }
 });
 
-// ============ 代理配置 API ============
+// ============ Proxy Configuration API ============
 
-// 获取代理配置
+// Get proxy configuration
 app.get('/api/proxy/config', authMiddleware, async (req, res) => {
     try {
         const config = getProxyConfig() || { enabled: false, proxyUrl: '' };
@@ -4413,7 +4413,7 @@ app.get('/api/proxy/config', authMiddleware, async (req, res) => {
     }
 });
 
-// 保存代理配置
+// Save proxy configuration
 app.post('/api/proxy/config', authMiddleware, async (req, res) => {
     try {
         const { enabled, proxyUrl } = req.body;
@@ -4427,7 +4427,7 @@ app.post('/api/proxy/config', authMiddleware, async (req, res) => {
 
         res.json({
             success: true,
-            message: enabled ? '代理已启用' : '代理已禁用',
+            message: enabled ? 'Proxy enabled' : 'Proxy disabled',
             data: config
         });
     } catch (error) {
@@ -4435,13 +4435,13 @@ app.post('/api/proxy/config', authMiddleware, async (req, res) => {
     }
 });
 
-// 测试代理连接
+// Test proxy connection
 app.post('/api/proxy/test', authMiddleware, async (req, res) => {
     try {
         const { proxyUrl } = req.body;
 
         if (!proxyUrl) {
-            return res.status(400).json({ success: false, error: '请提供代理地址' });
+            return res.status(400).json({ success: false, error: 'Please provide proxy address' });
         }
 
         const result = await testProxyConnection(proxyUrl);
@@ -4451,40 +4451,40 @@ app.post('/api/proxy/test', authMiddleware, async (req, res) => {
     }
 });
 
-// ============ 公开 API（无需登录）============
+// ============ Public API (no login required) ============
 
-// 公开查询 API Key 用量
+// Public API Key usage query
 app.post('/api/public/usage', async (req, res) => {
     try {
         const { apiKey } = req.body;
 
         if (!apiKey) {
-            return res.status(400).json({ success: false, error: '请提供 API 密钥' });
+            return res.status(400).json({ success: false, error: 'Please provide API key' });
         }
 
-        // 验证 API 密钥
+        // Validate API key
         const keyHash = crypto.createHash('sha256').update(apiKey).digest('hex');
         const keyRecord = await apiKeyStore.getByKeyHash(keyHash);
 
         if (!keyRecord) {
-            return res.status(404).json({ success: false, error: 'API 密钥不存在或已禁用' });
+            return res.status(404).json({ success: false, error: 'API key does not exist or is disabled' });
         }
 
         const now = new Date();
         const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate()).toISOString();
         const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
 
-        // 获取各时间段的用量
+        // Get usage for each time period
         const dailyStats = await apiLogStore.getStatsForApiKey(keyRecord.id, { startDate: todayStart });
         const monthlyStats = await apiLogStore.getStatsForApiKey(keyRecord.id, { startDate: monthStart });
         const totalStats = await apiLogStore.getStatsForApiKey(keyRecord.id, {});
 
-        // 计算费用
+        // Calculate cost
         const dailyCost = await calculateApiKeyCost(keyRecord.id, { startDate: todayStart });
         const monthlyCost = await calculateApiKeyCost(keyRecord.id, { startDate: monthStart });
         const totalCost = await calculateApiKeyCost(keyRecord.id, {});
 
-        // 获取按模型分组的统计
+        // Get statistics grouped by model
         const modelStats = await apiLogStore.getStatsByModel(keyRecord.id, {});
         const modelCosts = modelStats.map(stat => {
             const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens);
@@ -4499,7 +4499,7 @@ app.post('/api/public/usage', async (req, res) => {
             };
         });
 
-        // 计算有效期剩余天数和过期日期
+        // Calculate remaining days until expiration and expiration date
         let remainingDays = null;
         let expireDate = null;
         if (keyRecord.expiresInDays > 0 && keyRecord.createdAt) {
@@ -4553,15 +4553,15 @@ app.post('/api/public/usage', async (req, res) => {
     }
 });
 
-// 默认管理员账户配置
+// Default admin account configuration
 const DEFAULT_ADMIN = {
     username: 'admin',
     password: 'admin123'
 };
 
-// 启动服务器
+// Start server
 async function start() {
-    // 初始化数据库
+    // Initialize database
     await initDatabase();
     store = await CredentialStore.create();
     userStore = await UserStore.create();
@@ -4576,126 +4576,126 @@ async function start() {
     siteSettingsStore = await SiteSettingsStore.create();
     pricingStore = await ModelPricingStore.create();
 
-    // 加载动态定价配置
+    // Load dynamic pricing configuration
     try {
         const pricingMap = await pricingStore.getPricingMap();
         if (Object.keys(pricingMap).length > 0) {
             setDynamicPricing(pricingMap);
-            console.log(`[${getTimestamp()}] 已加载 ${Object.keys(pricingMap).length} 个模型定价配置`);
+            console.log(`[${getTimestamp()}] Loaded ${Object.keys(pricingMap).length} model pricing configurations`);
         } else {
-            // 如果没有配置，初始化默认定价
-            console.log(`[${getTimestamp()}] 正在初始化默认模型定价配置...`);
+            // If no configuration, initialize default pricing
+            console.log(`[${getTimestamp()}] Initializing default model pricing configuration...`);
             await pricingStore.initDefaultPricing();
             const newPricingMap = await pricingStore.getPricingMap();
             setDynamicPricing(newPricingMap);
-            console.log(`[${getTimestamp()}] 已初始化 ${Object.keys(newPricingMap).length} 个默认定价配置`);
+            console.log(`[${getTimestamp()}] Initialized ${Object.keys(newPricingMap).length} default pricing configurations`);
         }
     } catch (err) {
-        console.error(`[${getTimestamp()}] 加载定价配置失败:`, err.message);
+        console.error(`[${getTimestamp()}] Failed to load pricing configuration:`, err.message);
     }
 
-    // 初始化代理配置
+    // Initialize proxy configuration
     const proxyConfig = await initProxyConfig();
     if (proxyConfig && proxyConfig.enabled) {
-        // console.log(`[${getTimestamp()}] 代理已启用: ${proxyConfig.proxyUrl}`);
+        // console.log(`[${getTimestamp()}] Proxy enabled: ${proxyConfig.proxyUrl}`);
     }
 
-    // 检测环境变量代理
+    // Detect environment variable proxy
     const envProxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
     if (envProxy) {
-        // console.log(`[${getTimestamp()}] 检测到环境变量代理: ${envProxy}`);
+        // console.log(`[${getTimestamp()}] Detected environment variable proxy: ${envProxy}`);
     } else {
-        // console.log(`[${getTimestamp()}] 未检测到环境变量代理 (HTTPS_PROXY/HTTP_PROXY)`);
+        // console.log(`[${getTimestamp()}] No environment variable proxy detected (HTTPS_PROXY/HTTP_PROXY)`);
     }
 
-    // 自动创建默认管理员账户（如果没有用户）
+    // Auto-create default admin account (if no users exist)
     if (!await userStore.hasUsers()) {
         const passwordHash = hashPassword(DEFAULT_ADMIN.password);
         await userStore.create(DEFAULT_ADMIN.username, passwordHash, true);
-        // console.log(`[${getTimestamp()}] 已创建默认管理员账户`);
-        // console.log(`[${getTimestamp()}] 用户名: ${DEFAULT_ADMIN.username}`);
-        // console.log(`[${getTimestamp()}] 密码: ${DEFAULT_ADMIN.password}`);
-        // console.log(`[${getTimestamp()}] 请登录后及时修改密码！`);
+        // console.log(`[${getTimestamp()}] Created default admin account`);
+        // console.log(`[${getTimestamp()}] Username: ${DEFAULT_ADMIN.username}`);
+        // console.log(`[${getTimestamp()}] Password: ${DEFAULT_ADMIN.password}`);
+        // console.log(`[${getTimestamp()}] Please change the password after login!`);
     }
 
-    // 设置 Orchids 路由
+    // Setup Orchids routes
     setupOrchidsRoutes(app, orchidsStore);
 
-    // 设置 Warp 路由
+    // Setup Warp routes
     await setupWarpRoutes(app, warpStore, warpService, apiKeyStore);
 
-    // 设置 Warp 多代理路由
+    // Setup Warp multi-agent routes
     const warpMultiAgentService = setupWarpMultiAgentRoutes(app, warpStore);
-    // console.log(`[${getTimestamp()}] Warp 多代理服务已启动`);
+    // console.log(`[${getTimestamp()}] Warp multi-agent service started`);
 
-    // 设置 Warp 代理路由（一比一转发）
+    // Setup Warp proxy routes (one-to-one forwarding)
     setupWarpProxyRoutes(app, warpStore);
-    // console.log(`[${getTimestamp()}] Warp 代理服务已启动`);
+    // console.log(`[${getTimestamp()}] Warp proxy service started`);
 
-    // 设置 Gemini 路由
+    // Setup Gemini routes
     setupGeminiRoutes(app, geminiStore, getTimestamp);
-    
-    // 设置 Vertex AI 路由
+
+    // Setup Vertex AI routes
     await setupVertexRoutes(app);
 
-    // 设置 Bedrock 路由
+    // Setup Bedrock routes
     app.use('/api/bedrock', bedrockRoutes);
-    console.log(`[${getTimestamp()}] Bedrock 服务已启动`);
+    console.log(`[${getTimestamp()}] Bedrock service started`);
 
-    // 启动定时刷新任务
+    // Start scheduled refresh tasks
     startCredentialsRefreshTask();
     startErrorCredentialsRefreshTask();
 
-    // 启动日志清理任务（每天清理30天前的日志）
+    // Start log cleanup task (clean logs older than 30 days daily)
     startLogCleanupTask();
 
     const PORT = process.env.PORT || 13004;
     app.listen(PORT, () => {
-        console.log(`[${getTimestamp()}] Kiro API Server 已启动 | http://localhost:${PORT}`);
-        console.log('[API] 支持的端点:');
-        console.log('[API]   Claude 格式:  /v1/messages');
-        console.log('[API]   OpenAI 格式:  /v1/chat/completions');
-        console.log('[API]   Gemini 格式:  /gemini-antigravity/v1/messages');
-        console.log('[API]   Orchids 格式: /orchids/v1/messages');
-        console.log('[API]   Warp 格式:    /w/v1/messages');
-        console.log('[API]   Vertex 格式:  /vertex/v1/messages');
-        console.log('[API]   Bedrock 格式: /api/bedrock/chat');
-        console.log('[API]   模型列表:     /v1/models');
+        console.log(`[${getTimestamp()}] Kiro API Server started | http://localhost:${PORT}`);
+        console.log('[API] Supported endpoints:');
+        console.log('[API]   Claude format:  /v1/messages');
+        console.log('[API]   OpenAI format:  /v1/chat/completions');
+        console.log('[API]   Gemini format:  /gemini-antigravity/v1/messages');
+        console.log('[API]   Orchids format: /orchids/v1/messages');
+        console.log('[API]   Warp format:    /w/v1/messages');
+        console.log('[API]   Vertex format:  /vertex/v1/messages');
+        console.log('[API]   Bedrock format: /api/bedrock/chat');
+        console.log('[API]   Model list:     /v1/models');
     });
 }
 
 /**
- * 启动日志清理任务
+ * Start log cleanup task
  */
 function startLogCleanupTask() {
-    const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // 每24小时执行一次
-    const DAYS_TO_KEEP = 30; // 保留30天的日志
+    const CLEANUP_INTERVAL = 24 * 60 * 60 * 1000; // Execute every 24 hours
+    const DAYS_TO_KEEP = 30; // Keep 30 days of logs
 
-    // console.log(`[${getTimestamp()}] [日志清理] 任务已启动，每24小时清理${DAYS_TO_KEEP}天前的日志`);
+    // console.log(`[${getTimestamp()}] [Log Cleanup] Task started, cleaning logs older than ${DAYS_TO_KEEP} days every 24 hours`);
 
     setInterval(async () => {
         try {
             await apiLogStore.cleanOldLogs(DAYS_TO_KEEP);
-            // console.log(`[${getTimestamp()}] [日志清理] 已清理${DAYS_TO_KEEP}天前的日志`);
+            // console.log(`[${getTimestamp()}] [Log Cleanup] Cleaned logs older than ${DAYS_TO_KEEP} days`);
         } catch (error) {
-            console.error(`[${getTimestamp()}] [日志清理] 清理失败: ${error.message}`);
+            console.error(`[${getTimestamp()}] [Log Cleanup] Cleanup failed: ${error.message}`);
         }
     }, CLEANUP_INTERVAL);
 }
 
 /**
- * 获取当前时间戳字符串
+ * Get current timestamp string
  */
 function getTimestamp() {
     return new Date().toISOString().replace('T', ' ').substring(0, 19);
 }
 
-// ============ 正常凭据定时刷新任务 ============
-const CREDENTIALS_REFRESH_INTERVAL = 12 * 60 * 60 * 1000; // 12小时检查一次
-const TOKEN_EXPIRY_THRESHOLD = 10; // 提前10分钟刷新
+// ============ Normal Credentials Scheduled Refresh Task ============
+const CREDENTIALS_REFRESH_INTERVAL = 12 * 60 * 60 * 1000; // Check every 12 hours
+const TOKEN_EXPIRY_THRESHOLD = 10; // Refresh 10 minutes in advance
 
 /**
- * 检查 Token 是否即将过期
+ * Check if token is expiring soon
  */
 function isTokenExpiringSoon(credential, minutes = TOKEN_EXPIRY_THRESHOLD) {
     if (!credential.expiresAt) return false;
@@ -4710,20 +4710,20 @@ function isTokenExpiringSoon(credential, minutes = TOKEN_EXPIRY_THRESHOLD) {
 }
 
 /**
- * 刷新单个凭据的 Token
+ * Refresh token for a single credential
  */
 async function refreshCredential(credential) {
     const region = credential.region || KIRO_CONSTANTS.DEFAULT_REGION;
 
-    // console.log(`[${getTimestamp()}] [定时刷新] 开始刷新凭据 ${credential.id} (${credential.name})...`);
-    // console.log(`[${getTimestamp()}] [定时刷新] 认证方式: ${credential.authMethod}`);
+    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Starting refresh for credential ${credential.id} (${credential.name})...`);
+    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Auth method: ${credential.authMethod}`);
 
     try {
         let newAccessToken, newRefreshToken, expiresAt;
 
         if (credential.authMethod === KIRO_CONSTANTS.AUTH_METHOD_SOCIAL) {
             const refreshUrl = KIRO_CONSTANTS.REFRESH_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [定时刷新] 请求 URL: ${refreshUrl}`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Request URL: ${refreshUrl}`);
 
             const response = await axios.post(refreshUrl, {
                 refreshToken: credential.refreshToken
@@ -4737,17 +4737,17 @@ async function refreshCredential(credential) {
             expiresAt = response.data.expiresAt || null;
         } else if (credential.authMethod === KIRO_CONSTANTS.AUTH_METHOD_BUILDER_ID || credential.authMethod === KIRO_CONSTANTS.AUTH_METHOD_IDC) {
             if (!credential.clientId || !credential.clientSecret) {
-                // console.log(`[${getTimestamp()}] [定时刷新] 凭据 ${credential.id} 缺少 clientId/clientSecret，跳过`);
+                // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} missing clientId/clientSecret, skipping`);
                 return false;
             }
 
-            // IdC 和 builder-id 都使用 oidc 端点 (与 kiro2api 保持一致)
+            // IdC and builder-id both use oidc endpoint (consistent with kiro2api)
             const refreshUrl = KIRO_CONSTANTS.REFRESH_IDC_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [定时刷新] 请求 URL: ${refreshUrl}`);
-            // console.log(`[${getTimestamp()}] [定时刷新] clientId: ${credential.clientId.substring(0, 10)}...`);
-            // console.log(`[${getTimestamp()}] [定时刷新] refreshToken: ${credential.refreshToken ? credential.refreshToken.substring(0, 20) + '...' : '无'}`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Request URL: ${refreshUrl}`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] clientId: ${credential.clientId.substring(0, 10)}...`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] refreshToken: ${credential.refreshToken ? credential.refreshToken.substring(0, 20) + '...' : 'none'}`);
 
-            // 使用 JSON 格式发送请求（与 AIClient-2-API 一致）
+            // Send request in JSON format (consistent with AIClient-2-API)
             const response = await axios.post(refreshUrl, {
                 refreshToken: credential.refreshToken,
                 clientId: credential.clientId,
@@ -4758,7 +4758,7 @@ async function refreshCredential(credential) {
                 timeout: 30000
             });
 
-            // 响应字段使用 camelCase
+            // Response fields use camelCase
             newAccessToken = response.data.accessToken;
             newRefreshToken = response.data.refreshToken || credential.refreshToken;
             expiresAt = response.data.expiresIn
@@ -4766,39 +4766,39 @@ async function refreshCredential(credential) {
                 : null;
         }
 
-        // 更新数据库中的凭据
+        // Update credential in database
         await store.update(credential.id, {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
             expiresAt
         });
 
-        // console.log(`[${getTimestamp()}] [定时刷新] 凭据 ${credential.id} (${credential.name}) 刷新成功!`);
-        // console.log(`[${getTimestamp()}] [定时刷新] 新 Token 前缀: ${newAccessToken.substring(0, 20)}...`);
-        // console.log(`[${getTimestamp()}] [定时刷新] 过期时间: ${expiresAt || '未知'}`);
+        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} (${credential.name}) refresh successful!`);
+        // console.log(`[${getTimestamp()}] [Scheduled Refresh] New Token prefix: ${newAccessToken.substring(0, 20)}...`);
+        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Expiration time: ${expiresAt || 'unknown'}`);
 
         return true;
     } catch (error) {
         const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
         const errorDesc = error.response?.data?.error_description || '';
-        // console.log(`[${getTimestamp()}] [定时刷新] 凭据 ${credential.id} (${credential.name}) 刷新失败: ${errorMsg}`);
+        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} (${credential.name}) refresh failed: ${errorMsg}`);
         if (errorDesc) {
-            // console.log(`[${getTimestamp()}] [定时刷新] 错误描述: ${errorDesc}`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Error description: ${errorDesc}`);
         }
         if (error.response?.data) {
-            // console.log(`[${getTimestamp()}] [定时刷新] 完整响应: ${JSON.stringify(error.response.data)}`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Full response: ${JSON.stringify(error.response.data)}`);
         }
 
         if (error.response?.status) {
-            // console.log(`[${getTimestamp()}] [定时刷新] HTTP 状态码: ${error.response.status}`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] HTTP status code: ${error.response.status}`);
         }
 
-        // 刷新失败，移动到错误表
+        // Refresh failed, move to error table
         try {
             await store.moveToError(credential.id, errorMsg);
-            // console.log(`[${getTimestamp()}] [定时刷新] 凭据 ${credential.id} 已移动到错误表`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} moved to error table`);
         } catch (moveError) {
-            // console.log(`[${getTimestamp()}] [定时刷新] 移动凭据到错误表失败: ${moveError.message}`);
+            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Failed to move credential to error table: ${moveError.message}`);
         }
 
         return false;
@@ -4806,19 +4806,19 @@ async function refreshCredential(credential) {
 }
 
 /**
- * 启动正常凭据定时刷新任务
+ * Start normal credentials scheduled refresh task
  */
 function startCredentialsRefreshTask() {
-    // console.log(`[${getTimestamp()}] [定时刷新] 正常凭据刷新任务已启动，间隔: ${CREDENTIALS_REFRESH_INTERVAL / 1000}秒，提前 ${TOKEN_EXPIRY_THRESHOLD} 分钟刷新`);
+    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Normal credentials refresh task started, interval: ${CREDENTIALS_REFRESH_INTERVAL / 1000}s, refresh ${TOKEN_EXPIRY_THRESHOLD} minutes in advance`);
 
-    // 定时执行
+    // Execute on schedule
     setInterval(async () => {
         await checkAndRefreshCredentials();
     }, CREDENTIALS_REFRESH_INTERVAL);
 }
 
 /**
- * 检查并刷新即将过期的凭据
+ * Check and refresh credentials that are about to expire
  */
 async function checkAndRefreshCredentials() {
     const credentials = await store.getAll();
@@ -4831,36 +4831,36 @@ async function checkAndRefreshCredentials() {
     );
 
     if (expiringCredentials.length === 0) {
-        // console.log(`[${getTimestamp()}] [定时刷新] 检查完成，没有即将过期的凭据`);
+        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Check complete, no credentials about to expire`);
         return;
     }
 
-    // console.log(`[${getTimestamp()}] [定时刷新] 发现 ${expiringCredentials.length} 个即将过期的凭据，开始刷新...`);
+    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Found ${expiringCredentials.length} credentials about to expire, starting refresh...`);
 
     for (const credential of expiringCredentials) {
         await refreshCredential(credential);
-        // 每个凭据之间间隔 2 秒，避免请求过快
+        // Wait 2 seconds between each credential to avoid request rate limiting
         await new Promise(resolve => setTimeout(resolve, 2000));
     }
 
-    // console.log(`[${getTimestamp()}] [定时刷新] 凭据刷新完成`);
+    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credentials refresh complete`);
 }
 
-// 错误凭据定时刷新任务
-const ERROR_REFRESH_INTERVAL = 60 * 60 * 1000; // 1小时
+// Error credentials scheduled refresh task
+const ERROR_REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour
 
 async function refreshErrorCredential(errorCred) {
     const region = errorCred.region || KIRO_CONSTANTS.DEFAULT_REGION;
 
-    // console.log(`[${getTimestamp()}] [错误凭据刷新] 开始刷新错误凭据 ${errorCred.id} (${errorCred.name})...`);
-    // console.log(`[${getTimestamp()}] [错误凭据刷新] 认证方式: ${errorCred.authMethod}`);
+    // console.log(`[${getTimestamp()}] [Error Credential Refresh] Starting refresh for error credential ${errorCred.id} (${errorCred.name})...`);
+    // console.log(`[${getTimestamp()}] [Error Credential Refresh] Auth method: ${errorCred.authMethod}`);
 
     try {
         let newAccessToken, newRefreshToken, expiresAt;
 
         if (errorCred.authMethod === KIRO_CONSTANTS.AUTH_METHOD_SOCIAL) {
             const refreshUrl = KIRO_CONSTANTS.REFRESH_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [错误凭据刷新] 请求 URL: ${refreshUrl}`);
+            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Request URL: ${refreshUrl}`);
 
             const response = await axios.post(refreshUrl, {
                 refreshToken: errorCred.refreshToken
@@ -4875,17 +4875,17 @@ async function refreshErrorCredential(errorCred) {
             expiresAt = response.data.expiresAt || null;
         } else {
             if (!errorCred.clientId || !errorCred.clientSecret) {
-                // console.log(`[${getTimestamp()}] [错误凭据刷新] 凭据 ${errorCred.id} 缺少 clientId/clientSecret，跳过`);
+                // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} missing clientId/clientSecret, skipping`);
                 return false;
             }
 
-            // IdC 使用 sso-oidc 端点，builder-id 使用 oidc 端点
+            // IdC uses sso-oidc endpoint, builder-id uses oidc endpoint
             const refreshUrl = errorCred.authMethod === KIRO_CONSTANTS.AUTH_METHOD_IDC
                 ? KIRO_CONSTANTS.REFRESH_SSO_OIDC_URL.replace('{{region}}', region)
                 : KIRO_CONSTANTS.REFRESH_IDC_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [错误凭据刷新] 请求 URL: ${refreshUrl}`);
+            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Request URL: ${refreshUrl}`);
 
-            // 使用 JSON 格式发送请求（与 AIClient-2-API 一致）
+            // Send request in JSON format (consistent with AIClient-2-API)
             const response = await axios.post(refreshUrl, {
                 refreshToken: errorCred.refreshToken,
                 clientId: errorCred.clientId,
@@ -4897,7 +4897,7 @@ async function refreshErrorCredential(errorCred) {
                 ...getAxiosProxyConfig()
             });
 
-            // 响应字段使用 camelCase
+            // Response fields use camelCase
             newAccessToken = response.data.accessToken;
             newRefreshToken = response.data.refreshToken || errorCred.refreshToken;
             expiresAt = response.data.expiresIn
@@ -4905,9 +4905,9 @@ async function refreshErrorCredential(errorCred) {
                 : null;
         }
 
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] Token 刷新成功，验证用量接口...`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Token refresh successful, verifying usage endpoint...`);
 
-        // 验证用量接口是否能正常返回
+        // Verify usage endpoint can return normally
         const usageResult = await KiroAPI.getUsageLimits({
             accessToken: newAccessToken,
             profileArn: errorCred.profileArn,
@@ -4916,33 +4916,33 @@ async function refreshErrorCredential(errorCred) {
         });
 
         if (!usageResult.success) {
-            // console.log(`[${getTimestamp()}] [错误凭据刷新] 凭据 ${errorCred.id} (${errorCred.name}) 用量验证失败: ${usageResult.error}`);
-            // 更新错误凭据的 token，但不移动到正常表
+            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} (${errorCred.name}) usage verification failed: ${usageResult.error}`);
+            // Update error credential token, but don't move to normal table
             store.updateErrorToken(errorCred.id, newAccessToken, newRefreshToken, expiresAt);
-            // console.log(`[${getTimestamp()}] [错误凭据刷新] 已更新 Token，但用量验证失败，保留在错误表中`);
+            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Token updated, but usage verification failed, keeping in error table`);
             return false;
         }
 
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] 用量验证成功，恢复到正常表...`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Usage verification successful, restoring to normal table...`);
 
-        // 刷新成功且用量验证通过，恢复到正常表
+        // Refresh successful and usage verification passed, restore to normal table
         const newId = await store.restoreFromError(errorCred.id, newAccessToken, newRefreshToken, expiresAt);
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] 凭据 ${errorCred.id} (${errorCred.name}) 刷新成功!`);
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] 新 Token 前缀: ${newAccessToken.substring(0, 20)}...`);
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] 已恢复到正常表，新 ID: ${newId}`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} (${errorCred.name}) refresh successful!`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] New Token prefix: ${newAccessToken.substring(0, 20)}...`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Restored to normal table, new ID: ${newId}`);
         return true;
     } catch (error) {
         const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] 凭据 ${errorCred.id} (${errorCred.name}) 刷新失败: ${errorMsg}`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} (${errorCred.name}) refresh failed: ${errorMsg}`);
         if (error.response?.status) {
-            // console.log(`[${getTimestamp()}] [错误凭据刷新] HTTP 状态码: ${error.response.status}`);
+            // console.log(`[${getTimestamp()}] [Error Credential Refresh] HTTP status code: ${error.response.status}`);
         }
         return false;
     }
 }
 
 function startErrorCredentialsRefreshTask() {
-    // console.log(`[${getTimestamp()}] [错误凭据刷新] 任务已启动，间隔: ${ERROR_REFRESH_INTERVAL / 1000}秒`);
+    // console.log(`[${getTimestamp()}] [Error Credential Refresh] Task started, interval: ${ERROR_REFRESH_INTERVAL / 1000}s`);
 
     setInterval(async () => {
         const errorCredentials = await store.getAllErrors();
@@ -4950,21 +4950,21 @@ function startErrorCredentialsRefreshTask() {
             return;
         }
 
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] 开始刷新 ${errorCredentials.length} 个错误凭据...`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Starting refresh for ${errorCredentials.length} error credentials...`);
 
         for (const errorCred of errorCredentials) {
             if (!errorCred.refreshToken) {
-                // console.log(`[${getTimestamp()}] [错误凭据刷新] 凭据 ${errorCred.id} 没有 refreshToken，跳过`);
+                // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} has no refreshToken, skipping`);
                 continue;
             }
 
             await refreshErrorCredential(errorCred);
 
-            // 每个凭据之间间隔 2 秒，避免请求过快
+            // Wait 2 seconds between each credential to avoid request rate limiting
             await new Promise(resolve => setTimeout(resolve, 2000));
         }
 
-        // console.log(`[${getTimestamp()}] [错误凭据刷新] 刷新完成`);
+        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Refresh complete`);
     }, ERROR_REFRESH_INTERVAL);
 }
 

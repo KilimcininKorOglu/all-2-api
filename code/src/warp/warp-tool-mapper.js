@@ -1,12 +1,12 @@
 /**
- * Warp 工具映射器
- * 处理 Claude API 工具 <-> Warp 工具的双向转换
+ * Warp Tool Mapper
+ * Handles bidirectional conversion between Claude API tools and Warp tools
  */
 
 import { TOOL_TYPES } from './warp-proto.js';
 
 /**
- * Claude 工具名 -> Warp 工具类型映射
+ * Claude tool name -> Warp tool type mapping
  */
 export const CLAUDE_TO_WARP_TOOL = {
     'Bash': { type: TOOL_TYPES.RUN_SHELL_COMMAND, field: 'run_shell_command' },
@@ -22,26 +22,26 @@ export const CLAUDE_TO_WARP_TOOL = {
 };
 
 /**
- * Warp 工具类型 -> Claude 工具名映射
+ * Warp tool type -> Claude tool name mapping
  */
 export const WARP_TO_CLAUDE_TOOL = {
     [TOOL_TYPES.RUN_SHELL_COMMAND]: 'Bash',
     [TOOL_TYPES.READ_FILES]: 'Read',
-    [TOOL_TYPES.APPLY_FILE_DIFFS]: 'Write',  // 默认映射到 Write，Edit 需要根据内容判断
+    [TOOL_TYPES.APPLY_FILE_DIFFS]: 'Write',  // Default maps to Write, Edit needs content-based determination
     [TOOL_TYPES.GREP]: 'Grep',
     [TOOL_TYPES.FILE_GLOB_V2]: 'Glob',
-    [TOOL_TYPES.CALL_MCP_TOOL]: null,  // MCP 工具需要根据名称判断
-    [TOOL_TYPES.SEARCH_CODEBASE]: 'Grep',  // 搜索代码库映射到 Grep
+    [TOOL_TYPES.CALL_MCP_TOOL]: null,  // MCP tools need name-based determination
+    [TOOL_TYPES.SEARCH_CODEBASE]: 'Grep',  // Search codebase maps to Grep
 };
 
 /**
- * 获取 Claude 工具对应的 Warp 支持工具类型列表
- * @param {Array} claudeTools - Claude API 工具定义数组
- * @returns {Array<number>} Warp ToolType 枚举值数组
+ * Get list of Warp supported tool types corresponding to Claude tools
+ * @param {Array} claudeTools - Claude API tool definition array
+ * @returns {Array<number>} Warp ToolType enum value array
  */
 export function getWarpSupportedTools(claudeTools) {
     if (!claudeTools || !Array.isArray(claudeTools)) {
-        // 默认支持的工具
+        // Default supported tools
         return [
             TOOL_TYPES.RUN_SHELL_COMMAND,
             TOOL_TYPES.READ_FILES,
@@ -58,7 +58,7 @@ export function getWarpSupportedTools(claudeTools) {
         if (mapping) {
             supportedTools.add(mapping.type);
         } else if (tool.name.startsWith('mcp__')) {
-            // MCP 工具
+            // MCP tool
             supportedTools.add(TOOL_TYPES.CALL_MCP_TOOL);
         }
     }
@@ -67,9 +67,9 @@ export function getWarpSupportedTools(claudeTools) {
 }
 
 /**
- * 将 Claude tool_use 转换为 Warp ToolCall
- * @param {Object} toolUse - Claude tool_use 对象 { id, name, input }
- * @returns {Object} Warp ToolCall 对象
+ * Convert Claude tool_use to Warp ToolCall
+ * @param {Object} toolUse - Claude tool_use object { id, name, input }
+ * @returns {Object} Warp ToolCall object
  */
 export function claudeToolUseToWarpToolCall(toolUse) {
     const { id, name, input } = toolUse;
@@ -138,14 +138,14 @@ export function claudeToolUseToWarpToolCall(toolUse) {
             break;
 
         default:
-            // MCP 工具或其他工具
+            // MCP tool or other tools
             if (name.startsWith('mcp__')) {
                 toolCall.call_mcp_tool = {
                     name: name,
                     args: input || {}
                 };
             } else {
-                // 未知工具，尝试作为 MCP 工具处理
+                // Unknown tool, try to handle as MCP tool
                 toolCall.call_mcp_tool = {
                     name: name,
                     args: input || {}
@@ -158,9 +158,9 @@ export function claudeToolUseToWarpToolCall(toolUse) {
 }
 
 /**
- * 将 Warp ToolCall 转换为 Claude tool_use
- * @param {Object} toolCall - Warp ToolCall 对象
- * @returns {Object|null} Claude tool_use 对象 { id, name, input } 或 null
+ * Convert Warp ToolCall to Claude tool_use
+ * @param {Object} toolCall - Warp ToolCall object
+ * @returns {Object|null} Claude tool_use object { id, name, input } or null
  */
 export function warpToolCallToClaudeToolUse(toolCall) {
     const { tool_call_id } = toolCall;
@@ -198,7 +198,7 @@ export function warpToolCallToClaudeToolUse(toolCall) {
     if (toolCall.apply_file_diffs) {
         const { new_files, diffs } = toolCall.apply_file_diffs;
 
-        // 如果有 new_files，这是 Write 操作
+        // If has new_files, this is a Write operation
         if (new_files?.length > 0) {
             const file = new_files[0];
             return {
@@ -212,7 +212,7 @@ export function warpToolCallToClaudeToolUse(toolCall) {
             };
         }
 
-        // 如果有 diffs，这是 Edit 操作
+        // If has diffs, this is an Edit operation
         if (diffs?.length > 0) {
           const diff = diffs[0];
             return {
@@ -263,21 +263,21 @@ export function warpToolCallToClaudeToolUse(toolCall) {
         };
     }
 
-    // 未知工具类型
+    // Unknown tool type
     return null;
 }
 
 /**
- * 将 Claude tool_result 转换为 Warp ToolCallResult
- * @param {Object} toolResult - Claude tool_result 对象
- * @param {string} toolName - 工具名称
- * @returns {Object} Warp ToolCallResult 对象
+ * Convert Claude tool_result to Warp ToolCallResult
+ * @param {Object} toolResult - Claude tool_result object
+ * @param {string} toolName - Tool name
+ * @returns {Object} Warp ToolCallResult object
  */
 export function claudeToolResultToWarpResult(toolResult, toolName) {
     const { tool_use_id, content, is_error } = toolResult;
     const result = { tool_call_id: tool_use_id };
 
-    // 将内容转换为字符串
+    // Convert content to string
     let contentStr = '';
     if (typeof content === 'string') {
         contentStr = content;
@@ -288,7 +288,7 @@ export function claudeToolResultToWarpResult(toolResult, toolName) {
     switch (toolName) {
         case 'Bash':
             result.run_shell_command = {
-                command: '',  // 原始命令在这里不可用
+                command: '',  // Original command not available here
                 command_finished: {
                     output: contentStr,
                     exit_code: is_error ? 1 : 0
@@ -336,7 +336,7 @@ export function claudeToolResultToWarpResult(toolResult, toolName) {
             } else {
                 result.grep = {
                     success: {
-                        matched_files: []  // 简化处理
+                        matched_files: []  // Simplified handling
                     }
                 };
             }
@@ -350,14 +350,14 @@ export function claudeToolResultToWarpResult(toolResult, toolName) {
             } else {
                 result.file_glob_v2 = {
                     success: {
-                        matched_files: []  // 简化处理
+                        matched_files: []  // Simplified handling
                     }
                 };
             }
             break;
 
         default:
-            // MCP 工具或其他
+            // MCP tool or other
             if (is_error) {
                 result.call_mcp_tool = {
                     error: { message: contentStr }
@@ -378,8 +378,8 @@ export function claudeToolResultToWarpResult(toolResult, toolName) {
 }
 
 /**
- * 检查命令是否为只读命令
- * @param {string} cmd - 命令字符串
+ * Check if command is read-only
+ * @param {string} cmd - Command string
  * @returns {boolean}
  */
 export function isReadOnlyCommand(cmd) {
@@ -420,8 +420,8 @@ export function isReadOnlyCommand(cmd) {
 }
 
 /**
- * 检查命令是否为危险命令
- * @param {string} cmd - 命令字符串
+ * Check if command is risky
+ * @param {string} cmd - Command string
  * @returns {boolean}
  */
 export function isRiskyCommand(cmd) {
@@ -454,15 +454,15 @@ export function isRiskyCommand(cmd) {
 }
 
 /**
- * 从 Warp 工具调用中提取工具名称
- * @param {Object} toolCall - Warp ToolCall 对象
- * @returns {string} 工具名称
+ * Extract tool name from Warp tool call
+ * @param {Object} toolCall - Warp ToolCall object
+ * @returns {string} Tool name
  */
 export function getToolNameFromWarpToolCall(toolCall) {
     if (toolCall.run_shell_command) return 'Bash';
     if (toolCall.read_files) return 'Read';
     if (toolCall.apply_file_diffs) {
-        // 根据内容判断是 Write 还是 Edit
+        // Determine Write or Edit based on content
         if (toolCall.apply_file_diffs.new_files?.length > 0) return 'Write';
         if (toolCall.apply_file_diffs.diffs?.length > 0) return 'Edit';
         return 'Write';

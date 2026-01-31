@@ -1,6 +1,6 @@
 /**
- * GCP Vertex AI 客户端
- * 通过 GCP Vertex AI 访问 Gemini 模型
+ * GCP Vertex AI Client
+ * Access Gemini models via GCP Vertex AI
  */
 import axios from 'axios';
 import fs from 'fs/promises';
@@ -10,30 +10,30 @@ import { getAxiosProxyConfig } from '../proxy.js';
 const log = logger.api;
 
 /**
- * Gemini 模型映射表（Vertex AI）
- * 参考: https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
+ * Gemini Model Mapping Table (Vertex AI)
+ * Reference: https://cloud.google.com/vertex-ai/generative-ai/docs/learn/model-versions
  */
 export const VERTEX_GEMINI_MODEL_MAPPING = {
-    // Gemini 3 系列 (最新)
+    // Gemini 3 series (latest)
     'gemini-3-pro': 'gemini-3-pro-preview',
     'gemini-3-pro-preview': 'gemini-3-pro-preview',
     'gemini-3-flash': 'gemini-3-flash-preview',
     'gemini-3-flash-preview': 'gemini-3-flash-preview',
-    // Gemini 1.5 系列
+    // Gemini 1.5 series
     'gemini-1.5-pro': 'gemini-1.5-pro',
     'gemini-1.5-flash': 'gemini-1.5-flash',
     'gemini-1.5-pro-latest': 'gemini-1.5-pro',
     'gemini-1.5-flash-latest': 'gemini-1.5-flash',
-    // Gemini 2.0 系列
+    // Gemini 2.0 series
     'gemini-2.0-flash': 'gemini-2.0-flash-001',
     'gemini-2.0-flash-exp': 'gemini-2.0-flash-exp',
     'gemini-2.0-flash-lite': 'gemini-2.0-flash-lite-001',
-    // Gemini 2.5 系列 (experimental)
+    // Gemini 2.5 series (experimental)
     'gemini-2.5-pro': 'gemini-2.5-pro-exp-03-25',
     'gemini-2.5-flash': 'gemini-2.5-flash-preview-04-17',
     'gemini-2.5-pro-exp': 'gemini-2.5-pro-exp-03-25',
     'gemini-2.5-flash-preview': 'gemini-2.5-flash-preview-04-17',
-    // 直接使用的模型名（不做映射）
+    // Direct model names (no mapping)
     'gemini-1.5-pro-001': 'gemini-1.5-pro-001',
     'gemini-1.5-pro-002': 'gemini-1.5-pro-002',
     'gemini-1.5-flash-001': 'gemini-1.5-flash-001',
@@ -43,12 +43,12 @@ export const VERTEX_GEMINI_MODEL_MAPPING = {
 };
 
 /**
- * 默认模型
+ * Default model
  */
 export const VERTEX_DEFAULT_MODEL = 'gemini-1.5-flash';
 
 /**
- * Vertex AI 支持的区域
+ * Vertex AI supported regions
  */
 export const VERTEX_REGIONS = [
     'global',
@@ -60,16 +60,16 @@ export const VERTEX_REGIONS = [
 ];
 
 /**
- * GCP Vertex AI 客户端类
+ * GCP Vertex AI Client Class
  */
 export class VertexClient {
     /**
-     * @param {Object} options - 配置选项
-     * @param {string} options.projectId - GCP 项目 ID
-     * @param {string} options.region - GCP 区域 (默认 global)
-     * @param {Object} options.credentials - GCP 服务账号凭据对象
-     * @param {string} options.keyFilePath - GCP 服务账号密钥文件路径
-     * @param {boolean} options.sslVerify - 是否验证 SSL (默认 true)
+     * @param {Object} options - Configuration options
+     * @param {string} options.projectId - GCP project ID
+     * @param {string} options.region - GCP region (default global)
+     * @param {Object} options.credentials - GCP service account credentials object
+     * @param {string} options.keyFilePath - GCP service account key file path
+     * @param {boolean} options.sslVerify - Whether to verify SSL (default true)
      */
     constructor(options = {}) {
         this.projectId = options.projectId;
@@ -82,7 +82,7 @@ export class VertexClient {
     }
 
     /**
-     * 从密钥文件创建客户端
+     * Create client from key file
      */
     static async fromKeyFile(keyFilePath, region = 'global') {
         const content = await fs.readFile(keyFilePath, 'utf8');
@@ -96,7 +96,7 @@ export class VertexClient {
     }
 
     /**
-     * 从凭据对象创建客户端
+     * Create client from credentials object
      */
     static fromCredentials(credentials, region = 'global') {
         return new VertexClient({
@@ -107,26 +107,26 @@ export class VertexClient {
     }
 
     /**
-     * 获取访问令牌
+     * Get access token
      */
     async getAccessToken() {
-        // 检查现有 token 是否有效
+        // Check if existing token is valid
         if (this.accessToken && this.tokenExpiry && Date.now() < this.tokenExpiry - 60000) {
-            console.log('[Vertex] 使用缓存的 access token');
+            console.log('[Vertex] Using cached access token');
             return this.accessToken;
         }
 
         if (!this.credentials) {
-            throw new Error('缺少 GCP 凭据');
+            throw new Error('Missing GCP credentials');
         }
 
-        console.log('[Vertex] 需要获取新的 access token');
+        console.log('[Vertex] Need to get new access token');
         console.log(`[Vertex] client_email: ${this.credentials.client_email}`);
 
         const now = Math.floor(Date.now() / 1000);
         const expiry = now + 3600;
 
-        // 构建 JWT
+        // Build JWT
         const header = {
             alg: 'RS256',
             typ: 'JWT'
@@ -141,14 +141,14 @@ export class VertexClient {
             scope: 'https://www.googleapis.com/auth/cloud-platform'
         };
 
-        console.log('[Vertex] 签名 JWT...');
+        console.log('[Vertex] Signing JWT...');
         const jwt = await this._signJWT(header, payload, this.credentials.private_key);
-        console.log('[Vertex] JWT 签名完成');
+        console.log('[Vertex] JWT signing completed');
 
-        // 交换 JWT 获取访问令牌
+        // Exchange JWT for access token
         const proxyConfig = getAxiosProxyConfig();
-        console.log(`[Vertex] 代理配置: ${proxyConfig.httpsAgent ? 'enabled' : 'disabled'}`);
-        console.log('[Vertex] 请求 oauth2.googleapis.com/token ...');
+        console.log(`[Vertex] Proxy config: ${proxyConfig.httpsAgent ? 'enabled' : 'disabled'}`);
+        console.log('[Vertex] Requesting oauth2.googleapis.com/token ...');
 
         const response = await axios.post('https://oauth2.googleapis.com/token', {
             grant_type: 'urn:ietf:params:oauth:grant-type:jwt-bearer',
@@ -159,16 +159,16 @@ export class VertexClient {
             ...proxyConfig
         });
 
-        console.log('[Vertex] oauth2 token 获取成功');
+        console.log('[Vertex] oauth2 token obtained successfully');
         this.accessToken = response.data.access_token;
         this.tokenExpiry = Date.now() + (response.data.expires_in * 1000);
 
-        log.info(`Vertex AI Token 获取成功，过期时间: ${new Date(this.tokenExpiry).toISOString()}`);
+        log.info(`Vertex AI Token obtained successfully, expires at: ${new Date(this.tokenExpiry).toISOString()}`);
         return this.accessToken;
     }
 
     /**
-     * 签名 JWT
+     * Sign JWT
      */
     async _signJWT(header, payload, privateKey) {
         const crypto = await import('crypto');
@@ -185,32 +185,32 @@ export class VertexClient {
     }
 
     /**
-     * 获取 Vertex AI Gemini API URL
+     * Get Vertex AI Gemini API URL
      */
     _getGeminiApiUrl(model, stream = false) {
         const vertexModel = VERTEX_GEMINI_MODEL_MAPPING[model] || model;
         const action = stream ? 'streamGenerateContent' : 'generateContent';
 
-        // Gemini 使用 global 或指定区域
+        // Gemini uses global or specified region
         return `https://aiplatform.googleapis.com/v1/projects/${this.projectId}/locations/global/publishers/google/models/${vertexModel}:${action}`;
     }
 
     /**
-     * 获取支持的 Gemini 模型列表
+     * Get supported Gemini model list
      */
     getModels() {
         return Object.keys(VERTEX_GEMINI_MODEL_MAPPING);
     }
 
     /**
-     * 获取 Gemini 模型映射
+     * Get Gemini model mapping
      */
     getModelMapping() {
         return VERTEX_GEMINI_MODEL_MAPPING;
     }
 
     /**
-     * 转换 Claude 格式消息为 Gemini 格式
+     * Convert Claude format messages to Gemini format
      */
     _convertToGeminiMessages(messages) {
         return messages.map(msg => ({
@@ -220,7 +220,7 @@ export class VertexClient {
     }
 
     /**
-     * 转换请求为 Gemini 格式
+     * Convert request to Gemini format
      */
     _convertGeminiRequest(messages, model, options = {}) {
         const contents = this._convertToGeminiMessages(messages);
@@ -229,7 +229,7 @@ export class VertexClient {
             contents
         };
 
-        // 添加系统提示
+        // Add system prompt
         if (options.system) {
             const systemText = typeof options.system === 'string'
                 ? options.system
@@ -237,7 +237,7 @@ export class VertexClient {
             request.systemInstruction = { parts: [{ text: systemText }] };
         }
 
-        // 添加生成配置
+        // Add generation config
         const generationConfig = {};
         if (options.max_tokens) {
             generationConfig.maxOutputTokens = options.max_tokens;
@@ -259,7 +259,7 @@ export class VertexClient {
     }
 
     /**
-     * 转换 Gemini 响应为 Claude 格式
+     * Convert Gemini response to Claude format
      */
     _convertGeminiResponse(response, model) {
         const messageId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 8);
@@ -288,25 +288,25 @@ export class VertexClient {
     }
 
     /**
-     * Gemini 聊天（非流式）
+     * Gemini chat (non-streaming)
      */
     async geminiChat(messages, model = 'gemini-1.5-flash', options = {}) {
-        console.log('[Vertex/Gemini] chat() 开始');
-        console.log('[Vertex/Gemini] 获取 access token...');
+        console.log('[Vertex/Gemini] chat() started');
+        console.log('[Vertex/Gemini] Getting access token...');
         const accessToken = await this.getAccessToken();
-        console.log('[Vertex/Gemini] access token 获取成功');
+        console.log('[Vertex/Gemini] Access token obtained successfully');
 
         const url = this._getGeminiApiUrl(model, false);
         console.log(`[Vertex/Gemini] API URL: ${url}`);
 
         const requestData = this._convertGeminiRequest(messages, model, options);
 
-        log.info(`Vertex AI Gemini 请求: ${url}`);
-        log.debug(`请求数据: ${JSON.stringify(requestData).substring(0, 500)}...`);
+        log.info(`Vertex AI Gemini request: ${url}`);
+        log.debug(`Request data: ${JSON.stringify(requestData).substring(0, 500)}...`);
 
         const proxyConfig = getAxiosProxyConfig();
-        console.log(`[Vertex/Gemini] 代理配置: ${proxyConfig.httpsAgent ? 'enabled' : 'disabled'}`);
-        console.log('[Vertex/Gemini] 发送请求到 Vertex AI...');
+        console.log(`[Vertex/Gemini] Proxy config: ${proxyConfig.httpsAgent ? 'enabled' : 'disabled'}`);
+        console.log('[Vertex/Gemini] Sending request to Vertex AI...');
 
         try {
             const requestConfig = {
@@ -324,23 +324,23 @@ export class VertexClient {
 
             const response = await axios.post(url, requestData, requestConfig);
 
-            console.log('[Vertex/Gemini] 请求成功');
+            console.log('[Vertex/Gemini] Request successful');
             return this._convertGeminiResponse(response.data, model);
         } catch (error) {
-            console.error('[Vertex/Gemini] 请求失败:', error.message);
+            console.error('[Vertex/Gemini] Request failed:', error.message);
             if (error.response) {
-                console.error('[Vertex/Gemini] 响应状态:', error.response.status);
-                console.error('[Vertex/Gemini] 响应数据:', JSON.stringify(error.response.data));
+                console.error('[Vertex/Gemini] Response status:', error.response.status);
+                console.error('[Vertex/Gemini] Response data:', JSON.stringify(error.response.data));
             }
             throw error;
         }
     }
 
     /**
-     * Gemini 聊天（流式）
+     * Gemini chat (streaming)
      */
     async *geminiChatStream(messages, model = 'gemini-1.5-flash', options = {}) {
-        console.log('[Vertex/Gemini] chatStream() 开始');
+        console.log('[Vertex/Gemini] chatStream() started');
         const accessToken = await this.getAccessToken();
         const url = this._getGeminiApiUrl(model, true) + '?alt=sse';
         console.log(`[Vertex/Gemini] Stream URL: ${url}`);
@@ -379,7 +379,7 @@ export class VertexClient {
                     if (data && data !== '[DONE]') {
                         try {
                             const parsed = JSON.parse(data);
-                            // 提取文本
+                            // Extract text
                             if (parsed.candidates && parsed.candidates[0]?.content?.parts) {
                                 for (const part of parsed.candidates[0].content.parts) {
                                     if (part.text) {
@@ -390,7 +390,7 @@ export class VertexClient {
                                     }
                                 }
                             }
-                            // 提取 usage
+                            // Extract usage
                             if (parsed.usageMetadata) {
                                 yield {
                                     type: 'usage',
@@ -401,7 +401,7 @@ export class VertexClient {
                                 };
                             }
                         } catch (e) {
-                            // 忽略解析错误
+                            // Ignore parse errors
                         }
                     }
                 }
@@ -411,11 +411,11 @@ export class VertexClient {
 }
 
 /**
- * Vertex AI API 服务类（无状态）- 仅支持 Gemini
+ * Vertex AI API Service Class (stateless) - Gemini only
  */
 export class VertexAPI {
     /**
-     * 从凭据刷新/获取访问令牌
+     * Refresh/get access token from credentials
      */
     static async getAccessToken(credentials) {
         const client = VertexClient.fromCredentials(credentials);
@@ -423,7 +423,7 @@ export class VertexAPI {
     }
 
     /**
-     * Gemini 聊天（非流式）
+     * Gemini chat (non-streaming)
      */
     static async chat(credentials, messages, model = 'gemini-1.5-flash', options = {}) {
         const client = VertexClient.fromCredentials(credentials, options.region);
@@ -431,7 +431,7 @@ export class VertexAPI {
     }
 
     /**
-     * Gemini 聊天（流式）
+     * Gemini chat (streaming)
      */
     static async *chatStream(credentials, messages, model = 'gemini-1.5-flash', options = {}) {
         const client = VertexClient.fromCredentials(credentials, options.region);
@@ -439,21 +439,21 @@ export class VertexAPI {
     }
 
     /**
-     * 获取 Gemini 模型列表
+     * Get Gemini model list
      */
     static getModels() {
         return Object.keys(VERTEX_GEMINI_MODEL_MAPPING);
     }
 
     /**
-     * 获取 Gemini 模型映射
+     * Get Gemini model mapping
      */
     static getModelMapping() {
         return VERTEX_GEMINI_MODEL_MAPPING;
     }
 
     /**
-     * 获取支持的区域
+     * Get supported regions
      */
     static getRegions() {
         return VERTEX_REGIONS;

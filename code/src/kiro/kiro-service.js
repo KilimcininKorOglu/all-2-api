@@ -1,5 +1,5 @@
 /**
- * Kiro API Service - 参考 AIClient-2-API 的实现
+ * Kiro API Service - Reference implementation from AIClient-2-API
  */
 import axios from 'axios';
 import { v4 as uuidv4 } from 'uuid';
@@ -98,7 +98,7 @@ export class KiroService {
     }
 
     /**
-     * 压缩消息上下文（用于 400 ValidationException 重试）
+     * Compress message context (for 400 ValidationException retry)
      */
     _compressMessages(messages, compressionLevel = 1) {
         if (!messages || messages.length <= 3) {
@@ -108,18 +108,18 @@ export class KiroService {
         const keepRecent = Math.max(2, 6 - compressionLevel * 2);
         const maxContentLength = Math.max(500, 2000 - compressionLevel * 500);
 
-        log.warn(`[上下文压缩] 级别 ${compressionLevel} | 原始消息数: ${messages.length} | 保留最近: ${keepRecent} 条`);
+        log.warn(`[Context Compression] Level ${compressionLevel} | Original message count: ${messages.length} | Keeping recent: ${keepRecent}`);
 
         const firstMessage = messages[0];
         const recentMessages = messages.slice(-keepRecent);
-        
+
         if (messages.length <= keepRecent + 1) {
             return this._truncateMessageContent(messages, maxContentLength);
         }
 
         const middleMessages = messages.slice(1, -keepRecent);
-        let summaryText = `[历史对话已压缩，共 ${middleMessages.length} 条消息]`;
-        
+        let summaryText = `[Chat history compressed, total ${middleMessages.length} messages]`;
+
         if (compressionLevel === 1 && middleMessages.length > 0) {
             const summaries = middleMessages.slice(0, 3).map(msg => {
                 const content = this.getContentText(msg);
@@ -127,7 +127,7 @@ export class KiroService {
                 return `[${msg.role}]: ${truncated}`;
             });
             if (middleMessages.length > 3) {
-                summaries.push(`... 省略 ${middleMessages.length - 3} 条消息 ...`);
+                summaries.push(`... omitted ${middleMessages.length - 3} messages ...`);
             }
             summaryText = summaries.join('\n');
         }
@@ -135,17 +135,17 @@ export class KiroService {
         const compressed = [
             firstMessage,
             { role: 'user', content: summaryText },
-            { role: 'assistant', content: '好的，我了解了之前的对话上下文。' },
+            { role: 'assistant', content: 'OK, I understand the previous conversation context.' },
             ...recentMessages
         ];
 
         const result = this._truncateMessageContent(compressed, maxContentLength);
-        log.warn(`[上下文压缩] 压缩后消息数: ${result.length}`);
+        log.warn(`[Context Compression] Compressed message count: ${result.length}`);
         return result;
     }
 
     /**
-     * 截断消息内容
+     * Truncate message content
      */
     _truncateMessageContent(messages, maxLength) {
         return messages.map(msg => {
@@ -153,7 +153,7 @@ export class KiroService {
             if (content.length > maxLength) {
                 return {
                     ...msg,
-                    content: content.substring(0, maxLength) + `\n[内容已截断，原长度: ${content.length}]`
+                    content: content.substring(0, maxLength) + `\n[Content truncated, original length: ${content.length}]`
                 };
             }
             return msg;
@@ -161,7 +161,7 @@ export class KiroService {
     }
 
     /**
-     * 检查是否为 ValidationException
+     * Check if error is ValidationException
      */
     _isValidationException(error) {
         const errorType = error.response?.headers?.['x-amzn-errortype'] || '';
@@ -181,7 +181,7 @@ export class KiroService {
             }
         }
 
-        // 合并相邻相同 role 的消息
+        // Merge adjacent messages with the same role
         const mergedMessages = [];
         for (const msg of messages) {
             if (mergedMessages.length === 0) {
@@ -204,7 +204,7 @@ export class KiroService {
 
         let toolsContext = {};
         if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
-            // 过滤掉 Bash 工具
+            // Filter out Bash tool
             const filteredTools = options.tools.filter(tool => tool.name !== 'Bash');
             if (filteredTools.length > 0) {
                 toolsContext = {
@@ -494,7 +494,7 @@ export class KiroService {
     }
 
     async *generateContentStream(model, requestBody, compressionLevel = 0) {
-        // 如果需要压缩，先压缩消息
+        // If compression needed, compress messages first
         let messages = requestBody.messages;
         if (compressionLevel > 0) {
             messages = this._compressMessages(requestBody.messages, compressionLevel);
@@ -576,17 +576,17 @@ export class KiroService {
 
                 const status = error.response?.status;
 
-                // 400 ValidationException - 尝试压缩上下文后重试
+                // 400 ValidationException - Try compressing context and retry
                 if (status === 400 && this._isValidationException(error) && compressionLevel < 3) {
                     const newLevel = compressionLevel + 1;
-                    log.warn(`[KiroService] 流式请求收到 400 ValidationException，压缩上下文 (级别 ${newLevel}) 后重试...`);
+                    log.warn(`[KiroService] Streaming request received 400 ValidationException, compressing context (level ${newLevel}) and retry...`);
                     yield* this.generateContentStream(model, requestBody, newLevel);
                     return;
                 }
 
                 if ((status === 429 || (status >= 500 && status < 600)) && retryCount < maxRetries) {
                     const delay = baseDelay * Math.pow(2, retryCount);
-                    console.log(`[KiroService] 收到 ${status}，${delay}ms 后重试... (${retryCount + 1}/${maxRetries})`);
+                    console.log(`[KiroService] Received ${status}, retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     retryCount++;
                     continue;
@@ -611,7 +611,7 @@ export class KiroService {
     }
 
     async generateContent(model, requestBody, compressionLevel = 0) {
-        // 如果需要压缩，先压缩消息
+        // If compression needed, compress messages first
         let messages = requestBody.messages;
         if (compressionLevel > 0) {
             messages = this._compressMessages(requestBody.messages, compressionLevel);
@@ -674,16 +674,16 @@ export class KiroService {
             } catch (error) {
                 const status = error.response?.status;
 
-                // 400 ValidationException - 尝试压缩上下文后重试
+                // 400 ValidationException - Try compressing context and retry
                 if (status === 400 && this._isValidationException(error) && compressionLevel < 3) {
                     const newLevel = compressionLevel + 1;
-                    log.warn(`[KiroService] 非流式请求收到 400 ValidationException，压缩上下文 (级别 ${newLevel}) 后重试...`);
+                    log.warn(`[KiroService] Non-streaming request received 400 ValidationException, compressing context (level ${newLevel}) and retry...`);
                     return this.generateContent(model, requestBody, newLevel);
                 }
 
                 if ((status === 429 || (status >= 500 && status < 600)) && retryCount < maxRetries) {
                     const delay = baseDelay * Math.pow(2, retryCount);
-                    console.log(`[KiroService] 收到 ${status}，${delay}ms 后重试... (${retryCount + 1}/${maxRetries})`);
+                    console.log(`[KiroService] Received ${status}, retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     retryCount++;
                     continue;

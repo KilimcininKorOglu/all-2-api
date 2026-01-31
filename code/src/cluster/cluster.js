@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * 集群启动脚本 - 启动多个服务实例
- * 用法: node src/cluster.js [实例数量] [起始端口]
- * 默认: 5个实例，从13004开始
+ * Cluster Startup Script - Start multiple service instances
+ * Usage: node src/cluster.js [instance count] [start port]
+ * Default: 5 instances, starting from 13004
  */
 
 import { spawn } from 'child_process';
@@ -18,7 +18,7 @@ const START_PORT = parseInt(process.env.START_PORT || process.argv[3] || '13004'
 const instances = [];
 
 function getTimestamp() {
-    return new Date().toLocaleString('zh-CN', { hour12: false });
+    return new Date().toLocaleString('en-US', { hour12: false });
 }
 
 function startInstance(port) {
@@ -37,9 +37,9 @@ function startInstance(port) {
     });
 
     child.on('exit', (code) => {
-        console.log(`[${getTimestamp()}] 实例 ${port} 退出，代码: ${code}`);
+        console.log(`[${getTimestamp()}] Instance ${port} exited, code: ${code}`);
         setTimeout(() => {
-            console.log(`[${getTimestamp()}] 正在重启实例 ${port}...`);
+            console.log(`[${getTimestamp()}] Restarting instance ${port}...`);
             const index = instances.findIndex(i => i.port === port);
             if (index !== -1) {
                 instances[index] = { port, process: startInstance(port) };
@@ -50,8 +50,8 @@ function startInstance(port) {
     return child;
 }
 
-console.log(`[${getTimestamp()}] 启动 ${INSTANCE_COUNT} 个服务实例...`);
-console.log(`[${getTimestamp()}] 端口范围: ${START_PORT} - ${START_PORT + INSTANCE_COUNT - 1}`);
+console.log(`[${getTimestamp()}] Starting ${INSTANCE_COUNT} service instances...`);
+console.log(`[${getTimestamp()}] Port range: ${START_PORT} - ${START_PORT + INSTANCE_COUNT - 1}`);
 
 for (let i = 0; i < INSTANCE_COUNT; i++) {
     const port = START_PORT + i;
@@ -59,13 +59,13 @@ for (let i = 0; i < INSTANCE_COUNT; i++) {
         port,
         process: startInstance(port)
     });
-    console.log(`[${getTimestamp()}] 启动实例 ${i + 1}/${INSTANCE_COUNT} 端口: ${port}`);
+    console.log(`[${getTimestamp()}] Starting instance ${i + 1}/${INSTANCE_COUNT} port: ${port}`);
 }
 
 process.on('SIGINT', () => {
-    console.log(`\n[${getTimestamp()}] 正在关闭所有实例...`);
+    console.log(`\n[${getTimestamp()}] Shutting down all instances...`);
     instances.forEach(({ port, process }) => {
-        console.log(`[${getTimestamp()}] 关闭实例 ${port}`);
+        console.log(`[${getTimestamp()}] Stopping instance ${port}`);
         process.kill('SIGTERM');
     });
     setTimeout(() => process.exit(0), 2000);
@@ -76,4 +76,4 @@ process.on('SIGTERM', () => {
     setTimeout(() => process.exit(0), 2000);
 });
 
-console.log(`[${getTimestamp()}] 集群已启动，按 Ctrl+C 停止所有实例`);
+console.log(`[${getTimestamp()}] Cluster started, press Ctrl+C to stop all instances`);

@@ -1,5 +1,5 @@
 /**
- * Vertex AI 账号管理页面 JavaScript
+ * Vertex AI Account Management Page JavaScript
  */
 
 let credentials = [];
@@ -8,9 +8,9 @@ let currentContextId = null;
 let currentEditId = null;
 let parsedJsonData = null;
 
-// 初始化
+// Initialize
 document.addEventListener('DOMContentLoaded', async () => {
-    // 初始化侧边栏
+    // Initialize sidebar
     const sidebarContainer = document.getElementById('sidebar-container');
     if (sidebarContainer) {
         sidebarContainer.innerHTML = getSidebarHTML();
@@ -26,18 +26,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     setupRegionSelector();
 });
 
-// 加载凭据列表
+// Load credentials list
 async function loadCredentials() {
     try {
         const response = await fetch('/api/vertex/credentials');
         credentials = await response.json();
         renderCards();
     } catch (error) {
-        showToast('加载凭据失败: ' + error.message, 'error');
+        showToast('Failed to load credentials: ' + error.message, 'error');
     }
 }
 
-// 加载统计信息
+// Load statistics
 async function loadStatistics() {
     try {
         const response = await fetch('/api/vertex/statistics');
@@ -47,27 +47,27 @@ async function loadStatistics() {
         document.getElementById('stat-healthy').textContent = stats.healthy || 0;
         document.getElementById('stat-usage').textContent = stats.totalUseCount || 0;
     } catch (error) {
-        console.error('加载统计失败:', error);
+        console.error('Failed to load statistics:', error);
     }
 }
 
-// 加载支持的模型列表
+// Load supported models list
 async function loadModels() {
     try {
         const response = await fetch('/api/vertex/models');
         const data = await response.json();
         renderModels(data.models, data.mapping);
     } catch (error) {
-        console.error('加载模型列表失败:', error);
+        console.error('Failed to load models list:', error);
     }
 }
 
-// 渲染模型列表
+// Render models list
 function renderModels(models, mapping) {
     const grid = document.getElementById('models-grid');
     if (!grid) return;
 
-    // 按版本分组排序：4.5 > 4 > 3.7 > 3.5 > 3
+    // Sort by version: 4.5 > 4 > 3.7 > 3.5 > 3
     const sortedModels = models.sort((a, b) => {
         const getVersion = (name) => {
             if (name.includes('4-5') || name.includes('4.5')) return 5;
@@ -90,22 +90,22 @@ function renderModels(models, mapping) {
                 ${isV4Plus ? `<span class="model-card-badge ${badgeClass}">${badgeText}</span>` : ''}
                 <div class="model-card-name">${escapeHtml(model)}</div>
                 <div class="model-card-mapping">→ ${escapeHtml(vertexModel)}</div>
-                <div class="model-card-copy-hint">点击复制模型名称</div>
+                <div class="model-card-copy-hint">Click to copy model name</div>
             </div>
         `;
     }).join('');
 }
 
-// 复制模型名称
+// Copy model name
 function copyModelName(modelName, element) {
     navigator.clipboard.writeText(modelName).then(() => {
         element.classList.add('copied');
-        showToast(`已复制: ${modelName}`, 'success');
+        showToast(`Copied: ${modelName}`, 'success');
         setTimeout(() => {
             element.classList.remove('copied');
         }, 1500);
     }).catch(() => {
-        // 备用复制方法
+        // Fallback copy method
         const textArea = document.createElement('textarea');
         textArea.value = modelName;
         textArea.style.position = 'fixed';
@@ -115,25 +115,25 @@ function copyModelName(modelName, element) {
         try {
             document.execCommand('copy');
             element.classList.add('copied');
-            showToast(`已复制: ${modelName}`, 'success');
+            showToast(`Copied: ${modelName}`, 'success');
             setTimeout(() => {
                 element.classList.remove('copied');
             }, 1500);
         } catch (e) {
-            showToast('复制失败', 'error');
+            showToast('Copy failed', 'error');
         }
         document.body.removeChild(textArea);
     });
 }
 
-// 渲染卡片
+// Render cards
 function renderCards() {
     const grid = document.getElementById('cards-grid');
     const emptyState = document.getElementById('empty-state');
     const searchInput = document.getElementById('search-input');
     const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
 
-    // 过滤
+    // Filter
     const filtered = credentials.filter(c =>
         c.name.toLowerCase().includes(searchTerm) ||
         (c.projectId && c.projectId.toLowerCase().includes(searchTerm)) ||
@@ -153,7 +153,7 @@ function renderCards() {
 
     grid.innerHTML = filtered.map(c => createCard(c)).join('');
 
-    // 绑定卡片事件
+    // Bind card events
     grid.querySelectorAll('.vertex-card').forEach(card => {
         const id = parseInt(card.dataset.id);
 
@@ -180,10 +180,10 @@ function renderCards() {
     });
 }
 
-// 创建卡片 HTML
+// Create card HTML
 function createCard(credential) {
     const statusClass = credential.errorCount > 0 ? 'error' : (credential.isActive ? 'active' : 'inactive');
-    const statusText = credential.errorCount > 0 ? '错误' : (credential.isActive ? '活跃' : '正常');
+    const statusText = credential.errorCount > 0 ? 'Error' : (credential.isActive ? 'Active' : 'Normal');
 
     return `
         <div class="vertex-card ${selectedIds.has(credential.id) ? 'selected' : ''}" data-id="${credential.id}">
@@ -193,7 +193,7 @@ function createCard(credential) {
                     <h3 class="card-title" title="${escapeHtml(credential.name)}">${escapeHtml(credential.name)}</h3>
                     <span class="card-subtitle">${escapeHtml(credential.projectId || '')}</span>
                 </div>
-                <button class="card-menu-btn" title="更多操作">
+                <button class="card-menu-btn" title="More actions">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="1"/>
                         <circle cx="12" cy="5" r="1"/>
@@ -207,16 +207,16 @@ function createCard(credential) {
                     <span class="card-info-value" title="${escapeHtml(credential.clientEmail || '')}">${escapeHtml(credential.clientEmail || '-')}</span>
                 </div>
                 <div class="card-info-row">
-                    <span class="card-info-label">区域</span>
+                    <span class="card-info-label">Region</span>
                     <span class="card-info-value">${escapeHtml(credential.region || 'global')}</span>
                 </div>
                 <div class="card-info-row">
-                    <span class="card-info-label">使用次数</span>
+                    <span class="card-info-label">Usage Count</span>
                     <span class="card-info-value">${credential.useCount || 0}</span>
                 </div>
                 ${credential.lastErrorMessage ? `
                 <div class="card-info-row">
-                    <span class="card-info-label">最后错误</span>
+                    <span class="card-info-label">Last Error</span>
                     <span class="card-info-value error-text" title="${escapeHtml(credential.lastErrorMessage)}">${escapeHtml(credential.lastErrorMessage.substring(0, 50))}${credential.lastErrorMessage.length > 50 ? '...' : ''}</span>
                 </div>
                 ` : ''}
@@ -229,31 +229,31 @@ function createCard(credential) {
     `;
 }
 
-// 设置事件监听
+// Setup event listeners
 function setupEventListeners() {
-    // 搜索
+    // Search
     document.getElementById('search-input')?.addEventListener('input', () => {
         renderCards();
     });
 
-    // 添加账号按钮
+    // Add account button
     document.getElementById('add-account-btn')?.addEventListener('click', showAddModal);
     document.getElementById('empty-add-btn')?.addEventListener('click', showAddModal);
 
-    // 导入 JSON 按钮
+    // Import JSON button
     document.getElementById('import-json-btn')?.addEventListener('click', showImportModal);
 
-    // 添加模态框
+    // Add modal
     document.getElementById('modal-close')?.addEventListener('click', hideAddModal);
     document.getElementById('modal-cancel')?.addEventListener('click', hideAddModal);
     document.getElementById('modal-submit')?.addEventListener('click', submitAddForm);
 
-    // 导入模态框
+    // Import modal
     document.getElementById('import-modal-close')?.addEventListener('click', hideImportModal);
     document.getElementById('import-modal-cancel')?.addEventListener('click', hideImportModal);
     document.getElementById('import-modal-submit')?.addEventListener('click', submitImportForm);
 
-    // 全选
+    // Select all
     document.getElementById('select-all')?.addEventListener('change', (e) => {
         const checkboxes = document.querySelectorAll('.card-checkbox');
         checkboxes.forEach(cb => {
@@ -268,13 +268,13 @@ function setupEventListeners() {
         updateBatchButtons();
     });
 
-    // 批量删除
+    // Batch delete
     document.getElementById('batch-delete-btn')?.addEventListener('click', batchDelete);
 
-    // 右键菜单
+    // Context menu
     document.addEventListener('click', hideContextMenu);
 
-    // 右键菜单项
+    // Context menu items
     document.querySelectorAll('.context-menu-item').forEach(item => {
         item.addEventListener('click', () => {
             const action = item.dataset.action;
@@ -283,7 +283,7 @@ function setupEventListeners() {
         });
     });
 
-    // 点击模态框外部关闭
+    // Close modal when clicking outside
     document.getElementById('add-modal')?.addEventListener('click', (e) => {
         if (e.target.id === 'add-modal') hideAddModal();
     });
@@ -292,7 +292,7 @@ function setupEventListeners() {
     });
 }
 
-// 显示添加模态框
+// Show add modal
 function showAddModal() {
     currentEditId = null;
     document.getElementById('add-modal').classList.add('active');
@@ -303,28 +303,28 @@ function showAddModal() {
     document.getElementById('private-key').placeholder = '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----';
     document.getElementById('region').value = 'global';
 
-    // 重置模态框标题和按钮
+    // Reset modal title and button
     const modalTitle = document.querySelector('#add-modal .modal-title');
-    if (modalTitle) modalTitle.textContent = '添加 Vertex AI 账号';
+    if (modalTitle) modalTitle.textContent = 'Add Vertex AI Account';
 
     const submitBtn = document.getElementById('modal-submit');
     submitBtn.innerHTML = `
         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"/>
         </svg>
-        添加账号
+        Add Account
     `;
 }
 
-// 隐藏添加模态框
+// Hide add modal
 function hideAddModal() {
     document.getElementById('add-modal').classList.remove('active');
     resetAddModal();
 }
 
-// 提交添加表单（统一处理添加和编辑）
+// Submit add form (handles both add and edit)
 async function submitAddForm() {
-    // 如果是编辑模式
+    // If in edit mode
     if (currentEditId) {
         await submitEditForm(currentEditId);
         return;
@@ -337,7 +337,7 @@ async function submitAddForm() {
     const region = document.getElementById('region').value;
 
     if (!name || !projectId || !clientEmail || !privateKey) {
-        showToast('请填写所有必填字段', 'error');
+        showToast('Please fill in all required fields', 'error');
         return;
     }
 
@@ -350,19 +350,19 @@ async function submitAddForm() {
 
         const result = await response.json();
         if (response.ok) {
-            showToast('账号添加成功', 'success');
+            showToast('Account added successfully', 'success');
             hideAddModal();
             await loadCredentials();
             await loadStatistics();
         } else {
-            showToast(result.error || '添加失败', 'error');
+            showToast(result.error || 'Failed to add', 'error');
         }
     } catch (error) {
-        showToast('添加失败: ' + error.message, 'error');
+        showToast('Failed to add: ' + error.message, 'error');
     }
 }
 
-// 显示导入模态框
+// Show import modal
 function showImportModal() {
     document.getElementById('import-modal').classList.add('active');
     document.getElementById('import-name').value = '';
@@ -370,7 +370,7 @@ function showImportModal() {
     document.getElementById('import-json').value = '';
     parsedJsonData = null;
 
-    // 重置区域选择器
+    // Reset region selector
     document.querySelectorAll('#import-region-selector .region-option').forEach(opt => {
         opt.classList.remove('selected');
         if (opt.dataset.value === 'global') {
@@ -378,39 +378,39 @@ function showImportModal() {
         }
     });
 
-    // 隐藏预览
+    // Hide preview
     document.getElementById('import-preview')?.classList.remove('show');
 }
 
-// 隐藏导入模态框
+// Hide import modal
 function hideImportModal() {
     document.getElementById('import-modal').classList.remove('active');
     parsedJsonData = null;
 }
 
-// 提交导入表单
+// Submit import form
 async function submitImportForm() {
     const nameInput = document.getElementById('import-name');
     const region = document.getElementById('import-region').value;
     const jsonStr = document.getElementById('import-json').value.trim();
 
-    // 尝试解析 JSON
+    // Try to parse JSON
     let keyJson;
     try {
         keyJson = JSON.parse(jsonStr);
     } catch (e) {
-        showToast('JSON 格式无效', 'error');
+        showToast('Invalid JSON format', 'error');
         return;
     }
 
-    // 如果名称为空，使用 project_id
+    // If name is empty, use project_id
     let name = nameInput.value.trim();
     if (!name && keyJson.project_id) {
         name = keyJson.project_id;
     }
 
     if (!name) {
-        showToast('请填写账号名称', 'error');
+        showToast('Please enter account name', 'error');
         return;
     }
 
@@ -423,19 +423,19 @@ async function submitImportForm() {
 
         const result = await response.json();
         if (response.ok) {
-            showToast('导入成功', 'success');
+            showToast('Import successful', 'success');
             hideImportModal();
             await loadCredentials();
             await loadStatistics();
         } else {
-            showToast(result.error || '导入失败', 'error');
+            showToast(result.error || 'Import failed', 'error');
         }
     } catch (error) {
-        showToast('导入失败: ' + error.message, 'error');
+        showToast('Import failed: ' + error.message, 'error');
     }
 }
 
-// 设置拖拽上传区域
+// Setup drag and drop upload zone
 function setupDropZone() {
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
@@ -443,16 +443,16 @@ function setupDropZone() {
 
     if (!dropZone || !fileInput) return;
 
-    // 点击上传
+    // Click to upload
     dropZone.addEventListener('click', () => fileInput.click());
 
-    // 文件选择
+    // File selection
     fileInput.addEventListener('change', (e) => {
         const file = e.target.files[0];
         if (file) handleFile(file);
     });
 
-    // 拖拽事件
+    // Drag events
     dropZone.addEventListener('dragover', (e) => {
         e.preventDefault();
         dropZone.classList.add('drag-over');
@@ -470,16 +470,16 @@ function setupDropZone() {
         if (file) handleFile(file);
     });
 
-    // JSON 文本框变化时解析
+    // Parse when JSON textarea changes
     jsonTextarea?.addEventListener('input', debounce(() => {
         parseJsonContent(jsonTextarea.value);
     }, 500));
 }
 
-// 处理上传的文件
+// Handle uploaded file
 function handleFile(file) {
     if (!file.name.endsWith('.json')) {
-        showToast('请上传 JSON 文件', 'error');
+        showToast('Please upload a JSON file', 'error');
         return;
     }
 
@@ -490,12 +490,12 @@ function handleFile(file) {
         parseJsonContent(content);
     };
     reader.onerror = () => {
-        showToast('文件读取失败', 'error');
+        showToast('Failed to read file', 'error');
     };
     reader.readAsText(file);
 }
 
-// 解析 JSON 内容
+// Parse JSON content
 function parseJsonContent(content) {
     const preview = document.getElementById('import-preview');
     const previewProject = document.getElementById('preview-project');
@@ -511,7 +511,7 @@ function parseJsonContent(content) {
     try {
         const json = JSON.parse(content);
 
-        // 验证必要字段
+        // Validate required fields
         if (!json.project_id || !json.client_email || !json.private_key) {
             preview?.classList.remove('show');
             parsedJsonData = null;
@@ -520,12 +520,12 @@ function parseJsonContent(content) {
 
         parsedJsonData = json;
 
-        // 显示预览
+        // Show preview
         if (previewProject) previewProject.textContent = json.project_id;
         if (previewEmail) previewEmail.textContent = json.client_email;
         preview?.classList.add('show');
 
-        // 自动填充名称（如果为空）
+        // Auto-fill name (if empty)
         if (nameInput && !nameInput.value.trim()) {
             nameInput.value = json.project_id;
         }
@@ -535,7 +535,7 @@ function parseJsonContent(content) {
     }
 }
 
-// 设置区域选择器
+// Setup region selector
 function setupRegionSelector() {
     const selector = document.getElementById('import-region-selector');
     const hiddenInput = document.getElementById('import-region');
@@ -544,13 +544,13 @@ function setupRegionSelector() {
 
     selector.querySelectorAll('.region-option').forEach(option => {
         option.addEventListener('click', () => {
-            // 移除其他选中状态
+            // Remove other selected states
             selector.querySelectorAll('.region-option').forEach(opt => {
                 opt.classList.remove('selected');
             });
-            // 添加选中状态
+            // Add selected state
             option.classList.add('selected');
-            // 更新隐藏输入框
+            // Update hidden input
             if (hiddenInput) {
                 hiddenInput.value = option.dataset.value;
             }
@@ -558,7 +558,7 @@ function setupRegionSelector() {
     });
 }
 
-// 防抖函数
+// Debounce function
 function debounce(func, wait) {
     let timeout;
     return function executedFunction(...args) {
@@ -571,7 +571,7 @@ function debounce(func, wait) {
     };
 }
 
-// 显示右键菜单
+// Show context menu
 function showContextMenu(e, id) {
     currentContextId = id;
     const menu = document.getElementById('context-menu');
@@ -583,7 +583,7 @@ function showContextMenu(e, id) {
     menu.style.left = `${x}px`;
     menu.style.top = `${y}px`;
 
-    // 确保菜单不超出视口
+    // Ensure menu doesn't exceed viewport
     const rect = menu.getBoundingClientRect();
     if (rect.right > window.innerWidth) {
         menu.style.left = `${x - rect.width}px`;
@@ -593,13 +593,13 @@ function showContextMenu(e, id) {
     }
 }
 
-// 隐藏右键菜单
+// Hide context menu
 function hideContextMenu() {
     document.getElementById('context-menu').style.display = 'none';
     currentContextId = null;
 }
 
-// 处理右键菜单操作
+// Handle context menu action
 async function handleContextAction(action, id) {
     switch (action) {
         case 'activate':
@@ -617,46 +617,46 @@ async function handleContextAction(action, id) {
     }
 }
 
-// 激活凭据
+// Activate credential
 async function activateCredential(id) {
     try {
         const response = await fetch(`/api/vertex/credentials/${id}/activate`, {
             method: 'POST'
         });
         if (response.ok) {
-            showToast('已设为活跃', 'success');
+            showToast('Set as active', 'success');
             await loadCredentials();
             await loadStatistics();
         } else {
             const result = await response.json();
-            showToast(result.error || '操作失败', 'error');
+            showToast(result.error || 'Operation failed', 'error');
         }
     } catch (error) {
-        showToast('操作失败: ' + error.message, 'error');
+        showToast('Operation failed: ' + error.message, 'error');
     }
 }
 
-// 测试凭据
+// Test credential
 async function testCredential(id) {
-    showToast('正在测试连接...', 'info');
+    showToast('Testing connection...', 'info');
     try {
         const response = await fetch(`/api/vertex/credentials/${id}/test`, {
             method: 'POST'
         });
         const result = await response.json();
         if (response.ok) {
-            showToast('连接测试成功', 'success');
+            showToast('Connection test successful', 'success');
             await loadCredentials();
             await loadStatistics();
         } else {
-            showToast('测试失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Test failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (error) {
-        showToast('测试失败: ' + error.message, 'error');
+        showToast('Test failed: ' + error.message, 'error');
     }
 }
 
-// 显示编辑模态框
+// Show edit modal
 function showEditModal(id) {
     const credential = credentials.find(c => c.id === id);
     if (!credential) return;
@@ -667,39 +667,39 @@ function showEditModal(id) {
     document.getElementById('project-id').value = credential.projectId || '';
     document.getElementById('client-email').value = credential.clientEmail || '';
     document.getElementById('private-key').value = '';
-    document.getElementById('private-key').placeholder = '留空保持不变';
+    document.getElementById('private-key').placeholder = 'Leave empty to keep unchanged';
     document.getElementById('region').value = credential.region || 'global';
 
-    // 修改模态框标题和按钮
+    // Modify modal title and button
     const modalTitle = document.querySelector('#add-modal .modal-title');
-    if (modalTitle) modalTitle.textContent = '编辑 Vertex AI 账号';
+    if (modalTitle) modalTitle.textContent = 'Edit Vertex AI Account';
 
     const submitBtn = document.getElementById('modal-submit');
     submitBtn.innerHTML = `
         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"/>
         </svg>
-        保存修改
+        Save Changes
     `;
 }
 
-// 重置添加模态框
+// Reset add modal
 function resetAddModal() {
     currentEditId = null;
     const modalTitle = document.querySelector('#add-modal .modal-title');
-    if (modalTitle) modalTitle.textContent = '添加 Vertex AI 账号';
+    if (modalTitle) modalTitle.textContent = 'Add Vertex AI Account';
 
     const submitBtn = document.getElementById('modal-submit');
     submitBtn.innerHTML = `
         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polyline points="20 6 9 17 4 12"/>
         </svg>
-        添加账号
+        Add Account
     `;
     document.getElementById('private-key').placeholder = '-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----';
 }
 
-// 提交编辑表单
+// Submit edit form
 async function submitEditForm(id) {
     const name = document.getElementById('account-name').value.trim();
     const projectId = document.getElementById('project-id').value.trim();
@@ -708,7 +708,7 @@ async function submitEditForm(id) {
     const region = document.getElementById('region').value;
 
     if (!name) {
-        showToast('请填写账号名称', 'error');
+        showToast('Please enter account name', 'error');
         return;
     }
 
@@ -726,43 +726,43 @@ async function submitEditForm(id) {
 
         const result = await response.json();
         if (response.ok) {
-            showToast('修改成功', 'success');
+            showToast('Changes saved successfully', 'success');
             hideAddModal();
             await loadCredentials();
             await loadStatistics();
         } else {
-            showToast(result.error || '修改失败', 'error');
+            showToast(result.error || 'Failed to save changes', 'error');
         }
     } catch (error) {
-        showToast('修改失败: ' + error.message, 'error');
+        showToast('Failed to save changes: ' + error.message, 'error');
     }
 }
 
-// 删除凭据
+// Delete credential
 async function deleteCredential(id) {
-    if (!confirm('确定要删除这个凭据吗？')) return;
+    if (!confirm('Are you sure you want to delete this credential?')) return;
 
     try {
         const response = await fetch(`/api/vertex/credentials/${id}`, {
             method: 'DELETE'
         });
         if (response.ok) {
-            showToast('删除成功', 'success');
+            showToast('Deleted successfully', 'success');
             await loadCredentials();
             await loadStatistics();
         } else {
             const result = await response.json();
-            showToast(result.error || '删除失败', 'error');
+            showToast(result.error || 'Failed to delete', 'error');
         }
     } catch (error) {
-        showToast('删除失败: ' + error.message, 'error');
+        showToast('Failed to delete: ' + error.message, 'error');
     }
 }
 
-// 批量删除
+// Batch delete
 async function batchDelete() {
     if (selectedIds.size === 0) return;
-    if (!confirm(`确定要删除选中的 ${selectedIds.size} 个凭据吗？`)) return;
+    if (!confirm(`Are you sure you want to delete the selected ${selectedIds.size} credentials?`)) return;
 
     let success = 0;
     let failed = 0;
@@ -786,10 +786,10 @@ async function batchDelete() {
     await loadCredentials();
     await loadStatistics();
 
-    showToast(`删除完成: 成功 ${success} 个, 失败 ${failed} 个`, success > 0 ? 'success' : 'error');
+    showToast(`Deletion complete: ${success} succeeded, ${failed} failed`, success > 0 ? 'success' : 'error');
 }
 
-// 更新批量操作按钮
+// Update batch operation buttons
 function updateBatchButtons() {
     const batchDeleteBtn = document.getElementById('batch-delete-btn');
     if (batchDeleteBtn) {
@@ -797,7 +797,7 @@ function updateBatchButtons() {
     }
 }
 
-// 工具函数
+// Utility functions
 function escapeHtml(str) {
     if (!str) return '';
     return str.replace(/&/g, '&amp;')

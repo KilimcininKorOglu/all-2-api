@@ -456,7 +456,7 @@ async function updateSidebarStats() {
         const warpCount = warpStats.total || 0;
         const vertexCount = vertexStats.total || 0;
 
-        // 更新侧边栏数字
+        // Update sidebar numbers
         const totalEl = document.getElementById('stat-total');
         const activeEl = document.getElementById('stat-active');
         const navAccountsEl = document.getElementById('nav-accounts-count');

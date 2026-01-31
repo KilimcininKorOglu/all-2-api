@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>API 用量查询</title>
+    <title>API Usage Query</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -401,30 +401,30 @@
                 <span class="public-logo-text" id="logo-text">Kiro API</span>
             </div>
             <nav class="public-nav">
-                <a href="/pages/usage-query.html" class="active">用量查询</a>
-                <a href="/pages/trial-apply.html">试用申请</a>
-                <a href="/pages/docs.html">接入教程</a>
-                <a href="/login.html">后台登录</a>
+                <a href="/pages/usage-query.html" class="active">Usage Query</a>
+                <a href="/pages/trial-apply.html">Trial Application</a>
+                <a href="/pages/docs.html">Documentation</a>
+                <a href="/login.html">Admin Login</a>
             </nav>
         </header>
 
         <main class="public-content">
             <div class="query-section">
-                <h1 class="query-title">API 用量查询</h1>
-                <p class="query-subtitle">输入您的 API 密钥查询使用记录和费用统计</p>
+                <h1 class="query-title">API Usage Query</h1>
+                <p class="query-subtitle">Enter your API key to check usage records and cost statistics</p>
                 <form class="query-form" id="query-form">
                     <div class="query-input-group">
-                        <label for="api-key">API 密钥</label>
+                        <label for="api-key">API Key</label>
                         <input type="text" id="api-key" class="query-input" placeholder="sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx" autocomplete="off">
                     </div>
-                    <button type="submit" class="query-btn" id="query-btn">查询用量</button>
+                    <button type="submit" class="query-btn" id="query-btn">Query Usage</button>
                 </form>
                 <div class="error-message" id="error-message"></div>
             </div>
 
             <div class="results-section" id="results-section">
                 <div class="results-header">
-                    <h2 class="results-title">用量统计</h2>
+                    <h2 class="results-title">Usage Statistics</h2>
                     <div class="results-key-info">
                         <span class="key-badge" id="key-prefix"></span>
                         <span class="key-status" id="key-status"></span>
@@ -439,7 +439,7 @@
                             </svg>
                         </div>
                         <div class="stat-value" id="total-cost">$0.00</div>
-                        <div class="stat-label">总费用</div>
+                        <div class="stat-label">Total Cost</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon success">
@@ -448,7 +448,7 @@
                             </svg>
                         </div>
                         <div class="stat-value" id="total-requests">0</div>
-                        <div class="stat-label">总请求数</div>
+                        <div class="stat-label">Total Requests</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon">
@@ -459,7 +459,7 @@
                             </svg>
                         </div>
                         <div class="stat-value" id="total-input-tokens">0</div>
-                        <div class="stat-label">输入 Tokens</div>
+                        <div class="stat-label">Input Tokens</div>
                     </div>
                     <div class="stat-card">
                         <div class="stat-icon warning">
@@ -470,29 +470,29 @@
                             </svg>
                         </div>
                         <div class="stat-value" id="total-output-tokens">0</div>
-                        <div class="stat-label">输出 Tokens</div>
+                        <div class="stat-label">Output Tokens</div>
                     </div>
                 </div>
 
                 <div class="limits-info" id="limits-info" style="display: none;">
-                    <div class="limits-title">配额限制</div>
+                    <div class="limits-title">Quota Limits</div>
                     <div class="limits-grid" id="limits-grid"></div>
                 </div>
 
                 <div class="detail-section">
                     <div class="detail-header">
-                        <h3 class="detail-title">按模型统计</h3>
+                        <h3 class="detail-title">Statistics by Model</h3>
                     </div>
                     <table class="detail-table">
                         <thead>
                             <tr>
-                                <th>模型</th>
-                                <th>请求数</th>
-                                <th>输入 Tokens</th>
-                                <th>输出 Tokens</th>
-                                <th>输入费用</th>
-                                <th>输出费用</th>
-                                <th>总费用</th>
+                                <th>Model</th>
+                                <th>Requests</th>
+                                <th>Input Tokens</th>
+                                <th>Output Tokens</th>
+                                <th>Input Cost</th>
+                                <th>Output Cost</th>
+                                <th>Total Cost</th>
                             </tr>
                         </thead>
                         <tbody id="model-stats-body"></tbody>
@@ -501,14 +501,14 @@
 
                 <div class="detail-section">
                     <div class="detail-header">
-                        <h3 class="detail-title">今日/本月用量</h3>
+                        <h3 class="detail-title">Today/This Month Usage</h3>
                     </div>
                     <table class="detail-table">
                         <thead>
                             <tr>
-                                <th>时间段</th>
-                                <th>请求数</th>
-                                <th>费用</th>
+                                <th>Period</th>
+                                <th>Requests</th>
+                                <th>Cost</th>
                             </tr>
                         </thead>
                         <tbody id="period-stats-body"></tbody>
@@ -524,19 +524,19 @@
 
     <script src="/js/usage-query.js"></script>
     <script>
-        // 加载站点设置
+        // Load site settings
         (async function() {
-            // 先从缓存加载（避免闪烁）
+            // Load from cache first (avoid flashing)
             const cached = localStorage.getItem('siteSettings');
             if (cached) {
                 try {
                     const settings = JSON.parse(cached);
                     document.getElementById('logo-icon').textContent = settings.siteLogo || 'K';
                     document.getElementById('logo-text').textContent = `${settings.siteName || 'Kiro'} API`;
-                    document.title = `API 用量查询 - ${settings.siteName || 'Kiro'} API`;
+                    document.title = `API Usage Query - ${settings.siteName || 'Kiro'} API`;
                 } catch (e) {}
             }
-            // 再从服务器获取最新
+            // Then fetch latest from server
             try {
                 const res = await fetch('/api/site-settings');
                 const data = await res.json();
@@ -545,7 +545,7 @@
                     localStorage.setItem('siteSettings', JSON.stringify(settings));
                     document.getElementById('logo-icon').textContent = settings.siteLogo || 'K';
                     document.getElementById('logo-text').textContent = `${settings.siteName || 'Kiro'} API`;
-                    document.title = `API 用量查询 - ${settings.siteName || 'Kiro'} API`;
+                    document.title = `API Usage Query - ${settings.siteName || 'Kiro'} API`;
                 }
             } catch (e) {
                 console.error('Load site settings error:', e);
