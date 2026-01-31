@@ -266,8 +266,9 @@ function bindEvents() {
     document.getElementById('detail-modal-close-btn').addEventListener('click', closeDetailModal);
     document.getElementById('detail-edit-btn').addEventListener('click', () => {
         if (currentDetailId) {
+            const id = currentDetailId;
             closeDetailModal();
-            editCredential(currentDetailId);
+            editCredential(id);
         }
     });
 
