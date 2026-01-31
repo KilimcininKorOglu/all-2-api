@@ -5523,8 +5523,7 @@ async function start() {
     console.log(`[${getTimestamp()}] Bedrock service started`);
 
     // Start scheduled refresh tasks
-    startCredentialsRefreshTask();
-    startErrorCredentialsRefreshTask();
+    startUnifiedTokenRefreshTask(); // All providers token refresh (30min)
     startUnifiedQuotaRefreshTask({
         kiro: store,
         gemini: geminiStore,
@@ -5577,41 +5576,36 @@ function getTimestamp() {
     return new Date().toISOString().replace('T', ' ').substring(0, 19);
 }
 
-// ============ Normal Credentials Scheduled Refresh Task ============
-const CREDENTIALS_REFRESH_INTERVAL = 12 * 60 * 60 * 1000; // Check every 12 hours
-const TOKEN_EXPIRY_THRESHOLD = 10; // Refresh 10 minutes in advance
+// ============ Unified Token Refresh Task (All Providers) ============
+const TOKEN_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
+const TOKEN_EXPIRY_THRESHOLD = 10; // Refresh if expiring within 10 minutes
 
 /**
  * Check if token is expiring soon
  */
-function isTokenExpiringSoon(credential, minutes = TOKEN_EXPIRY_THRESHOLD) {
-    if (!credential.expiresAt) return false;
+function isTokenExpiringSoon(expiresAt, minutes = TOKEN_EXPIRY_THRESHOLD) {
+    if (!expiresAt) return false;
     try {
-        const expirationTime = new Date(credential.expiresAt);
+        const expirationTime = new Date(expiresAt);
         const currentTime = new Date();
         const thresholdTime = new Date(currentTime.getTime() + minutes * 60 * 1000);
         return expirationTime.getTime() <= thresholdTime.getTime();
-    } catch (error) {
+    } catch {
         return false;
     }
 }
 
 /**
- * Refresh token for a single credential
+ * Refresh Kiro credential token
  */
-async function refreshCredential(credential) {
+async function refreshKiroCredential(credential) {
     const region = credential.region || KIRO_CONSTANTS.DEFAULT_REGION;
-
-    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Starting refresh for credential ${credential.id} (${credential.name})...`);
-    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Auth method: ${credential.authMethod}`);
 
     try {
         let newAccessToken, newRefreshToken, expiresAt;
 
         if (credential.authMethod === KIRO_CONSTANTS.AUTH_METHOD_SOCIAL) {
             const refreshUrl = KIRO_CONSTANTS.REFRESH_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Request URL: ${refreshUrl}`);
-
             const response = await axios.post(refreshUrl, {
                 refreshToken: credential.refreshToken
             }, {
@@ -5624,17 +5618,10 @@ async function refreshCredential(credential) {
             expiresAt = response.data.expiresAt || null;
         } else if (credential.authMethod === KIRO_CONSTANTS.AUTH_METHOD_BUILDER_ID || credential.authMethod === KIRO_CONSTANTS.AUTH_METHOD_IDC) {
             if (!credential.clientId || !credential.clientSecret) {
-                // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} missing clientId/clientSecret, skipping`);
                 return false;
             }
 
-            // IdC and builder-id both use oidc endpoint (consistent with kiro2api)
             const refreshUrl = KIRO_CONSTANTS.REFRESH_IDC_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Request URL: ${refreshUrl}`);
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] clientId: ${credential.clientId.substring(0, 10)}...`);
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] refreshToken: ${credential.refreshToken ? credential.refreshToken.substring(0, 20) + '...' : 'none'}`);
-
-            // Send request in JSON format (consistent with AIClient-2-API)
             const response = await axios.post(refreshUrl, {
                 refreshToken: credential.refreshToken,
                 clientId: credential.clientId,
@@ -5645,7 +5632,6 @@ async function refreshCredential(credential) {
                 timeout: 30000
             });
 
-            // Response fields use camelCase
             newAccessToken = response.data.accessToken;
             newRefreshToken = response.data.refreshToken || credential.refreshToken;
             expiresAt = response.data.expiresIn
@@ -5653,102 +5639,33 @@ async function refreshCredential(credential) {
                 : null;
         }
 
-        // Update credential in database
         await store.update(credential.id, {
             accessToken: newAccessToken,
             refreshToken: newRefreshToken,
             expiresAt
         });
 
-        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} (${credential.name}) refresh successful!`);
-        // console.log(`[${getTimestamp()}] [Scheduled Refresh] New Token prefix: ${newAccessToken.substring(0, 20)}...`);
-        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Expiration time: ${expiresAt || 'unknown'}`);
-
         return true;
     } catch (error) {
         const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
-        const errorDesc = error.response?.data?.error_description || '';
-        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} (${credential.name}) refresh failed: ${errorMsg}`);
-        if (errorDesc) {
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Error description: ${errorDesc}`);
-        }
-        if (error.response?.data) {
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Full response: ${JSON.stringify(error.response.data)}`);
-        }
-
-        if (error.response?.status) {
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] HTTP status code: ${error.response.status}`);
-        }
-
-        // Refresh failed, move to error table
         try {
             await store.moveToError(credential.id, errorMsg);
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credential ${credential.id} moved to error table`);
-        } catch (moveError) {
-            // console.log(`[${getTimestamp()}] [Scheduled Refresh] Failed to move credential to error table: ${moveError.message}`);
-        }
-
+        } catch { /* ignore */ }
         return false;
     }
 }
 
 /**
- * Start normal credentials scheduled refresh task
+ * Refresh Kiro error credential token
  */
-function startCredentialsRefreshTask() {
-    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Normal credentials refresh task started, interval: ${CREDENTIALS_REFRESH_INTERVAL / 1000}s, refresh ${TOKEN_EXPIRY_THRESHOLD} minutes in advance`);
-
-    // Execute on schedule
-    setInterval(async () => {
-        await checkAndRefreshCredentials();
-    }, CREDENTIALS_REFRESH_INTERVAL);
-}
-
-/**
- * Check and refresh credentials that are about to expire
- */
-async function checkAndRefreshCredentials() {
-    const credentials = await store.getAll();
-    if (credentials.length === 0) {
-        return;
-    }
-
-    const expiringCredentials = credentials.filter(c =>
-        c.refreshToken && isTokenExpiringSoon(c, TOKEN_EXPIRY_THRESHOLD)
-    );
-
-    if (expiringCredentials.length === 0) {
-        // console.log(`[${getTimestamp()}] [Scheduled Refresh] Check complete, no credentials about to expire`);
-        return;
-    }
-
-    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Found ${expiringCredentials.length} credentials about to expire, starting refresh...`);
-
-    for (const credential of expiringCredentials) {
-        await refreshCredential(credential);
-        // Wait 2 seconds between each credential to avoid request rate limiting
-        await new Promise(resolve => setTimeout(resolve, 2000));
-    }
-
-    // console.log(`[${getTimestamp()}] [Scheduled Refresh] Credentials refresh complete`);
-}
-
-// Error credentials scheduled refresh task
-const ERROR_REFRESH_INTERVAL = 60 * 60 * 1000; // 1 hour
-
-async function refreshErrorCredential(errorCred) {
+async function refreshKiroErrorCredential(errorCred) {
     const region = errorCred.region || KIRO_CONSTANTS.DEFAULT_REGION;
-
-    // console.log(`[${getTimestamp()}] [Error Credential Refresh] Starting refresh for error credential ${errorCred.id} (${errorCred.name})...`);
-    // console.log(`[${getTimestamp()}] [Error Credential Refresh] Auth method: ${errorCred.authMethod}`);
 
     try {
         let newAccessToken, newRefreshToken, expiresAt;
 
         if (errorCred.authMethod === KIRO_CONSTANTS.AUTH_METHOD_SOCIAL) {
             const refreshUrl = KIRO_CONSTANTS.REFRESH_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Request URL: ${refreshUrl}`);
-
             const response = await axios.post(refreshUrl, {
                 refreshToken: errorCred.refreshToken
             }, {
@@ -5761,17 +5678,13 @@ async function refreshErrorCredential(errorCred) {
             expiresAt = response.data.expiresAt || null;
         } else {
             if (!errorCred.clientId || !errorCred.clientSecret) {
-                // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} missing clientId/clientSecret, skipping`);
                 return false;
             }
 
-            // IdC uses sso-oidc endpoint, builder-id uses oidc endpoint
             const refreshUrl = errorCred.authMethod === KIRO_CONSTANTS.AUTH_METHOD_IDC
                 ? KIRO_CONSTANTS.REFRESH_SSO_OIDC_URL.replace('{{region}}', region)
                 : KIRO_CONSTANTS.REFRESH_IDC_URL.replace('{{region}}', region);
-            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Request URL: ${refreshUrl}`);
 
-            // Send request in JSON format (consistent with AIClient-2-API)
             const response = await axios.post(refreshUrl, {
                 refreshToken: errorCred.refreshToken,
                 clientId: errorCred.clientId,
@@ -5782,7 +5695,6 @@ async function refreshErrorCredential(errorCred) {
                 timeout: 30000
             });
 
-            // Response fields use camelCase
             newAccessToken = response.data.accessToken;
             newRefreshToken = response.data.refreshToken || errorCred.refreshToken;
             expiresAt = response.data.expiresIn
@@ -5790,9 +5702,7 @@ async function refreshErrorCredential(errorCred) {
                 : null;
         }
 
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Token refresh successful, verifying usage endpoint...`);
-
-        // Verify usage endpoint can return normally
+        // Verify usage endpoint
         const usageResult = await KiroAPI.getUsageLimits({
             accessToken: newAccessToken,
             profileArn: errorCred.profileArn,
@@ -5801,56 +5711,141 @@ async function refreshErrorCredential(errorCred) {
         });
 
         if (!usageResult.success) {
-            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} (${errorCred.name}) usage verification failed: ${usageResult.error}`);
-            // Update error credential token, but don't move to normal table
             store.updateErrorToken(errorCred.id, newAccessToken, newRefreshToken, expiresAt);
-            // console.log(`[${getTimestamp()}] [Error Credential Refresh] Token updated, but usage verification failed, keeping in error table`);
             return false;
         }
 
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Usage verification successful, restoring to normal table...`);
-
-        // Refresh successful and usage verification passed, restore to normal table
-        const newId = await store.restoreFromError(errorCred.id, newAccessToken, newRefreshToken, expiresAt);
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} (${errorCred.name}) refresh successful!`);
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] New Token prefix: ${newAccessToken.substring(0, 20)}...`);
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Restored to normal table, new ID: ${newId}`);
+        await store.restoreFromError(errorCred.id, newAccessToken, newRefreshToken, expiresAt);
         return true;
-    } catch (error) {
-        const errorMsg = error.response?.data?.message || error.response?.data?.error || error.message;
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} (${errorCred.name}) refresh failed: ${errorMsg}`);
-        if (error.response?.status) {
-            // console.log(`[${getTimestamp()}] [Error Credential Refresh] HTTP status code: ${error.response.status}`);
-        }
+    } catch {
         return false;
     }
 }
 
-function startErrorCredentialsRefreshTask() {
-    // console.log(`[${getTimestamp()}] [Error Credential Refresh] Task started, interval: ${ERROR_REFRESH_INTERVAL / 1000}s`);
-
-    setInterval(async () => {
-        const errorCredentials = await store.getAllErrors();
-        if (errorCredentials.length === 0) {
-            return;
+/**
+ * Refresh Gemini credential token
+ */
+async function refreshGeminiCredential(credential) {
+    try {
+        const result = await refreshGeminiToken(credential.refreshToken);
+        if (result.accessToken) {
+            await geminiStore.update(credential.id, {
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken || credential.refreshToken,
+                expiresAt: result.expiresAt
+            });
+            return true;
         }
+        return false;
+    } catch {
+        return false;
+    }
+}
 
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Starting refresh for ${errorCredentials.length} error credentials...`);
+/**
+ * Refresh Warp credential token
+ */
+async function refreshWarpCredential(credential) {
+    try {
+        const result = await refreshAccessToken(credential.refreshToken);
+        if (result.success && result.accessToken) {
+            await warpStore.updateToken(credential.id, result.accessToken, result.expiresAt);
+            return true;
+        }
+        return false;
+    } catch {
+        return false;
+    }
+}
 
-        for (const errorCred of errorCredentials) {
-            if (!errorCred.refreshToken) {
-                // console.log(`[${getTimestamp()}] [Error Credential Refresh] Credential ${errorCred.id} has no refreshToken, skipping`);
-                continue;
+/**
+ * Run unified token refresh for all providers
+ */
+async function runUnifiedTokenRefresh() {
+    const stats = { kiro: { refreshed: 0, total: 0 }, kiroError: { refreshed: 0, total: 0 }, gemini: { refreshed: 0, total: 0 }, warp: { refreshed: 0, total: 0 } };
+    const delay = (ms) => new Promise(r => setTimeout(r, ms));
+
+    // 1. Refresh Kiro normal credentials
+    try {
+        const kiroCredentials = await store.getAll();
+        for (const cred of kiroCredentials) {
+            if (cred.refreshToken && isTokenExpiringSoon(cred.expiresAt)) {
+                stats.kiro.total++;
+                if (await refreshKiroCredential(cred)) {
+                    stats.kiro.refreshed++;
+                }
+                await delay(1000);
             }
-
-            await refreshErrorCredential(errorCred);
-
-            // Wait 2 seconds between each credential to avoid request rate limiting
-            await new Promise(resolve => setTimeout(resolve, 2000));
         }
+    } catch { /* ignore */ }
 
-        // console.log(`[${getTimestamp()}] [Error Credential Refresh] Refresh complete`);
-    }, ERROR_REFRESH_INTERVAL);
+    // 2. Refresh Kiro error credentials
+    try {
+        const errorCredentials = await store.getAllErrors();
+        for (const errorCred of errorCredentials) {
+            if (errorCred.refreshToken) {
+                stats.kiroError.total++;
+                if (await refreshKiroErrorCredential(errorCred)) {
+                    stats.kiroError.refreshed++;
+                }
+                await delay(1000);
+            }
+        }
+    } catch { /* ignore */ }
+
+    // 3. Refresh Gemini credentials
+    try {
+        const geminiCredentials = await geminiStore.getAll();
+        for (const cred of geminiCredentials) {
+            if (cred.refreshToken && isTokenExpiringSoon(cred.expiresAt)) {
+                stats.gemini.total++;
+                if (await refreshGeminiCredential(cred)) {
+                    stats.gemini.refreshed++;
+                }
+                await delay(1000);
+            }
+        }
+    } catch { /* ignore */ }
+
+    // 4. Refresh Warp credentials
+    try {
+        const warpCredentials = await warpStore.getAll();
+        for (const cred of warpCredentials) {
+            if (cred.refreshToken && cred.accessToken && isTokenExpired(cred.accessToken, TOKEN_EXPIRY_THRESHOLD)) {
+                stats.warp.total++;
+                if (await refreshWarpCredential(cred)) {
+                    stats.warp.refreshed++;
+                }
+                await delay(1000);
+            }
+        }
+    } catch { /* ignore */ }
+
+    // Log summary if any refreshes happened
+    const totalRefreshed = stats.kiro.refreshed + stats.kiroError.refreshed + stats.gemini.refreshed + stats.warp.refreshed;
+    const totalAttempted = stats.kiro.total + stats.kiroError.total + stats.gemini.total + stats.warp.total;
+
+    if (totalAttempted > 0) {
+        const parts = [];
+        if (stats.kiro.total > 0) parts.push(`Kiro: ${stats.kiro.refreshed}/${stats.kiro.total}`);
+        if (stats.kiroError.total > 0) parts.push(`KiroError: ${stats.kiroError.refreshed}/${stats.kiroError.total}`);
+        if (stats.gemini.total > 0) parts.push(`Gemini: ${stats.gemini.refreshed}/${stats.gemini.total}`);
+        if (stats.warp.total > 0) parts.push(`Warp: ${stats.warp.refreshed}/${stats.warp.total}`);
+        console.log(`[${getTimestamp()}] [Token Refresh] ${parts.join(', ')}`);
+    }
+}
+
+/**
+ * Start unified token refresh task
+ */
+function startUnifiedTokenRefreshTask() {
+    console.log(`[${getTimestamp()}] [Token Refresh] Task started (interval: 30min, threshold: ${TOKEN_EXPIRY_THRESHOLD}min)`);
+
+    // Run immediately on startup (after 5 seconds)
+    setTimeout(() => runUnifiedTokenRefresh(), 5000);
+
+    // Then run every 30 minutes
+    setInterval(() => runUnifiedTokenRefresh(), TOKEN_REFRESH_INTERVAL);
 }
 
 start();
