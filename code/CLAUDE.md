@@ -77,14 +77,14 @@ src/
 
 The server routes requests to different AI providers based on the `Model-Provider` header or route prefix:
 
-| Provider | Route Prefix             | Header Value |
-|----------|--------------------------|--------------|
-| Kiro     | `/v1/*`                  | (default)    |
-| Gemini   | `/gemini-antigravity/*`  | `gemini`     |
-| Orchids  | `/orchids/*`             | `orchids`    |
-| Warp     | `/warp/*`                | `warp`       |
-| Vertex   | `/vertex/*`              | `vertex`     |
-| Bedrock  | `/bedrock/*`             | `bedrock`    |
+| Provider | Route Prefix            | Header Value |
+|----------|-------------------------|--------------|
+| Kiro     | `/v1/*`                 | (default)    |
+| Gemini   | `/gemini-antigravity/*` | `gemini`     |
+| Orchids  | `/orchids/*`            | `orchids`    |
+| Warp     | `/warp/*`               | `warp`       |
+| Vertex   | `/vertex/*`             | `vertex`     |
+| Bedrock  | `/bedrock/*`            | `bedrock`    |
 
 ### Core Modules
 
@@ -124,16 +124,16 @@ The server routes requests to different AI providers based on the `Model-Provide
 
 Key tables in `kiro_api` database:
 
-| Table                 | Description                        |
-|-----------------------|------------------------------------|
-| `credentials`         | Kiro OAuth credentials (active)    |
-| `error_credentials`   | Failed credentials (auto-retry)    |
-| `gemini_credentials`  | Gemini Antigravity credentials     |
-| `orchids_credentials` | Orchids credentials                |
-| `users`               | Web console authentication         |
-| `api_keys`            | External API key management        |
-| `api_logs`            | Request/response audit logs        |
-| `model_pricing`       | Token cost configuration           |
+| Table                 | Description                     |
+|-----------------------|---------------------------------|
+| `credentials`         | Kiro OAuth credentials (active) |
+| `error_credentials`   | Failed credentials (auto-retry) |
+| `gemini_credentials`  | Gemini Antigravity credentials  |
+| `orchids_credentials` | Orchids credentials             |
+| `users`               | Web console authentication      |
+| `api_keys`            | External API key management     |
+| `api_logs`            | Request/response audit logs     |
+| `model_pricing`       | Token cost configuration        |
 
 ### Authentication Methods (Kiro)
 
@@ -152,12 +152,12 @@ Models are mapped to internal CodeWhisperer names in `MODEL_MAPPING` (constants.
 
 Require API key via `X-API-Key` header or `Authorization: Bearer <key>`:
 
-| Method | Path                            | Description                    |
-|--------|---------------------------------|--------------------------------|
-| GET    | `/v1/models`                    | List models (OpenAI format)    |
-| POST   | `/v1/messages`                  | Claude API compatible          |
-| POST   | `/v1/chat/completions`          | OpenAI API compatible          |
-| POST   | `/gemini-antigravity/v1/messages` | Gemini Antigravity API       |
+| Method | Path                              | Description                 |
+|--------|-----------------------------------|-----------------------------|
+| GET    | `/v1/models`                      | List models (OpenAI format) |
+| POST   | `/v1/messages`                    | Claude API compatible       |
+| POST   | `/v1/chat/completions`            | OpenAI API compatible       |
+| POST   | `/gemini-antigravity/v1/messages` | Gemini Antigravity API      |
 
 ### Management API Endpoints
 
@@ -184,18 +184,18 @@ Require web console login session:
 
 ## Environment Variables
 
-| Variable         | Default      | Description              |
-|------------------|--------------|--------------------------|
-| `PORT`           | `13003`      | API server port          |
-| `MYSQL_HOST`     | `127.0.0.1`  | MySQL host               |
-| `MYSQL_PORT`     | `13306`      | MySQL port               |
-| `MYSQL_USER`     | `root`       | MySQL user               |
-| `MYSQL_PASSWORD` | -            | MySQL password           |
-| `MYSQL_DATABASE` | `kiro_api`   | Database name            |
-| `LOG_DIR`        | `./logs`     | Log file directory       |
-| `LOG_LEVEL`      | `INFO`       | DEBUG, INFO, WARN, ERROR |
-| `LOG_ENABLED`    | `true`       | Enable file logging      |
-| `LOG_CONSOLE`    | `true`       | Enable console output    |
+| Variable         | Default     | Description              |
+|------------------|-------------|--------------------------|
+| `PORT`           | `13003`     | API server port          |
+| `MYSQL_HOST`     | `127.0.0.1` | MySQL host               |
+| `MYSQL_PORT`     | `13306`     | MySQL port               |
+| `MYSQL_USER`     | `root`      | MySQL user               |
+| `MYSQL_PASSWORD` | -           | MySQL password           |
+| `MYSQL_DATABASE` | `kiro_api`  | Database name            |
+| `LOG_DIR`        | `./logs`    | Log file directory       |
+| `LOG_LEVEL`      | `INFO`      | DEBUG, INFO, WARN, ERROR |
+| `LOG_ENABLED`    | `true`      | Enable file logging      |
+| `LOG_CONSOLE`    | `true`      | Enable console output    |
 
 ## Docker Deployment
 
