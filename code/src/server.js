@@ -4586,7 +4586,7 @@ app.get('/api/gemini/credentials/:id/quota', authMiddleware, async (req, res) =>
 app.post('/api/gemini/credentials/:id/refresh-quota', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        const credential = await geminiStore.getById(id);
+        let credential = await geminiStore.getById(id);
 
         if (!credential) {
             return res.status(404).json({ success: false, error: 'Credential not found' });
@@ -4607,6 +4607,22 @@ app.post('/api/gemini/credentials/:id/refresh-quota', authMiddleware, async (req
 
         service.projectId = credential.projectId;
         service.isInitialized = true;
+
+        // Refresh token if expired or about to expire
+        const expiryDate = credential.expiresAt ? new Date(credential.expiresAt).getTime() : 0;
+        const now = Date.now();
+        if (!expiryDate || expiryDate < now + 5 * 60 * 1000) {
+            console.log(`[Quota] Token expired or expiring soon for credential ${id}, refreshing...`);
+            const newTokens = await service.refreshToken();
+            if (newTokens) {
+                await geminiStore.update(id, {
+                    accessToken: newTokens.accessToken,
+                    refreshToken: newTokens.refreshToken,
+                    expiresAt: newTokens.expiresAt
+                });
+                credential = await geminiStore.getById(id);
+            }
+        }
 
         // Fetch quotas
         const quotaResult = await service.getModelsWithQuotas();
