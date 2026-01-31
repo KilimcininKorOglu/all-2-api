@@ -3633,7 +3633,7 @@ app.post('/api/credentials/:id/test', authMiddleware, async (req, res) => {
             success: true,
             data: {
                 message: 'Credential is valid',
-                response: response.substring(0, 100)
+                response: response.content.substring(0, 100)
             }
         });
     } catch (error) {
