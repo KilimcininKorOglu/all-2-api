@@ -259,8 +259,76 @@ function showCredentialDetail(id) {
     const cred = credentials.find(c => c.id === id);
     if (!cred) return;
 
-    // TODO: Implement details popup
-    showToast('Details feature in development', 'info');
+    const modal = document.getElementById('detail-modal');
+    const body = document.getElementById('detail-modal-body');
+
+    // Format token display (show only last 8 chars)
+    const formatToken = (token) => {
+        if (!token) return '-';
+        return '***' + token.slice(-8);
+    };
+
+    // Format date
+    const formatDate = (dateStr) => {
+        if (!dateStr) return '-';
+        return new Date(dateStr).toLocaleString();
+    };
+
+    body.innerHTML = `
+        <div style="display: grid; gap: 12px;">
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Name</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${escapeHtml(cred.name)}</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Email</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${escapeHtml(cred.email || '-')}</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Project ID</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${escapeHtml(cred.projectId || '-')}</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Access Token</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; font-family: monospace;">${formatToken(cred.accessToken)}</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Refresh Token</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; font-family: monospace;">${cred.refreshToken ? 'Available' : 'Not set'}</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Status</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">
+                    <span class="logs-status-badge ${cred.isActive ? 'success' : 'error'}">${cred.isActive ? 'Active' : 'Inactive'}</span>
+                </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Expires At</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${formatDate(cred.expiresAt)}</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Created At</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${formatDate(cred.createdAt)}</div>
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600;">Error Count</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${cred.errorCount || 0}</div>
+            </div>
+            ${cred.lastErrorMessage ? `
+            <div class="form-group" style="margin-bottom: 0;">
+                <label class="form-label" style="font-weight: 600; color: var(--error-color);">Last Error</label>
+                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; color: var(--error-color);">${escapeHtml(cred.lastErrorMessage)}</div>
+            </div>
+            ` : ''}
+        </div>
+    `;
+
+    modal.classList.add('active');
+}
+
+// Close details modal
+function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('active');
 }
 
 // Format date (short format)
@@ -295,6 +363,10 @@ function bindEvents() {
     document.getElementById('batch-modal-cancel')?.addEventListener('click', closeBatchImportModal);
     document.getElementById('batch-modal-submit')?.addEventListener('click', submitBatchImport);
 
+    // Details modal
+    document.getElementById('detail-modal-close')?.addEventListener('click', closeDetailModal);
+    document.getElementById('detail-modal-close-btn')?.addEventListener('click', closeDetailModal);
+
     // Batch refresh
     document.getElementById('refresh-all-btn').addEventListener('click', refreshAllTokens);
 
@@ -321,6 +393,7 @@ function bindEvents() {
         if (e.key === 'Escape') {
             closeAddModal();
             closeBatchImportModal();
+            closeDetailModal();
         }
     });
 }
