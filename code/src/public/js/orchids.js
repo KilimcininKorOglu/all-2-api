@@ -124,6 +124,7 @@ function setupEventListeners() {
 
     document.getElementById('detail-modal-close')?.addEventListener('click', closeDetailModal);
     document.getElementById('detail-delete-btn')?.addEventListener('click', handleDeleteAccount);
+    document.getElementById('detail-edit-btn')?.addEventListener('click', handleEditAccount);
     document.getElementById('detail-edit-weight-btn')?.addEventListener('click', handleEditWeight);
     document.getElementById('detail-reset-stats-btn')?.addEventListener('click', handleResetStats);
 
@@ -464,6 +465,36 @@ async function handleDeleteAccount() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
         showToast('Deleted successfully', 'success');
+        closeDetailModal();
+        await loadCredentials();
+    } catch (error) {
+        showToast(error.message, 'error');
+    }
+}
+
+async function handleEditAccount() {
+    if (!OrchidsState.detailTarget) return;
+    const cred = OrchidsState.detailTarget;
+
+    const newName = prompt(`Enter new name:`, cred.name || '');
+    if (newName === null) return;
+
+    const newWeight = prompt(`Enter new weight:`, cred.weight || 1);
+    if (newWeight === null) return;
+
+    const weight = parseInt(newWeight);
+    if (isNaN(weight) || weight < 1) return showToast('Invalid weight', 'error');
+
+    try {
+        await fetch(`/api/orchids/credentials/${cred.id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+            },
+            body: JSON.stringify({ name: newName, weight })
+        });
+        showToast('Account updated successfully', 'success');
         closeDetailModal();
         await loadCredentials();
     } catch (error) {

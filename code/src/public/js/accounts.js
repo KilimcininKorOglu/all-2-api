@@ -809,6 +809,12 @@ function showCredentialDetail(id) {
         closeDetailModal();
     };
 
+    // Setup edit button
+    document.getElementById('detail-edit-btn').onclick = function() {
+        closeDetailModal();
+        openEditModal(currentDetailId);
+    };
+
     document.getElementById('detail-modal').classList.add('active');
 }
 

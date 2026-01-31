@@ -347,6 +347,15 @@ function showCredentialDetail(id) {
         };
     }
 
+    // Setup edit button
+    const editBtn = document.getElementById('detail-edit-btn');
+    if (editBtn) {
+        editBtn.onclick = function() {
+            closeDetailModal();
+            openEditModal(currentDetailId);
+        };
+    }
+
     modal.classList.add('active');
 }
 
