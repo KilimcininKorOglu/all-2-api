@@ -328,48 +328,15 @@ export class KiroAuth {
     }
 
     /**
-     * Start IAM Identity Center Authorization Code Flow with PKCE
+     * Start IAM Identity Center Device Code Flow
      * @param {string} startUrl - Custom start URL (e.g., https://d-xxxxxxxx.awsapps.com/start)
      * @param {string} region - AWS region (default: us-east-1)
-     * @returns {Promise<object>} Auth URL and session data
+     * @returns {Promise<object>} Device code flow data
      */
     async startIdCAuth(startUrl, region = 'us-east-1') {
         const ssoOidcEndpoint = KIRO_OAUTH_CONFIG.ssoOIDCEndpoint.replace('{{region}}', region);
 
-        // Generate PKCE code verifier and challenge
-        const codeVerifier = generateCodeVerifier();
-        const codeChallenge = generateCodeChallenge(codeVerifier);
-        const state = crypto.randomBytes(16).toString('base64url');
-
-        // Find available port for callback server
-        const portStart = KIRO_OAUTH_CONFIG.callbackPortStart;
-        const portEnd = KIRO_OAUTH_CONFIG.callbackPortEnd;
-        let port = null;
-
-        for (let p = portStart; p <= portEnd; p++) {
-            try {
-                const server = http.createServer();
-                await new Promise((resolve, reject) => {
-                    server.once('error', reject);
-                    server.listen(p, '127.0.0.1', () => {
-                        server.close();
-                        resolve();
-                    });
-                });
-                port = p;
-                break;
-            } catch (err) {
-                if (err.code !== 'EADDRINUSE') throw err;
-            }
-        }
-
-        if (!port) {
-            throw new Error('No available port for OAuth callback');
-        }
-
-        const redirectUri = `http://127.0.0.1:${port}/oauth/callback`;
-
-        // 1. Register OIDC client (use device_code grant - authorization_code requires startUrl)
+        // 1. Register OIDC client (same as Builder ID)
         const regResponse = await fetch(`${ssoOidcEndpoint}/client/register`, {
             method: 'POST',
             headers: {
@@ -391,108 +358,106 @@ export class KiroAuth {
 
         const regData = await regResponse.json();
 
-        // 2. Build authorization URL (same format as Kiro IDE)
-        const authUrl = `${ssoOidcEndpoint}/authorize?` +
-            `response_type=code&` +
-            `client_id=${encodeURIComponent(regData.clientId)}&` +
-            `redirect_uri=${encodeURIComponent(redirectUri)}&` +
-            `scopes=${encodeURIComponent(KIRO_OAUTH_CONFIG.scopes.join(','))}&` +
-            `state=${state}&` +
-            `code_challenge=${codeChallenge}&` +
-            `code_challenge_method=S256`;
+        // 2. Start device authorization with custom startUrl
+        const authResponse = await fetch(`${ssoOidcEndpoint}/device_authorization`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': KIRO_CONSTANTS.USER_AGENT
+            },
+            body: JSON.stringify({
+                clientId: regData.clientId,
+                clientSecret: regData.clientSecret,
+                startUrl: startUrl  // Custom IAM Identity Center start URL
+            })
+        });
 
-        console.log(`[Kiro Auth] IAM Identity Center - Authorization URL generated`);
-        console.log(`[Kiro Auth] Open this URL in your browser: ${authUrl}`);
+        if (!authResponse.ok) {
+            const errorText = await authResponse.text();
+            let errorData;
+            try {
+                errorData = JSON.parse(errorText);
+            } catch {
+                errorData = { error: errorText };
+            }
+
+            // Provide more helpful error message
+            if (errorData.error === 'invalid_request') {
+                throw new Error(
+                    `IAM Identity Center authentication failed. ` +
+                    `The start URL "${startUrl}" may not be configured for CodeWhisperer/Q Developer access. ` +
+                    `Please verify: 1) The start URL is correct, 2) Your IdC instance has CodeWhisperer enabled, ` +
+                    `3) The region matches where your IdC is configured.`
+                );
+            }
+
+            throw new Error(`Device authorization failed: ${authResponse.status} - ${errorText}`);
+        }
+
+        const deviceAuth = await authResponse.json();
+
+        console.log(`[Kiro Auth] IAM Identity Center - Device code flow started`);
+        console.log(`[Kiro Auth] Please open: ${deviceAuth.verificationUriComplete}`);
+        console.log(`[Kiro Auth] Or visit ${deviceAuth.verificationUri} and enter code: ${deviceAuth.userCode}`);
 
         return {
-            authUrl,
-            port,
-            redirectUri,
             clientId: regData.clientId,
             clientSecret: regData.clientSecret,
-            codeVerifier,
-            state,
+            deviceCode: deviceAuth.deviceCode,
+            verificationUri: deviceAuth.verificationUri,
+            verificationUriComplete: deviceAuth.verificationUriComplete,
+            userCode: deviceAuth.userCode,
+            expiresIn: deviceAuth.expiresIn,
+            interval: deviceAuth.interval || 5,
             region,
             startUrl
         };
     }
 
     /**
-     * Start IdC callback server and wait for authorization
+     * Poll for IAM Identity Center token (Device Code Flow)
      * @param {object} authData - Data from startIdCAuth
      * @returns {Promise<object>} Credentials
      */
-    async waitForIdCCallback(authData) {
-        const { port, redirectUri, clientId, clientSecret, codeVerifier, state, region, startUrl } = authData;
+    async pollIdCToken(authData) {
+        const { clientId, clientSecret, deviceCode, interval, region, startUrl } = authData;
         const ssoOidcEndpoint = KIRO_OAUTH_CONFIG.ssoOIDCEndpoint.replace('{{region}}', region);
+        const maxAttempts = 60; // 5 minutes with 5 second intervals
+        let attempts = 0;
 
         return new Promise((resolve, reject) => {
-            const timeout = setTimeout(() => {
-                server.close();
-                reject(new Error('Authorization timeout (5 minutes)'));
-            }, 5 * 60 * 1000);
+            const poll = async () => {
+                if (attempts >= maxAttempts) {
+                    reject(new Error('Authorization timeout'));
+                    return;
+                }
 
-            const server = http.createServer(async (req, res) => {
+                attempts++;
+
                 try {
-                    const url = new URL(req.url, `http://127.0.0.1:${port}`);
+                    const response = await fetch(`${ssoOidcEndpoint}/token`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'User-Agent': KIRO_CONSTANTS.USER_AGENT
+                        },
+                        body: JSON.stringify({
+                            clientId,
+                            clientSecret,
+                            deviceCode,
+                            grantType: 'urn:ietf:params:oauth:grant-type:device_code'
+                        })
+                    });
 
-                    if (url.pathname === '/oauth/callback') {
-                        const code = url.searchParams.get('code');
-                        const returnedState = url.searchParams.get('state');
-                        const errorParam = url.searchParams.get('error');
+                    const data = await response.json();
 
-                        if (errorParam) {
-                            res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-                            res.end(generateResponsePage(false, `Authorization failed: ${errorParam}`));
-                            clearTimeout(timeout);
-                            server.close();
-                            reject(new Error(`Authorization failed: ${errorParam}`));
-                            return;
-                        }
-
-                        if (returnedState !== state) {
-                            res.writeHead(400, { 'Content-Type': 'text/html; charset=utf-8' });
-                            res.end(generateResponsePage(false, 'State validation failed'));
-                            clearTimeout(timeout);
-                            server.close();
-                            reject(new Error('State validation failed'));
-                            return;
-                        }
-
-                        // Exchange code for token
-                        const tokenResponse = await fetch(`${ssoOidcEndpoint}/token`, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'User-Agent': KIRO_CONSTANTS.USER_AGENT
-                            },
-                            body: JSON.stringify({
-                                clientId,
-                                clientSecret,
-                                grantType: 'authorization_code',
-                                code,
-                                codeVerifier,
-                                redirectUri
-                            })
-                        });
-
-                        if (!tokenResponse.ok) {
-                            const errorText = await tokenResponse.text();
-                            console.error(`[Kiro Auth] Token exchange failed:`, errorText);
-                            res.writeHead(500, { 'Content-Type': 'text/html; charset=utf-8' });
-                            res.end(generateResponsePage(false, `Token exchange failed: ${tokenResponse.status}`));
-                            clearTimeout(timeout);
-                            server.close();
-                            reject(new Error(`Token exchange failed: ${errorText}`));
-                            return;
-                        }
-
-                        const tokenData = await tokenResponse.json();
+                    if (response.ok && data.accessToken) {
+                        console.log(`[Kiro Auth] IAM Identity Center - Successfully obtained token`);
 
                         const credentials = {
-                            accessToken: tokenData.accessToken,
-                            refreshToken: tokenData.refreshToken,
-                            expiresAt: new Date(Date.now() + (tokenData.expiresIn || 3600) * 1000).toISOString(),
+                            accessToken: data.accessToken,
+                            refreshToken: data.refreshToken,
+                            expiresAt: new Date(Date.now() + data.expiresIn * 1000).toISOString(),
                             authMethod: KIRO_CONSTANTS.AUTH_METHOD_IDC,
                             clientId,
                             clientSecret,
@@ -500,34 +465,32 @@ export class KiroAuth {
                             ssoStartUrl: startUrl
                         };
 
-                        res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
-                        res.end(generateResponsePage(true, 'IAM Identity Center authorization successful! You can close this page.'));
-
-                        clearTimeout(timeout);
-                        server.close();
                         resolve(credentials);
+                        return;
+                    }
+
+                    if (data.error === 'authorization_pending') {
+                        // User hasn't completed authorization yet, keep polling
+                        setTimeout(poll, (interval || 5) * 1000);
+                    } else if (data.error === 'slow_down') {
+                        // Slow down polling
+                        setTimeout(poll, (interval || 5) * 1000 + 5000);
+                    } else if (data.error === 'expired_token') {
+                        reject(new Error('Device code expired. Please start again.'));
+                    } else if (data.error === 'access_denied') {
+                        reject(new Error('Authorization denied by user.'));
                     } else {
-                        res.writeHead(404);
-                        res.end('Not Found');
+                        reject(new Error(`Token error: ${data.error || 'Unknown error'}`));
                     }
                 } catch (error) {
-                    console.error(`[Kiro Auth] Callback error:`, error);
-                    res.writeHead(500);
-                    res.end('Internal Server Error');
-                    clearTimeout(timeout);
-                    server.close();
-                    reject(error);
+                    console.error(`[Kiro Auth] IdC poll error:`, error.message);
+                    // Network error, retry
+                    setTimeout(poll, (interval || 5) * 1000);
                 }
-            });
+            };
 
-            server.listen(port, '127.0.0.1', () => {
-                console.log(`[Kiro Auth] IdC callback server listening on port ${port}`);
-            });
-
-            server.on('error', (err) => {
-                clearTimeout(timeout);
-                reject(err);
-            });
+            // Start polling
+            poll();
         });
     }
 

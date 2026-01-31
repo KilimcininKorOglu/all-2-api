@@ -3298,14 +3298,14 @@ app.post('/api/oauth/idc/start', async (req, res) => {
 
         const auth = new KiroAuth({ region });
 
-        // Start IdC PKCE flow - returns auth URL and session data
+        // Start IdC Device Code flow - returns verification URI and user code
         const authData = await auth.startIdCAuth(startUrl, region);
 
         // Store session
         activeOAuthSessions.set(sessionId, {
             auth,
             provider: 'IdC',
-            type: 'idc-pkce',
+            type: 'idc-device-code',
             name: credName,
             startUrl,
             region,
@@ -3313,8 +3313,8 @@ app.post('/api/oauth/idc/start', async (req, res) => {
             startTime: Date.now()
         });
 
-        // Start background callback server that waits for authorization
-        waitForIdCCallback(sessionId, auth, authData, credName).then(result => {
+        // Start background polling for token
+        pollIdCToken(sessionId, auth, authData, credName).then(result => {
             console.log(`[IdC OAuth] Authorization completed for session ${sessionId}`);
         }).catch(err => {
             console.error(`[IdC OAuth] Authorization failed:`, err.message);
@@ -3333,8 +3333,10 @@ app.post('/api/oauth/idc/start', async (req, res) => {
             success: true,
             data: {
                 sessionId,
-                authUrl: authData.authUrl,
-                port: authData.port
+                verificationUri: authData.verificationUri,
+                verificationUriComplete: authData.verificationUriComplete,
+                userCode: authData.userCode,
+                expiresIn: authData.expiresIn
             }
         });
     } catch (error) {
@@ -3344,11 +3346,11 @@ app.post('/api/oauth/idc/start', async (req, res) => {
 });
 
 /**
- * Wait for IAM Identity Center PKCE callback
+ * Poll for IAM Identity Center token (Device Code Flow)
  */
-async function waitForIdCCallback(sessionId, auth, authData, credName) {
+async function pollIdCToken(sessionId, auth, authData, credName) {
     try {
-        const credentials = await auth.waitForIdCCallback(authData);
+        const credentials = await auth.pollIdCToken(authData);
 
         // Save credential to database
         const credentialId = await store.add({
@@ -3367,7 +3369,7 @@ async function waitForIdCCallback(sessionId, auth, authData, credName) {
 
         return { credentialId, credentials };
     } catch (error) {
-        console.error(`[IdC OAuth] Callback error:`, error.message);
+        console.error(`[IdC OAuth] Token poll error:`, error.message);
         throw error;
     }
 }

@@ -417,7 +417,7 @@ function showIdCOptions() {
     document.getElementById('idc-start-url').focus();
 }
 
-// Show IdC Auth status (PKCE flow)
+// Show IdC Auth status (Device Code flow - same as Builder ID)
 function showIdCAuthStatus(data) {
     const statusEl = document.getElementById('oauth-status');
     statusEl.classList.add('active');
@@ -428,11 +428,14 @@ function showIdCAuthStatus(data) {
     // Show authorization link
     const authUrlItem = document.getElementById('auth-url-item');
     authUrlItem.style.display = 'flex';
-    document.getElementById('auth-url').href = data.authUrl;
-    document.getElementById('auth-url').textContent = 'Click to open IAM Identity Center login';
+    document.getElementById('auth-url').href = data.verificationUriComplete;
+    document.getElementById('auth-url').textContent = 'Click to open authorization page';
 
-    // Hide user code (not needed for PKCE flow)
-    document.getElementById('user-code-item').style.display = 'none';
+    // Show user code (Device Code flow requires this)
+    const userCodeItem = document.getElementById('user-code-item');
+    userCodeItem.style.display = 'flex';
+    document.getElementById('user-code').textContent = data.userCode;
+
     document.getElementById('credential-id-item').style.display = 'none';
 }
 
@@ -443,7 +446,7 @@ function hideIdCOptions() {
     document.getElementById('idc-start-url').value = '';
 }
 
-// Start IAM Identity Center OAuth (PKCE Flow)
+// Start IAM Identity Center OAuth (Device Code Flow)
 async function startIAMIdentityCenter() {
     if (currentSessionId) {
         showToast('A login is already in progress, please cancel first', 'warning');
@@ -490,11 +493,11 @@ async function startIAMIdentityCenter() {
         // Hide IdC options
         hideIdCOptions();
 
-        // Show status area (PKCE flow - similar to Social Auth)
+        // Show status area (Device Code flow - same as Builder ID)
         showIdCAuthStatus(result.data);
 
-        // Automatically open authorization link
-        window.open(result.data.authUrl, '_blank');
+        // Automatically open verification link
+        window.open(result.data.verificationUriComplete, '_blank');
 
         // Start polling status
         startPolling();
