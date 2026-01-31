@@ -52,22 +52,6 @@ function updateSiteSettingsUI() {
     // Update version info
     const versionInfo = document.querySelector('.version-info');
     if (versionInfo) versionInfo.textContent = `${settings.siteName} Manager v1.0.0`;
-
-    // Update account text in navigation
-    const kiroNavItem = document.querySelector('.nav-item[data-page="accounts"]');
-    if (kiroNavItem) {
-        const badge = kiroNavItem.querySelector('.nav-badge');
-        const badgeHTML = badge ? badge.outerHTML : '';
-        const svgIcon = kiroNavItem.querySelector('svg');
-        const svgHTML = svgIcon ? svgIcon.outerHTML : '';
-        kiroNavItem.innerHTML = `${svgHTML} ${settings.siteName} Accounts ${badgeHTML}`;
-    }
-
-    // Update page subtitle containing "Kiro"
-    const pageSubtitle = document.querySelector('.page-subtitle');
-    if (pageSubtitle && pageSubtitle.textContent.includes('Kiro')) {
-        pageSubtitle.textContent = pageSubtitle.textContent.replace(/Kiro/g, settings.siteName);
-    }
 }
 
 // ============ Authentication ============
