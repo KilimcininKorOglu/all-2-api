@@ -841,8 +841,8 @@ Format 2 - JSON format:
 
             let currentName = null;
             for (const line of lines) {
-                // Match "AccountN" format (Chinese: 第N张)
-                const nameMatch = line.match(/^第(\d+)张$/);
+                // Match "AccountN" or "Account N" format
+                const nameMatch = line.match(/^Account\s*(\d+)$/i);
                 if (nameMatch) {
                     currentName = `Account${nameMatch[1]}`;
                     continue;
