@@ -16,7 +16,7 @@ import { WarpService, WARP_MODELS, refreshAccessToken, isTokenExpired, getEmailF
 import { setupWarpRoutes } from './warp/warp-routes.js';
 import { setupWarpMultiAgentRoutes } from './warp/warp-multi-agent.js';
 import { setupWarpProxyRoutes } from './warp/warp-proxy.js';
-import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing } from './constants.js';
+import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo } from './constants.js';
 import { initProxyConfig, getProxyConfig, saveProxyConfig, testProxyConnection, getAxiosProxyConfig } from './proxy.js';
 import {
     AntigravityApiService,
@@ -3755,6 +3755,16 @@ app.get('/api/error-credentials/:id/usage', async (req, res) => {
 
 // ============ Model Pricing Management ============
 
+// Get pricing info and statistics
+app.get('/api/pricing/info', authMiddleware, async (req, res) => {
+    try {
+        const pricingInfo = getPricingInfo();
+        res.json({ success: true, data: pricingInfo });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Get all pricing configurations
 app.get('/api/pricing', authMiddleware, async (req, res) => {
     try {
@@ -4593,6 +4603,14 @@ async function start() {
     } catch (err) {
         console.error(`[${getTimestamp()}] Failed to load pricing configuration:`, err.message);
     }
+
+    // Initialize remote pricing (non-blocking, falls back to static)
+    initializeRemotePricing().then(() => {
+        const pricingInfo = getPricingInfo();
+        console.log(`[${getTimestamp()}] Remote pricing: ${pricingInfo.remoteModels} models fetched (source: ${pricingInfo.source})`);
+    }).catch(() => {
+        console.log(`[${getTimestamp()}] Using static pricing only`);
+    });
 
     // Initialize proxy configuration
     const proxyConfig = await initProxyConfig();

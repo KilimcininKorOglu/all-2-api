@@ -294,6 +294,16 @@ let dynamicPricingCache = null;
 let dynamicPricingCacheTime = null;
 const PRICING_CACHE_TTL = 60000; // 60 second cache
 
+// Remote pricing configuration
+const LLM_PRICES_URL = 'https://www.llm-prices.com/current-v1.json';
+const REMOTE_PRICING_CACHE_TTL = 60 * 60 * 1000; // 1 hour cache
+const REMOTE_PRICING_TIMEOUT = 10000; // 10 seconds
+
+// Remote pricing cache
+let remotePricingCache = {};
+let remotePricingLastFetch = 0;
+let remotePricingPromise = null;
+
 /**
  * Set dynamic pricing cache
  * @param {object} pricingMap - Pricing mapping table { modelName: { input, output } }
@@ -323,23 +333,173 @@ export function isDynamicPricingValid() {
  * @param {string} model - Model name
  * @param {number} inputTokens - Number of input tokens
  * @param {number} outputTokens - Number of output tokens
- * @returns {object} { inputCost, outputCost, totalCost }
+ * @param {number} cacheReadTokens - Number of cache read tokens (optional)
+ * @returns {object} { inputCost, outputCost, cacheCost, totalCost }
  */
-export function calculateTokenCost(model, inputTokens, outputTokens) {
-    // Prefer dynamic pricing (database configuration)
+export function calculateTokenCost(model, inputTokens, outputTokens, cacheReadTokens = 0) {
+    const modelLower = model ? model.toLowerCase() : '';
+
+    // Priority: dynamicPricing (db) > remotePricing > MODEL_PRICING > default
     let pricing = null;
+
+    // 1. Check dynamic pricing (database)
     if (dynamicPricingCache && dynamicPricingCache[model]) {
         pricing = dynamicPricingCache[model];
-    } else {
-        // Fallback to static configuration
-        pricing = MODEL_PRICING[model] || MODEL_PRICING['default'];
     }
-    
+    // 2. Check remote pricing
+    else if (remotePricingCache[modelLower]) {
+        pricing = remotePricingCache[modelLower];
+    }
+    // 3. Check static pricing
+    else if (MODEL_PRICING[model]) {
+        pricing = MODEL_PRICING[model];
+    }
+    // 4. Try partial match in remote pricing
+    else {
+        for (const [key, price] of Object.entries(remotePricingCache)) {
+            if (modelLower.includes(key) || key.includes(modelLower)) {
+                pricing = price;
+                break;
+            }
+        }
+    }
+
+    // 5. Default fallback
+    if (!pricing) {
+        pricing = MODEL_PRICING['default'];
+    }
+
+    // Cache read tokens are 90% cheaper
+    const cacheDiscount = 0.1;
+
     const inputCost = (inputTokens / 1000000) * pricing.input;
     const outputCost = (outputTokens / 1000000) * pricing.output;
+    const cacheCost = (cacheReadTokens / 1000000) * pricing.input * cacheDiscount;
+
     return {
         inputCost,
         outputCost,
-        totalCost: inputCost + outputCost
+        cacheCost,
+        totalCost: inputCost + outputCost + cacheCost
     };
+}
+
+/**
+ * Fetch remote pricing from llm-prices.com
+ * @returns {Promise<object>} Remote pricing map
+ */
+export async function fetchRemotePricing() {
+    // Return cached if fresh
+    if (Object.keys(remotePricingCache).length > 0 &&
+        Date.now() - remotePricingLastFetch < REMOTE_PRICING_CACHE_TTL) {
+        return remotePricingCache;
+    }
+
+    // Return existing promise if fetch in progress
+    if (remotePricingPromise) {
+        return remotePricingPromise;
+    }
+
+    remotePricingPromise = (async () => {
+        try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), REMOTE_PRICING_TIMEOUT);
+
+            const response = await fetch(LLM_PRICES_URL, {
+                signal: controller.signal,
+                headers: { 'Accept': 'application/json' }
+            });
+
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}`);
+            }
+
+            const data = await response.json();
+            const pricing = {};
+
+            // Parse llm-prices.com format
+            if (data.prices && Array.isArray(data.prices)) {
+                for (const item of data.prices) {
+                    if (item.id && item.input != null && item.output != null) {
+                        pricing[item.id.toLowerCase()] = {
+                            input: parseFloat(item.input),
+                            output: parseFloat(item.output),
+                            vendor: item.vendor || 'unknown'
+                        };
+                    }
+                }
+            }
+
+            if (Object.keys(pricing).length > 0) {
+                remotePricingCache = pricing;
+                remotePricingLastFetch = Date.now();
+                console.log(`[Pricing] Fetched remote pricing for ${Object.keys(pricing).length} models`);
+                return pricing;
+            }
+
+            throw new Error('No valid pricing data');
+        } catch (error) {
+            console.log(`[Pricing] Remote fetch failed: ${error.message}, using static pricing`);
+            return {};
+        } finally {
+            remotePricingPromise = null;
+        }
+    })();
+
+    return remotePricingPromise;
+}
+
+/**
+ * Initialize remote pricing (call at server startup)
+ * @returns {Promise<void>}
+ */
+export async function initializeRemotePricing() {
+    try {
+        await fetchRemotePricing();
+    } catch (error) {
+        console.log(`[Pricing] Failed to initialize remote pricing: ${error.message}`);
+    }
+}
+
+/**
+ * Get pricing info for diagnostics
+ * @returns {object} Pricing statistics
+ */
+export function getPricingInfo() {
+    const staticCount = Object.keys(MODEL_PRICING).length - 1; // Exclude 'default'
+    const remoteCount = Object.keys(remotePricingCache).length;
+    const dynamicCount = dynamicPricingCache ? Object.keys(dynamicPricingCache).length : 0;
+
+    let source = 'static';
+    if (dynamicCount > 0 && remoteCount > 0) {
+        source = 'database+remote+static';
+    } else if (dynamicCount > 0) {
+        source = 'database+static';
+    } else if (remoteCount > 0) {
+        source = 'remote+static';
+    }
+
+    const cacheAge = remotePricingLastFetch > 0
+        ? Math.round((Date.now() - remotePricingLastFetch) / 60000) + 'm'
+        : 'never';
+
+    return {
+        staticModels: staticCount,
+        remoteModels: remoteCount,
+        databaseModels: dynamicCount,
+        totalModels: staticCount + remoteCount + dynamicCount,
+        lastFetch: remotePricingLastFetch > 0 ? new Date(remotePricingLastFetch).toISOString() : null,
+        cacheAge,
+        source
+    };
+}
+
+/**
+ * Get remote pricing cache
+ * @returns {object} Remote pricing cache
+ */
+export function getRemotePricing() {
+    return remotePricingCache;
 }
