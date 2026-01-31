@@ -36,7 +36,7 @@ const ANTIGRAVITY_API_VERSION = 'v1internal';
 // OAuth configuration
 const OAUTH_CLIENT_ID = '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com';
 const OAUTH_CLIENT_SECRET = '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';
-const OAUTH_SCOPE = ['https://www.googleapis.com/auth/cloud-platform'];
+const OAUTH_SCOPE = ['https://www.googleapis.com/auth/cloud-platform', 'openid', 'email'];
 const OAUTH_CALLBACK_PORT = 8086;
 
 // Default configuration
@@ -1047,6 +1047,24 @@ export function generateAuthUrl(redirectUri, state) {
 }
 
 /**
+ * Decode JWT id_token to extract email
+ */
+function decodeIdToken(idToken) {
+    if (!idToken) return null;
+    try {
+        // JWT format: header.payload.signature
+        const parts = idToken.split('.');
+        if (parts.length !== 3) return null;
+        // Decode payload (base64url)
+        const payload = Buffer.from(parts[1], 'base64url').toString('utf8');
+        const decoded = JSON.parse(payload);
+        return decoded.email || null;
+    } catch (e) {
+        return null;
+    }
+}
+
+/**
  * Get Token using authorization code
  */
 export async function getTokenFromCode(code, redirectUri) {
@@ -1054,12 +1072,17 @@ export async function getTokenFromCode(code, redirectUri) {
     authClient.redirectUri = redirectUri;
 
     const { tokens } = await authClient.getToken(code);
+
+    // Extract email from id_token
+    const email = decodeIdToken(tokens.id_token);
+
     return {
         accessToken: tokens.access_token,
         refreshToken: tokens.refresh_token,
         expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date).toISOString() : null,
         tokenType: tokens.token_type,
-        scope: tokens.scope
+        scope: tokens.scope,
+        email
     };
 }
 

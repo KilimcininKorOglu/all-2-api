@@ -128,6 +128,7 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
             // Save to database
             const id = await geminiStore.add({
                 name: session.credentialName,
+                email: tokens.email,
                 accessToken: tokens.accessToken,
                 refreshToken: tokens.refreshToken,
                 expiresAt: tokens.expiresAt
