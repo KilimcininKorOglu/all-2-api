@@ -646,3 +646,56 @@ export function calculateQuotaScore(remainingFraction, isFresh = true) {
 
     return Math.round(score);
 }
+
+// ============ Selection Configuration ============
+
+/**
+ * Account selection strategy configuration
+ */
+export const SELECTION_CONFIG = {
+    // Available strategies
+    strategies: ['hybrid', 'sticky', 'round-robin'],
+    defaultStrategy: 'hybrid',
+
+    // Scoring weights (used by hybrid strategy)
+    weights: {
+        health: 2,      // Health score weight
+        tokens: 5,      // Token bucket weight
+        quota: 3,       // Quota weight
+        lru: 0.1        // LRU (least recently used) weight
+    },
+
+    // Health tracking configuration
+    health: {
+        initialScore: 70,           // Starting health score
+        maxScore: 100,              // Maximum health score
+        minUsable: 50,              // Minimum score to be usable
+        successBonus: 1,            // Points added on success
+        rateLimitPenalty: 10,       // Points removed on rate limit
+        failurePenalty: 20,         // Points removed on failure
+        recoveryPerHour: 10         // Points recovered per hour
+    },
+
+    // Token bucket rate limiting configuration
+    tokenBucket: {
+        maxTokens: 50,              // Maximum tokens per bucket
+        regenPerMinute: 6           // Tokens regenerated per minute
+    },
+
+    // Quota thresholds (override QUOTA_CONFIG if needed)
+    quota: {
+        lowThreshold: 0.10,         // 10% - reserve when low
+        criticalThreshold: 0.05    // 5% - exclude from selection
+    },
+
+    // Thinking blocks configuration
+    thinking: {
+        signatureCacheTtlHours: 2,  // Signature cache TTL
+        minSignatureLength: 50      // Minimum signature length to cache
+    },
+
+    // Sticky strategy configuration
+    sticky: {
+        sessionTtlMs: 30 * 60 * 1000  // 30 minutes session TTL
+    }
+};
