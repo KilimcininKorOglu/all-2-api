@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, SessionStore, initDatabase } from './db.js';
 import { StrategyFactory, getStrategyManager, ThinkingBlocksParser } from './selection/index.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
@@ -100,6 +100,7 @@ let accountHealthStore = null;
 let tokenBucketStore = null;
 let selectionConfigStore = null;
 let thinkingSignatureCacheStore = null;
+let sessionStore = null;
 let thinkingBlocksParser = null;
 
 // Credential 403 error counter
@@ -807,65 +808,38 @@ async function verifyApiKey(key) {
 }
 
 /**
- * Simple session storage (production should use Redis etc.)
- * Added size limits and periodic cleanup to prevent memory exhaustion
+ * Session management (database-backed for persistence across restarts)
  */
-const sessions = new Map();
-const MAX_SESSIONS = 10000;
-const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
 const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
 
 /**
  * Clean up expired sessions
  */
-function cleanupExpiredSessions() {
-    const now = Date.now();
-    let cleaned = 0;
-    for (const [token, session] of sessions) {
-        if (now - session.createdAt > SESSION_EXPIRY_MS) {
-            sessions.delete(token);
-            cleaned++;
+async function cleanupExpiredSessions() {
+    if (!sessionStore) return;
+    try {
+        const cleaned = await sessionStore.cleanup();
+        if (cleaned > 0) {
+            console.log(`[Session] Cleaned up ${cleaned} expired sessions`);
         }
-    }
-    if (cleaned > 0) {
-        console.log(`[Session] Cleaned up ${cleaned} expired sessions, ${sessions.size} remaining`);
+    } catch (error) {
+        console.error('[Session] Cleanup error:', error.message);
     }
 }
 
 // Run cleanup periodically
 setInterval(cleanupExpiredSessions, SESSION_CLEANUP_INTERVAL_MS);
 
-function createSession(userId) {
-    // Enforce session limit to prevent memory exhaustion
-    if (sessions.size >= MAX_SESSIONS) {
-        // Remove oldest sessions (10% of max) to make room
-        const toRemove = Math.ceil(MAX_SESSIONS * 0.1);
-        const sortedSessions = [...sessions.entries()]
-            .sort((a, b) => a[1].createdAt - b[1].createdAt);
-        for (let i = 0; i < toRemove && i < sortedSessions.length; i++) {
-            sessions.delete(sortedSessions[i][0]);
-        }
-        console.log(`[Session] Evicted ${toRemove} oldest sessions due to limit`);
-    }
-
-    const token = crypto.randomBytes(32).toString('hex');
-    sessions.set(token, { userId, createdAt: Date.now() });
-    return token;
+async function createSession(userId) {
+    return await sessionStore.create(userId);
 }
 
-function getSession(token) {
-    const session = sessions.get(token);
-    if (!session) return null;
-    // 24 hour expiry
-    if (Date.now() - session.createdAt > SESSION_EXPIRY_MS) {
-        sessions.delete(token);
-        return null;
-    }
-    return session;
+async function getSession(token) {
+    return await sessionStore.get(token);
 }
 
-function deleteSession(token) {
-    sessions.delete(token);
+async function deleteSession(token) {
+    await sessionStore.delete(token);
 }
 
 /**
@@ -876,7 +850,7 @@ async function authMiddleware(req, res, next) {
     if (!token) {
         return res.status(401).json({ success: false, error: 'Not logged in' });
     }
-    const session = getSession(token);
+    const session = await getSession(token);
     if (!session) {
         return res.status(401).json({ success: false, error: 'Login expired' });
     }
@@ -983,7 +957,7 @@ app.post('/api/auth/setup', async (req, res) => {
         }
         const passwordHash = await hashPassword(password);
         const userId = await userStore.create(username, passwordHash, true);
-        const token = createSession(userId);
+        const token = await createSession(userId);
         res.json({ success: true, data: { token, userId, username, isAdmin: true } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -1005,7 +979,7 @@ app.post('/api/auth/login', async (req, res) => {
         if (!isValid) {
             return res.status(401).json({ success: false, error: 'Invalid username or password' });
         }
-        const token = createSession(user.id);
+        const token = await createSession(user.id);
         res.json({ success: true, data: { token, userId: user.id, username: user.username, isAdmin: user.isAdmin } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -1013,10 +987,10 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 // Logout
-app.post('/api/auth/logout', (req, res) => {
+app.post('/api/auth/logout', async (req, res) => {
     const token = req.headers['authorization']?.replace('Bearer ', '');
     if (token) {
-        deleteSession(token);
+        await deleteSession(token);
     }
     res.json({ success: true });
 });
@@ -5262,6 +5236,7 @@ async function start() {
     tokenBucketStore = await TokenBucketStore.create();
     selectionConfigStore = await SelectionConfigStore.create();
     thinkingSignatureCacheStore = await ThinkingSignatureCacheStore.create();
+    sessionStore = await SessionStore.create();
     thinkingBlocksParser = new ThinkingBlocksParser(thinkingSignatureCacheStore, SELECTION_CONFIG.thinking);
 
     // Initialize strategy manager with stores

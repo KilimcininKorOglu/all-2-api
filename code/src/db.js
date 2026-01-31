@@ -531,6 +531,18 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Create sessions table (for persistent login sessions)
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS sessions (
+            token VARCHAR(64) PRIMARY KEY,
+            user_id INT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL,
+            INDEX idx_user_id (user_id),
+            INDEX idx_expires_at (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     return pool;
 }
 
@@ -4302,5 +4314,61 @@ export class ThinkingSignatureCacheStore {
             createdAt: row.created_at,
             expiresAt: row.expires_at
         };
+    }
+}
+
+/**
+ * Session store for persistent login sessions
+ */
+export class SessionStore {
+    constructor(database) {
+        this.db = database;
+        this.expiryMs = 24 * 60 * 60 * 1000; // 24 hours
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new SessionStore(database);
+    }
+
+    async create(userId) {
+        const crypto = await import('crypto');
+        const token = crypto.randomBytes(32).toString('hex');
+        const expiresAt = new Date(Date.now() + this.expiryMs);
+
+        await this.db.execute(
+            'INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)',
+            [token, userId, expiresAt]
+        );
+
+        return token;
+    }
+
+    async get(token) {
+        const [rows] = await this.db.execute(
+            'SELECT user_id, created_at, expires_at FROM sessions WHERE token = ? AND expires_at > NOW()',
+            [token]
+        );
+
+        if (rows.length === 0) return null;
+
+        return {
+            userId: rows[0].user_id,
+            createdAt: rows[0].created_at,
+            expiresAt: rows[0].expires_at
+        };
+    }
+
+    async delete(token) {
+        await this.db.execute('DELETE FROM sessions WHERE token = ?', [token]);
+    }
+
+    async deleteByUserId(userId) {
+        await this.db.execute('DELETE FROM sessions WHERE user_id = ?', [userId]);
+    }
+
+    async cleanup() {
+        const [result] = await this.db.execute('DELETE FROM sessions WHERE expires_at < NOW()');
+        return result.affectedRows;
     }
 }
