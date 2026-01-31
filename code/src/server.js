@@ -4366,6 +4366,19 @@ app.post('/api/anthropic/credentials/:id/test', authMiddleware, async (req, res)
             return res.status(404).json({ success: false, error: 'Credential not found' });
         }
 
+        // Skip verification for OAuth tokens (sk-ant-oat...) as they don't support API calls
+        const isOAuthToken = credential.accessToken.startsWith('sk-ant-oat');
+        if (isOAuthToken) {
+            return res.json({
+                success: true,
+                data: {
+                    valid: true,
+                    message: 'OAuth token - verification skipped',
+                    rateLimits: null
+                }
+            });
+        }
+
         const verification = await verifyAnthropicCredentials(credential.accessToken, credential.apiBaseUrl);
 
         if (verification.valid && verification.rateLimits) {
