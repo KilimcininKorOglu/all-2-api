@@ -1155,13 +1155,12 @@ app.delete('/api/trial/admin/:id', authMiddleware, async (req, res) => {
 app.get('/api/keys', authMiddleware, async (req, res) => {
     try {
         const keys = req.user.isAdmin ? await apiKeyStore.getAll() : await apiKeyStore.getByUserId(req.userId);
-        // Return full info (including keyValue)
+        // Security: Never expose full keyValue in listings, only show prefix
         const safeKeys = keys.map(k => ({
             id: k.id,
             userId: k.userId,
             username: k.username,
             name: k.name,
-            keyValue: k.keyValue,
             keyPrefix: k.keyPrefix,
             isActive: k.isActive,
             lastUsedAt: k.lastUsedAt,
