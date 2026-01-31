@@ -212,7 +212,7 @@ function createCard(credential) {
             <div class="card-footer">
                 <span class="status-badge ${statusClass}">${statusText}</span>
                 <div class="card-actions">
-                    <button class="card-action-btn ${credential.isActive ? 'active' : ''}" title="${credential.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); activateCredential(${credential.id})">
+                    <button class="card-action-btn ${credential.isActive ? 'active' : ''}" title="${credential.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); toggleActiveCredential(${credential.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
@@ -615,7 +615,7 @@ function hideContextMenu() {
 async function handleContextAction(action, id) {
     switch (action) {
         case 'activate':
-            await activateCredential(id);
+            await toggleActiveCredential(id);
             break;
         case 'test':
             await testCredential(id);
@@ -629,18 +629,19 @@ async function handleContextAction(action, id) {
     }
 }
 
-// Activate credential
-async function activateCredential(id) {
+// Toggle credential active status
+async function toggleActiveCredential(id) {
     try {
-        const response = await fetch(`/api/vertex/credentials/${id}/activate`, {
+        const response = await fetch(`/api/vertex/credentials/${id}/toggle-active`, {
             method: 'POST'
         });
-        if (response.ok) {
-            showToast('Set as active', 'success');
+        const result = await response.json();
+        if (result.success) {
+            const statusText = result.data.isActive ? 'enabled' : 'disabled';
+            showToast('Account ' + statusText, 'success');
             await loadCredentials();
             await loadStatistics();
         } else {
-            const result = await response.json();
             showToast(result.error || 'Operation failed', 'error');
         }
     } catch (error) {

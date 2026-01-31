@@ -152,47 +152,24 @@ router.delete('/credentials/:id', async (req, res) => {
 });
 
 /**
- * Activate Bedrock credential
+ * Toggle Bedrock credential active status (enable/disable in pool)
  */
-router.post('/credentials/:id/activate', async (req, res) => {
+router.post('/credentials/:id/toggle-active', async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const store = await BedrockCredentialStore.create();
-        
-        const existing = await store.getById(id);
-        if (!existing) {
-            return res.status(404).json({ success: false, error: 'Credential not found' });
-        }
-        
-        await store.update(id, { isActive: true });
-        
-        log.info(`Successfully activated Bedrock credential: ${existing.name} (ID: ${id})`);
-        res.json({ success: true });
-    } catch (error) {
-        log.error(`Failed to activate Bedrock credential: ${error.message}`);
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
 
-/**
- * Deactivate Bedrock credential
- */
-router.post('/credentials/:id/deactivate', async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        const store = await BedrockCredentialStore.create();
-        
         const existing = await store.getById(id);
         if (!existing) {
             return res.status(404).json({ success: false, error: 'Credential not found' });
         }
-        
-        await store.update(id, { isActive: false });
-        
-        log.info(`Successfully deactivated Bedrock credential: ${existing.name} (ID: ${id})`);
-        res.json({ success: true });
+
+        const isActive = await store.toggleActive(id);
+
+        log.info(`Successfully ${isActive ? 'enabled' : 'disabled'} Bedrock credential: ${existing.name} (ID: ${id})`);
+        res.json({ success: true, data: { isActive } });
     } catch (error) {
-        log.error(`Failed to deactivate Bedrock credential: ${error.message}`);
+        log.error(`Failed to toggle Bedrock credential: ${error.message}`);
         res.status(500).json({ success: false, error: error.message });
     }
 });

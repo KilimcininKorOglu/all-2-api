@@ -615,12 +615,12 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // Activate Orchids credential
-    app.post('/api/orchids/credentials/:id/activate', async (req, res) => {
+    // Toggle Orchids credential active status (enable/disable in pool)
+    app.post('/api/orchids/credentials/:id/toggle-active', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
-            await orchidsStore.setActive(id);
-            res.json({ success: true, message: 'Credential activated' });
+            const isActive = await orchidsStore.toggleActive(id);
+            res.json({ success: true, data: { isActive } });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }

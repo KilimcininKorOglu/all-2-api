@@ -220,14 +220,14 @@ export async function setupVertexRoutes(app) {
         }
     });
 
-    // Activate Vertex credential
-    app.post('/api/vertex/credentials/:id/activate', async (req, res) => {
+    // Toggle Vertex credential active status (enable/disable in pool)
+    app.post('/api/vertex/credentials/:id/toggle-active', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
-            await vertexStore.setActive(id);
-            res.json({ success: true, message: 'Credential activated' });
+            const isActive = await vertexStore.toggleActive(id);
+            res.json({ success: true, data: { isActive } });
         } catch (error) {
-            res.status(500).json({ error: error.message });
+            res.status(500).json({ success: false, error: error.message });
         }
     });
 

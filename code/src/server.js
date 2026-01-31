@@ -1667,14 +1667,14 @@ app.post('/v1/messages', async (req, res) => {
         logData.model = model || 'claude-sonnet-4-20250514';
         logData.stream = !!stream;
 
-        // Get all available credentials
-        const credentials = await store.getAll();
+        // Get all active credentials (in pool)
+        const credentials = await store.getAllActive();
         if (credentials.length === 0) {
             decrementConcurrent(keyRecord.id, clientIp);
             logData.statusCode = 503;
-            logData.errorMessage = 'No available credentials';
+            logData.errorMessage = 'No active credentials';
             await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
-            return res.status(503).json({ error: { type: 'service_error', message: 'No available credentials' } });
+            return res.status(503).json({ error: { type: 'service_error', message: 'No active credentials' } });
         }
 
         // Build request body
@@ -2772,12 +2772,12 @@ app.post('/v1/chat/completions', async (req, res) => {
         logData.model = model || 'gpt-4';
         logData.stream = !!stream;
 
-        const credentials = await store.getAll();
+        const credentials = await store.getAllActive();
         if (credentials.length === 0) {
             logData.statusCode = 503;
-            logData.errorMessage = 'No available credentials';
+            logData.errorMessage = 'No active credentials';
             await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
-            return res.status(503).json({ error: { message: 'No available credentials', type: 'server_error' } });
+            return res.status(503).json({ error: { message: 'No active credentials', type: 'server_error' } });
         }
 
         // Smart credential selection (prefer idle ones, if all busy select shortest queue)
@@ -3130,12 +3130,12 @@ app.delete('/api/credentials/:id', authMiddleware, async (req, res) => {
     }
 });
 
-// Set active credential
-app.post('/api/credentials/:id/activate', authMiddleware, async (req, res) => {
+// Toggle credential active status (enable/disable in pool)
+app.post('/api/credentials/:id/toggle-active', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
-        await store.setActive(id);
-        res.json({ success: true });
+        const isActive = await store.toggleActive(id);
+        res.json({ success: true, data: { isActive } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }

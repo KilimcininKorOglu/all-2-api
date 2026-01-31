@@ -392,15 +392,17 @@ async function handleContextAction(action) {
 
     switch (action) {
         case 'activate':
-            const activateRes = await fetch('/api/credentials/' + id + '/activate', {
+            const activateRes = await fetch('/api/credentials/' + id + '/toggle-active', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + authToken }
             });
             const activateData = await activateRes.json();
             if (activateData.success) {
-                showToast('Set as active account', 'success');
+                const statusText = activateData.data.isActive ? 'enabled' : 'disabled';
+                showToast('Account ' + statusText, 'success');
+                await loadCredentials();
             } else {
-                showToast('Failed to activate: ' + (activateData.error || 'Unknown error'), 'error');
+                showToast('Failed to toggle: ' + (activateData.error || 'Unknown error'), 'error');
             }
             break;
         case 'refresh':

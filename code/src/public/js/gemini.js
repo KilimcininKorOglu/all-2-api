@@ -160,7 +160,7 @@ function createCardHTML(cred) {
                     ${formatDateShort(cred.createdAt)}
                 </span>
                 <div class="card-actions">
-                    <button class="action-btn ${cred.isActive ? 'active' : ''}" title="${cred.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); activateCredential(${cred.id})">
+                    <button class="action-btn ${cred.isActive ? 'active' : ''}" title="${cred.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); toggleActiveCredential(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
@@ -652,16 +652,17 @@ async function deleteCredential(id) {
     }
 }
 
-async function activateCredential(id) {
+async function toggleActiveCredential(id) {
     try {
-        const response = await fetch(`/api/gemini/credentials/${id}/activate`, {
+        const response = await fetch(`/api/gemini/credentials/${id}/toggle-active`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${authToken}` }
         });
 
         const result = await response.json();
         if (result.success) {
-            showToast('Set as active', 'success');
+            const statusText = result.data.isActive ? 'enabled' : 'disabled';
+            showToast('Account ' + statusText, 'success');
             await loadCredentials();
         } else {
             showToast('Operation failed: ' + result.error, 'error');
@@ -823,7 +824,7 @@ function handleContextMenuAction(e) {
             openChat(contextMenuTarget);
             break;
         case 'activate':
-            activateCredential(contextMenuTarget);
+            toggleActiveCredential(contextMenuTarget);
             break;
         case 'refresh':
             refreshToken(contextMenuTarget);

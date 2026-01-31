@@ -679,15 +679,25 @@ export class CredentialStore {
         return rows.map(row => this._mapRow(row));
     }
 
-    async getActive() {
-        const [rows] = await this.db.execute('SELECT * FROM credentials WHERE is_active = 1 LIMIT 1');
-        if (rows.length === 0) return null;
-        return this._mapRow(rows[0]);
+    async getAllActive() {
+        const [rows] = await this.db.execute('SELECT * FROM credentials WHERE is_active = 1 ORDER BY error_count ASC, updated_at DESC');
+        return rows.map(row => this._mapRow(row));
     }
 
-    async setActive(id) {
-        await this.db.execute('UPDATE credentials SET is_active = 0');
+    async toggleActive(id) {
+        const [rows] = await this.db.execute('SELECT is_active FROM credentials WHERE id = ?', [id]);
+        if (rows.length === 0) return false;
+        const newStatus = rows[0].is_active === 1 ? 0 : 1;
+        await this.db.execute('UPDATE credentials SET is_active = ? WHERE id = ?', [newStatus, id]);
+        return newStatus === 1;
+    }
+
+    async enable(id) {
         await this.db.execute('UPDATE credentials SET is_active = 1 WHERE id = ?', [id]);
+    }
+
+    async disable(id) {
+        await this.db.execute('UPDATE credentials SET is_active = 0 WHERE id = ?', [id]);
     }
 
     async importFromFile(filePath, name) {
@@ -1844,9 +1854,20 @@ export class GeminiCredentialStore {
         return rows.map(row => this._mapRow(row));
     }
 
-    async setActive(id) {
-        await this.db.execute('UPDATE gemini_credentials SET is_active = 0');
+    async toggleActive(id) {
+        const [rows] = await this.db.execute('SELECT is_active FROM gemini_credentials WHERE id = ?', [id]);
+        if (rows.length === 0) return false;
+        const newStatus = rows[0].is_active === 1 ? 0 : 1;
+        await this.db.execute('UPDATE gemini_credentials SET is_active = ? WHERE id = ?', [newStatus, id]);
+        return newStatus === 1;
+    }
+
+    async enable(id) {
         await this.db.execute('UPDATE gemini_credentials SET is_active = 1 WHERE id = ?', [id]);
+    }
+
+    async disable(id) {
+        await this.db.execute('UPDATE gemini_credentials SET is_active = 0 WHERE id = ?', [id]);
     }
 
     async updateUsage(id, usageData) {
@@ -2365,9 +2386,20 @@ export class OrchidsCredentialStore {
         return rows.map(row => this._mapRow(row));
     }
 
-    async setActive(id) {
-        await this.db.execute('UPDATE orchids_credentials SET is_active = 0');
+    async toggleActive(id) {
+        const [rows] = await this.db.execute('SELECT is_active FROM orchids_credentials WHERE id = ?', [id]);
+        if (rows.length === 0) return false;
+        const newStatus = rows[0].is_active === 1 ? 0 : 1;
+        await this.db.execute('UPDATE orchids_credentials SET is_active = ? WHERE id = ?', [newStatus, id]);
+        return newStatus === 1;
+    }
+
+    async enable(id) {
         await this.db.execute('UPDATE orchids_credentials SET is_active = 1 WHERE id = ?', [id]);
+    }
+
+    async disable(id) {
+        await this.db.execute('UPDATE orchids_credentials SET is_active = 0 WHERE id = ?', [id]);
     }
 
     async updateUsage(id, usageData) {
@@ -3216,9 +3248,20 @@ export class VertexCredentialStore {
         return this._mapRow(rows[0]);
     }
 
-    async setActive(id) {
-        await this.db.execute('UPDATE vertex_credentials SET is_active = 0');
+    async toggleActive(id) {
+        const [rows] = await this.db.execute('SELECT is_active FROM vertex_credentials WHERE id = ?', [id]);
+        if (rows.length === 0) return false;
+        const newStatus = rows[0].is_active === 1 ? 0 : 1;
+        await this.db.execute('UPDATE vertex_credentials SET is_active = ? WHERE id = ?', [newStatus, id]);
+        return newStatus === 1;
+    }
+
+    async enable(id) {
         await this.db.execute('UPDATE vertex_credentials SET is_active = 1 WHERE id = ?', [id]);
+    }
+
+    async disable(id) {
+        await this.db.execute('UPDATE vertex_credentials SET is_active = 0 WHERE id = ?', [id]);
     }
 
     async incrementUseCount(id) {
@@ -3905,9 +3948,20 @@ export class BedrockCredentialStore {
         return this._mapRow(rows[0]);
     }
 
-    async setActive(id) {
-        await this.db.execute('UPDATE bedrock_credentials SET is_active = 0');
+    async toggleActive(id) {
+        const [rows] = await this.db.execute('SELECT is_active FROM bedrock_credentials WHERE id = ?', [id]);
+        if (rows.length === 0) return false;
+        const newStatus = rows[0].is_active === 1 ? 0 : 1;
+        await this.db.execute('UPDATE bedrock_credentials SET is_active = ? WHERE id = ?', [newStatus, id]);
+        return newStatus === 1;
+    }
+
+    async enable(id) {
         await this.db.execute('UPDATE bedrock_credentials SET is_active = 1 WHERE id = ?', [id]);
+    }
+
+    async disable(id) {
+        await this.db.execute('UPDATE bedrock_credentials SET is_active = 0 WHERE id = ?', [id]);
     }
 
     async incrementUseCount(id) {

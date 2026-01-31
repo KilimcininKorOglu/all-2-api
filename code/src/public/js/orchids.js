@@ -279,7 +279,7 @@ function createCardHTML(cred) {
                     </div>
                 </div>
                 <div class="card-actions">
-                    <button class="card-action-btn ${cred.isActive ? 'active' : ''}" data-action="activate" title="${cred.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); activateAccount(${cred.id})">
+                    <button class="card-action-btn ${cred.isActive ? 'active' : ''}" data-action="activate" title="${cred.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); toggleActiveAccount(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
@@ -337,22 +337,23 @@ async function testAccount(id) {
     }
 }
 
-// Helper function: activate account
-async function activateAccount(id) {
+// Helper function: toggle account active status
+async function toggleActiveAccount(id) {
     try {
-        const res = await fetch(`/api/orchids/credentials/${id}/activate`, {
+        const res = await fetch(`/api/orchids/credentials/${id}/toggle-active`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
         const data = await res.json();
         if (data.success) {
-            showToast('Account activated', 'success');
+            const statusText = data.data.isActive ? 'enabled' : 'disabled';
+            showToast('Account ' + statusText, 'success');
         } else {
-            showToast('Activation failed: ' + (data.error || 'Unknown error'), 'error');
+            showToast('Toggle failed: ' + (data.error || 'Unknown error'), 'error');
         }
         await loadCredentials();
     } catch (e) {
-        showToast('Activation failed: ' + e.message, 'error');
+        showToast('Toggle failed: ' + e.message, 'error');
     }
 }
 

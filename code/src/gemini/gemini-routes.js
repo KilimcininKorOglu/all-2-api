@@ -320,12 +320,12 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
         }
     });
 
-    // Activate Gemini credential
-    app.post('/api/gemini/credentials/:id/activate', async (req, res) => {
+    // Toggle Gemini credential active status (enable/disable in pool)
+    app.post('/api/gemini/credentials/:id/toggle-active', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
-            await geminiStore.setActive(id);
-            res.json({ success: true });
+            const isActive = await geminiStore.toggleActive(id);
+            res.json({ success: true, data: { isActive } });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
