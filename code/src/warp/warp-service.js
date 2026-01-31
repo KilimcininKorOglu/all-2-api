@@ -5,7 +5,6 @@
 
 import https from 'https';
 import axios from 'axios';
-import { HttpsProxyAgent } from 'https-proxy-agent';
 
 // Firebase API Key
 const FIREBASE_API_KEY = 'AIzaSyBdy3O3S9hrdayLJxJ7mriBR4qgUaUygAs';
@@ -165,11 +164,9 @@ export function getEmailFromToken(token) {
 
 /**
  * Refresh access token using refresh token
- * Uses axios with proxy support (safer than shell commands)
  */
 export async function refreshAccessToken(refreshToken) {
     const url = `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`;
-    const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
 
     const axiosConfig = {
         method: 'POST',
@@ -184,28 +181,8 @@ export async function refreshAccessToken(refreshToken) {
         timeout: 30000
     };
 
-    // Configure proxy if available
-    if (proxyUrl) {
-        axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
-    }
-
     try {
-        let response;
-
-        // Try with proxy first if configured
-        if (proxyUrl) {
-            try {
-                response = await axios(axiosConfig);
-            } catch (proxyError) {
-                console.log('[Warp] Proxy request failed, trying direct connection...');
-                // Retry without proxy
-                delete axiosConfig.httpsAgent;
-                response = await axios(axiosConfig);
-            }
-        } else {
-            response = await axios(axiosConfig);
-        }
-
+        const response = await axios(axiosConfig);
         const json = response.data;
 
         if (json.error) {

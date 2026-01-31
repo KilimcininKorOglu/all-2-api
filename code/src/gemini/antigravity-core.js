@@ -11,7 +11,6 @@ import http from 'http';
 import https from 'https';
 import crypto from 'crypto';
 import { logger } from '../logger.js';
-import { getProxyAgent } from '../proxy.js';
 
 // Active callback server
 let activeCallbackServer = null;
@@ -394,21 +393,11 @@ export class AntigravityApiService {
         this.availableModels = GEMINI_MODELS;
         this.isInitialized = false;
 
-        // Get proxy configuration
-        const proxyAgent = getProxyAgent();
-
-        // Create OAuth2 client (with proxy support)
+        // Create OAuth2 client
         const authClientOptions = {
             clientId: OAUTH_CLIENT_ID,
             clientSecret: OAUTH_CLIENT_SECRET
         };
-
-        if (proxyAgent) {
-            authClientOptions.transporterOptions = {
-                agent: proxyAgent
-            };
-            console.log('[Antigravity] OAuth2Client proxy configured');
-        }
 
         this.authClient = new OAuth2Client(authClientOptions);
     }
@@ -426,14 +415,6 @@ export class AntigravityApiService {
             refresh_token: credentials.refreshToken,
             expiry_date: credentials.expiresAt ? new Date(credentials.expiresAt).getTime() : null
         });
-
-        // Ensure proxy configuration is applied
-        const proxyAgent = getProxyAgent();
-        if (proxyAgent && !service.authClient._transporterOptions?.agent) {
-            service.authClient._transporterOptions = {
-                agent: proxyAgent
-            };
-        }
 
         return service;
     }
@@ -574,15 +555,6 @@ export class AntigravityApiService {
         console.log('[Antigravity] Fetching available models...');
         const axios = (await import('axios')).default;
 
-        // Get proxy configuration (database config takes priority, then environment variables)
-        let proxyAgent = getProxyAgent();
-        const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-
-        if (!proxyAgent && proxyUrl) {
-            const { HttpsProxyAgent } = await import('https-proxy-agent');
-            proxyAgent = new HttpsProxyAgent(proxyUrl);
-        }
-
         for (const baseURL of this.baseURLs) {
             try {
                 const modelsURL = `${baseURL}/${ANTIGRAVITY_API_VERSION}:fetchAvailableModels`;
@@ -598,12 +570,6 @@ export class AntigravityApiService {
                     data: { project: this.projectId },
                     timeout: REQUEST_TIMEOUT
                 };
-
-                // Add proxy configuration
-                if (proxyAgent) {
-                    axiosConfig.httpsAgent = proxyAgent;
-                    axiosConfig.proxy = false;
-                }
 
                 const res = await axios(axiosConfig);
                 if (res.data && res.data.models) {
@@ -694,15 +660,6 @@ export class AntigravityApiService {
         const baseDelay = this.config.baseDelay || 1000;
         const axios = (await import('axios')).default;
 
-        // Get proxy configuration (database config takes priority, then environment variables)
-        let proxyAgent = getProxyAgent();
-        const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-
-        if (!proxyAgent && proxyUrl) {
-            const { HttpsProxyAgent } = await import('https-proxy-agent');
-            proxyAgent = new HttpsProxyAgent(proxyUrl);
-        }
-
         if (baseURLIndex >= this.baseURLs.length) {
             throw new Error('All Antigravity base URLs failed');
         }
@@ -727,12 +684,6 @@ export class AntigravityApiService {
                 data: body,
                 timeout: REQUEST_TIMEOUT
             };
-
-            // Add proxy configuration
-            if (proxyAgent) {
-                axiosConfig.httpsAgent = proxyAgent;
-                axiosConfig.proxy = false;
-            }
 
             const res = await axios(axiosConfig);
             return res.data;
@@ -765,16 +716,6 @@ export class AntigravityApiService {
      * Streaming API call
      */
     async *streamApi(method, body, isRetry = false) {
-        // Get proxy configuration (database config takes priority, then environment variables)
-        let proxyAgent = getProxyAgent();
-        const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-
-        if (!proxyAgent && proxyUrl) {
-            const { HttpsProxyAgent } = await import('https-proxy-agent');
-            proxyAgent = new HttpsProxyAgent(proxyUrl);
-            console.log('[Antigravity Stream] Using env proxy:', proxyUrl);
-        }
-
         const axios = (await import('axios')).default;
 
         for (let baseURLIndex = 0; baseURLIndex < this.baseURLs.length; baseURLIndex++) {
@@ -805,13 +746,6 @@ export class AntigravityApiService {
                     responseType: 'stream',
                     timeout: REQUEST_TIMEOUT
                 };
-
-                // If proxy exists, add proxy configuration
-                if (proxyAgent) {
-                    axiosConfig.httpsAgent = proxyAgent;
-                    axiosConfig.proxy = false;
-                    console.log('[Antigravity Stream] Using proxy agent');
-                }
 
                 const response = await axios(axiosConfig);
 
@@ -1009,15 +943,6 @@ export class AntigravityApiService {
 
         const axios = (await import('axios')).default;
 
-        // Get proxy configuration (database config takes priority, then environment variables)
-        let proxyAgent = getProxyAgent();
-        const proxyUrl = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-
-        if (!proxyAgent && proxyUrl) {
-            const { HttpsProxyAgent } = await import('https-proxy-agent');
-            proxyAgent = new HttpsProxyAgent(proxyUrl);
-        }
-
         for (const baseURL of this.baseURLs) {
             try {
                 const modelsURL = `${baseURL}/${ANTIGRAVITY_API_VERSION}:fetchAvailableModels`;
@@ -1033,12 +958,6 @@ export class AntigravityApiService {
                     data: { project: this.projectId },
                     timeout: REQUEST_TIMEOUT
                 };
-
-                // Add proxy configuration
-                if (proxyAgent) {
-                    axiosConfig.httpsAgent = proxyAgent;
-                    axiosConfig.proxy = false;
-                }
 
                 const res = await axios(axiosConfig);
                 console.log(`[Antigravity] fetchAvailableModels success`);
@@ -1145,27 +1064,10 @@ export async function getTokenFromCode(code, redirectUri) {
 }
 
 /**
- * Refresh Token (with proxy support)
+ * Refresh Token
  */
 export async function refreshGeminiToken(refreshToken) {
-    // Get proxy configuration
-    let proxyAgent = getProxyAgent();
-    const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.HTTP_PROXY;
-
-    if (!proxyAgent && proxyUrl) {
-        const { HttpsProxyAgent } = await import('https-proxy-agent');
-        proxyAgent = new HttpsProxyAgent(proxyUrl);
-    }
-
-    // Create OAuth2Client with proxy
-    const authClientOptions = {};
-    if (proxyAgent) {
-        authClientOptions.transporterOptions = {
-            agent: proxyAgent
-        };
-    }
-
-    const authClient = new OAuth2Client(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET, undefined, authClientOptions);
+    const authClient = new OAuth2Client(OAUTH_CLIENT_ID, OAUTH_CLIENT_SECRET);
     authClient.setCredentials({ refresh_token: refreshToken });
 
     const { credentials } = await authClient.refreshAccessToken();
@@ -1230,20 +1132,6 @@ export async function startOAuthFlow(options = {}) {
                     try {
                         console.log('[Gemini OAuth] Getting Token...');
 
-                        // Get proxy configuration (project config takes priority, then environment variables)
-                        let proxyAgent = getProxyAgent();
-                        const proxyUrl = process.env.https_proxy || process.env.HTTPS_PROXY || process.env.http_proxy || process.env.HTTP_PROXY;
-
-                        if (!proxyAgent && proxyUrl) {
-                            const { HttpsProxyAgent } = await import('https-proxy-agent');
-                            proxyAgent = new HttpsProxyAgent(proxyUrl);
-                            console.log('[Gemini OAuth] Using environment variable proxy:', proxyUrl);
-                        } else if (proxyAgent) {
-                            console.log('[Gemini OAuth] Using project config proxy');
-                        } else {
-                            console.log('[Gemini OAuth] No proxy configured, direct connection');
-                        }
-
                         // Directly use axios to request token, bypassing OAuth2Client
                         const axios = (await import('axios')).default;
                         const tokenResponse = await axios.post('https://oauth2.googleapis.com/token', {
@@ -1256,8 +1144,6 @@ export async function startOAuthFlow(options = {}) {
                             headers: {
                                 'Content-Type': 'application/json'
                             },
-                            httpsAgent: proxyAgent,
-                            proxy: false,
                             timeout: 30000
                         });
 

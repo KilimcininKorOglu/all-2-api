@@ -7,7 +7,6 @@ import crypto from 'crypto';
 import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, KIRO_OAUTH_CONFIG, buildCodeWhispererUrl } from '../constants.js';
 import { CredentialStore } from '../db.js';
 import { logger } from '../logger.js';
-import { getAxiosProxyConfig } from '../proxy.js';
 
 const log = logger.client;
 const logToken = logger.token;
@@ -77,7 +76,6 @@ export class KiroClient {
 
         this.axiosInstance = axios.create({
             timeout: KIRO_CONSTANTS.AXIOS_TIMEOUT,
-            ...getAxiosProxyConfig(),
             headers: {
                 'Content-Type': KIRO_CONSTANTS.CONTENT_TYPE_JSON,
                 'Accept': KIRO_CONSTANTS.ACCEPT_JSON,
@@ -223,8 +221,7 @@ export class KiroClient {
 
                 const response = await axios.post(refreshUrl, requestBody, {
                     headers: requestHeaders,
-                    timeout: 30000,
-                    ...getAxiosProxyConfig()
+                    timeout: 30000
                 });
 
                 newAccessToken = response.data.accessToken;
@@ -255,8 +252,7 @@ export class KiroClient {
 
                 const response = await axios.post(refreshUrl, requestBody, {
                     headers: requestHeaders,
-                    timeout: 30000,
-                    ...getAxiosProxyConfig()
+                    timeout: 30000
                 });
 
                 // Response fields use camelCase (consistent with social auth)

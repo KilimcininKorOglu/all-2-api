@@ -4,7 +4,6 @@
  */
 
 import { getApiUrl, buildHeaders, resolveModelAlias, ANTHROPIC_TIMEOUT } from './constants.js';
-import { getProxyAgent, getAxiosProxyConfig } from '../proxy.js';
 
 /**
  * Parse rate limit headers from Anthropic response

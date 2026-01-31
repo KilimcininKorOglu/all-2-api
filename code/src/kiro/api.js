@@ -8,7 +8,6 @@ import os from 'os';
 import crypto from 'crypto';
 import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, buildCodeWhispererUrl } from '../constants.js';
 import { logger } from '../logger.js';
-import { getAxiosProxyConfig } from '../proxy.js';
 
 const log = logger.api;
 
@@ -43,11 +42,9 @@ function createAxiosInstance(credential) {
     const machineId = generateMachineId(credential);
     const { osName, nodeVersion } = getSystemInfo();
     const kiroVersion = KIRO_CONSTANTS.KIRO_VERSION;
-    const proxyConfig = getAxiosProxyConfig();
 
     return axios.create({
         timeout: KIRO_CONSTANTS.AXIOS_TIMEOUT,
-        ...proxyConfig,
         headers: {
             'Content-Type': KIRO_CONSTANTS.CONTENT_TYPE_JSON,
             'Accept': KIRO_CONSTANTS.ACCEPT_JSON,
@@ -100,12 +97,10 @@ export class KiroAPI {
                 const requestHeaders = { 'Content-Type': 'application/json' };
                 log.request('POST', url);
                 log.curl('POST', url, requestHeaders, requestBody);
-                const proxyConfig = getAxiosProxyConfig();
 
                 response = await axios.post(url, requestBody, {
                     headers: requestHeaders,
-                    timeout: 30000,
-                    ...proxyConfig
+                    timeout: 30000
                 });
 
                 newAccessToken = response.data.accessToken;
@@ -138,8 +133,7 @@ export class KiroAPI {
 
                 response = await axios.post(url, requestBody, {
                     headers: requestHeaders,
-                    timeout: 30000,
-                    ...getAxiosProxyConfig()
+                    timeout: 30000
                 });
 
                 // Response fields use camelCase (consistent with social auth)

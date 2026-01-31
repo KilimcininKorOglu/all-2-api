@@ -7,7 +7,6 @@ import WebSocket from 'ws';
 import axios from 'axios';
 import https from 'https';
 import { logger } from '../logger.js';
-import { getAxiosProxyConfig } from '../proxy.js';
 
 const log = logger.api;
 
@@ -93,15 +92,13 @@ export class OrchidsChatService {
      */
     async _getSessionFromClerk() {
         try {
-            const proxyConfig = getAxiosProxyConfig();
             const response = await axios.get(ORCHIDS_CHAT_CONSTANTS.CLERK_CLIENT_URL, {
                 headers: {
                     'Cookie': `__client=${this.clientJwt}`,
                     'Origin': ORCHIDS_CHAT_CONSTANTS.ORIGIN,
                     'User-Agent': ORCHIDS_CHAT_CONSTANTS.USER_AGENT,
                 },
-                timeout: 30000,
-                ...proxyConfig
+                timeout: 30000
             });
 
             if (response.status !== 200) {
@@ -355,9 +352,7 @@ export class OrchidsChatService {
         await this.ensureValidToken();
         
         const payload = this._buildHttpRequest(model, prompt);
-        
-        const proxyConfig = getAxiosProxyConfig();
-        
+
         try {
             const response = await axios({
                 method: 'POST',
@@ -370,8 +365,7 @@ export class OrchidsChatService {
                     'X-Orchids-Api-Version': String(ORCHIDS_CHAT_CONSTANTS.API_VERSION),
                 },
                 responseType: 'stream',
-                timeout: ORCHIDS_CHAT_CONSTANTS.DEFAULT_TIMEOUT,
-                ...proxyConfig
+                timeout: ORCHIDS_CHAT_CONSTANTS.DEFAULT_TIMEOUT
             });
             
             console.log(`[Orchids] [${requestId}] HTTP SSE connection successful`);

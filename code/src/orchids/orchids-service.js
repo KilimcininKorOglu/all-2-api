@@ -5,7 +5,6 @@
  */
 import axios from 'axios';
 import { logger } from '../logger.js';
-import { getAxiosProxyConfig } from '../proxy.js';
 
 const log = logger.api;
 
@@ -51,7 +50,6 @@ export class OrchidsAPI {
         log.info('Getting full account info from Clerk API');
 
         try {
-            const proxyConfig = getAxiosProxyConfig();
             const response = await axios.get(ORCHIDS_CONSTANTS.CLERK_CLIENT_URL_V2, {
                 headers: {
                     'Cookie': `__client=${clientJwt}`,
@@ -59,8 +57,7 @@ export class OrchidsAPI {
                     'User-Agent': ORCHIDS_CONSTANTS.USER_AGENT,
                     'Accept-Language': 'zh-CN',
                 },
-                timeout: ORCHIDS_CONSTANTS.DEFAULT_TIMEOUT,
-                ...proxyConfig
+                timeout: ORCHIDS_CONSTANTS.DEFAULT_TIMEOUT
             });
 
             if (response.status !== 200) {
@@ -369,8 +366,6 @@ export class OrchidsAPI {
         log.info('Getting Orchids account usage info');
 
         try {
-            const proxyConfig = getAxiosProxyConfig();
-            
             // First get user info from Clerk API (may contain metadata)
             const clerkResponse = await axios.get(ORCHIDS_CONSTANTS.CLERK_CLIENT_URL_V2, {
                 headers: {
@@ -379,8 +374,7 @@ export class OrchidsAPI {
                     'User-Agent': ORCHIDS_CONSTANTS.USER_AGENT,
                     'Accept-Language': 'zh-CN',
                 },
-                timeout: ORCHIDS_CONSTANTS.DEFAULT_TIMEOUT,
-                ...proxyConfig
+                timeout: ORCHIDS_CONSTANTS.DEFAULT_TIMEOUT
             });
 
             if (clerkResponse.status !== 200) {
@@ -492,8 +486,6 @@ export class OrchidsAPI {
      * @returns {Promise<Object|null>} Usage data
      */
     static async _getUsageFromOrchidsAPI(clientJwt, wsToken) {
-        const proxyConfig = getAxiosProxyConfig();
-        
         // Try multiple possible usage API endpoints
         const possibleEndpoints = [
             `${ORCHIDS_CONSTANTS.ORCHIDS_API_BASE}/api/usage`,
@@ -519,8 +511,7 @@ export class OrchidsAPI {
             try {
                 const response = await axios.get(endpoint, {
                     headers,
-                    timeout: 10000,
-                    ...proxyConfig
+                    timeout: 10000
                 });
 
                 if (response.status === 200 && response.data) {

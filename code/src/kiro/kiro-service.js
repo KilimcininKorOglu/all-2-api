@@ -8,7 +8,6 @@ import * as crypto from 'crypto';
 import * as http from 'http';
 import * as https from 'https';
 import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, buildCodeWhispererUrl } from '../constants.js';
-import { getAxiosProxyConfig } from '../proxy.js';
 import { logger } from '../logger.js';
 
 const log = logger.client;
@@ -72,13 +71,6 @@ export class KiroService {
                 'Connection': 'close'
             },
         };
-
-        const proxyConfig = getAxiosProxyConfig();
-        if (proxyConfig.proxy === false) {
-            axiosConfig.proxy = false;
-        } else if (proxyConfig.httpsAgent) {
-            axiosConfig.httpsAgent = proxyConfig.httpsAgent;
-        }
 
         this.axiosInstance = axios.create(axiosConfig);
         this.baseUrl = buildCodeWhispererUrl(KIRO_CONSTANTS.BASE_URL, this.region);

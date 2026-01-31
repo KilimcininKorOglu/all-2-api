@@ -5,7 +5,6 @@
 import axios from 'axios';
 import crypto from 'crypto';
 import { logger } from '../logger.js';
-import { getAxiosProxyConfig } from '../proxy.js';
 import { BEDROCK_CONSTANTS, BEDROCK_MODEL_MAPPING, BEDROCK_MODELS } from '../constants.js';
 
 const log = logger.api;
@@ -152,8 +151,7 @@ export class BedrockClient {
         });
 
         this.axiosInstance = axios.create({
-            timeout: BEDROCK_CONSTANTS.AXIOS_TIMEOUT,
-            ...getAxiosProxyConfig()
+            timeout: BEDROCK_CONSTANTS.AXIOS_TIMEOUT
         });
     }
 
@@ -366,8 +364,7 @@ export class BedrockClient {
         });
 
         const config = {
-            headers: signedHeaders,
-            ...getAxiosProxyConfig()
+            headers: signedHeaders
         };
 
         if (stream) {

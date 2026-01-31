@@ -18,7 +18,6 @@ import { setupWarpRoutes } from './warp/warp-routes.js';
 import { setupWarpMultiAgentRoutes } from './warp/warp-multi-agent.js';
 import { setupWarpProxyRoutes } from './warp/warp-proxy.js';
 import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore } from './constants.js';
-import { initProxyConfig, getProxyConfig, saveProxyConfig, testProxyConnection, getAxiosProxyConfig } from './proxy.js';
 import {
     AntigravityApiService,
     GEMINI_MODELS,
@@ -4879,56 +4878,6 @@ app.post('/api/chat/:id/sync', async (req, res) => {
     }
 });
 
-// ============ Proxy Configuration API ============
-
-// Get proxy configuration
-app.get('/api/proxy/config', authMiddleware, async (req, res) => {
-    try {
-        const config = getProxyConfig() || { enabled: false, proxyUrl: '' };
-        res.json({ success: true, data: config });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Save proxy configuration
-app.post('/api/proxy/config', authMiddleware, async (req, res) => {
-    try {
-        const { enabled, proxyUrl } = req.body;
-
-        const config = {
-            enabled: !!enabled,
-            proxyUrl: proxyUrl || ''
-        };
-
-        await saveProxyConfig(config);
-
-        res.json({
-            success: true,
-            message: enabled ? 'Proxy enabled' : 'Proxy disabled',
-            data: config
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Test proxy connection
-app.post('/api/proxy/test', authMiddleware, async (req, res) => {
-    try {
-        const { proxyUrl } = req.body;
-
-        if (!proxyUrl) {
-            return res.status(400).json({ success: false, error: 'Please provide proxy address' });
-        }
-
-        const result = await testProxyConnection(proxyUrl);
-        res.json({ success: result.success, message: result.message, ip: result.ip });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
 // ============ Public API (no login required) ============
 
 // Public API Key usage query
@@ -5084,20 +5033,6 @@ async function start() {
     }).catch(() => {
         console.log(`[${getTimestamp()}] Using static pricing only`);
     });
-
-    // Initialize proxy configuration
-    const proxyConfig = await initProxyConfig();
-    if (proxyConfig && proxyConfig.enabled) {
-        // console.log(`[${getTimestamp()}] Proxy enabled: ${proxyConfig.proxyUrl}`);
-    }
-
-    // Detect environment variable proxy
-    const envProxy = process.env.HTTPS_PROXY || process.env.https_proxy || process.env.HTTP_PROXY || process.env.http_proxy;
-    if (envProxy) {
-        // console.log(`[${getTimestamp()}] Detected environment variable proxy: ${envProxy}`);
-    } else {
-        // console.log(`[${getTimestamp()}] No environment variable proxy detected (HTTPS_PROXY/HTTP_PROXY)`);
-    }
 
     // Auto-create default admin account (if no users exist)
     if (!await userStore.hasUsers()) {
@@ -5444,8 +5379,7 @@ async function refreshErrorCredential(errorCred) {
                 refreshToken: errorCred.refreshToken
             }, {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 30000,
-                ...getAxiosProxyConfig()
+                timeout: 30000
             });
 
             newAccessToken = response.data.accessToken;
@@ -5471,8 +5405,7 @@ async function refreshErrorCredential(errorCred) {
                 grantType: 'refresh_token'
             }, {
                 headers: { 'Content-Type': 'application/json' },
-                timeout: 30000,
-                ...getAxiosProxyConfig()
+                timeout: 30000
             });
 
             // Response fields use camelCase

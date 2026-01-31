@@ -5,7 +5,6 @@
 import axios from 'axios';
 import fs from 'fs/promises';
 import { logger } from '../logger.js';
-import { getAxiosProxyConfig } from '../proxy.js';
 
 const log = logger.api;
 
@@ -146,8 +145,6 @@ export class VertexClient {
         console.log('[Vertex] JWT signing completed');
 
         // Exchange JWT for access token
-        const proxyConfig = getAxiosProxyConfig();
-        console.log(`[Vertex] Proxy config: ${proxyConfig.httpsAgent ? 'enabled' : 'disabled'}`);
         console.log('[Vertex] Requesting oauth2.googleapis.com/token ...');
 
         const response = await axios.post('https://oauth2.googleapis.com/token', {
@@ -155,8 +152,7 @@ export class VertexClient {
             assertion: jwt
         }, {
             headers: { 'Content-Type': 'application/json' },
-            timeout: 30000,
-            ...proxyConfig
+            timeout: 30000
         });
 
         console.log('[Vertex] oauth2 token obtained successfully');
@@ -304,8 +300,6 @@ export class VertexClient {
         log.info(`Vertex AI Gemini request: ${url}`);
         log.debug(`Request data: ${JSON.stringify(requestData).substring(0, 500)}...`);
 
-        const proxyConfig = getAxiosProxyConfig();
-        console.log(`[Vertex/Gemini] Proxy config: ${proxyConfig.httpsAgent ? 'enabled' : 'disabled'}`);
         console.log('[Vertex/Gemini] Sending request to Vertex AI...');
 
         try {
@@ -314,11 +308,10 @@ export class VertexClient {
                     'Authorization': `Bearer ${accessToken}`,
                     'Content-Type': 'application/json'
                 },
-                timeout: 300000,
-                ...proxyConfig
+                timeout: 300000
             };
 
-            if (!this.sslVerify && !proxyConfig.httpsAgent) {
+            if (!this.sslVerify) {
                 requestConfig.httpsAgent = new (await import('https')).Agent({ rejectUnauthorized: false });
             }
 
@@ -347,19 +340,16 @@ export class VertexClient {
 
         const requestData = this._convertGeminiRequest(messages, model, options);
 
-        const proxyConfig = getAxiosProxyConfig();
-
         const requestConfig = {
             headers: {
                 'Authorization': `Bearer ${accessToken}`,
                 'Content-Type': 'application/json'
             },
             timeout: 300000,
-            responseType: 'stream',
-            ...proxyConfig
+            responseType: 'stream'
         };
 
-        if (!this.sslVerify && !proxyConfig.httpsAgent) {
+        if (!this.sslVerify) {
             requestConfig.httpsAgent = new (await import('https')).Agent({ rejectUnauthorized: false });
         }
 
