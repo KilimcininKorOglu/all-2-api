@@ -11,6 +11,18 @@ export const ANTHROPIC_VERSION = '2023-06-01';
 
 // Beta features
 export const ANTHROPIC_BETA = 'interleaved-thinking-2025-05-14,output-128k-2025-02-19';
+export const ANTHROPIC_BETA_OAUTH = 'oauth-2025-04-20,interleaved-thinking-2025-05-14';
+
+// OAuth token prefix
+export const OAUTH_TOKEN_PREFIX = 'sk-ant-oat';
+
+// Required system prompt for OAuth tokens
+export const CLAUDE_CODE_SYSTEM_PROMPT = [
+    {
+        type: 'text',
+        text: "You are Claude Code, Anthropic's official CLI for Claude."
+    }
+];
 
 // Request timeout
 export const ANTHROPIC_TIMEOUT = 300000; // 5 minutes
@@ -61,17 +73,27 @@ export function getApiUrl(account) {
 }
 
 /**
+ * Check if token is OAuth format
+ * @param {string} token - Access token
+ * @returns {boolean}
+ */
+export function isOAuthToken(token) {
+    return token && token.startsWith(OAUTH_TOKEN_PREFIX);
+}
+
+/**
  * Build request headers
- * @param {string} accessToken - API key
+ * @param {string} accessToken - API key or OAuth token
  * @returns {object} Headers
  */
 export function buildHeaders(accessToken) {
+    const isOAuth = isOAuthToken(accessToken);
     return {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${accessToken}`,
         'anthropic-version': ANTHROPIC_VERSION,
-        'anthropic-beta': ANTHROPIC_BETA,
-        'User-Agent': 'kiro-api/1.0.0'
+        'anthropic-beta': isOAuth ? ANTHROPIC_BETA_OAUTH : ANTHROPIC_BETA,
+        'User-Agent': 'claude-cli/2.1.2 (external, cli)'
     };
 }
 

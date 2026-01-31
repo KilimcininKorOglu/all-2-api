@@ -3,7 +3,7 @@
  * Direct API access with custom endpoint support
  */
 
-import { getApiUrl, buildHeaders, resolveModelAlias, ANTHROPIC_TIMEOUT } from './constants.js';
+import { getApiUrl, buildHeaders, resolveModelAlias, ANTHROPIC_TIMEOUT, isOAuthToken, CLAUDE_CODE_SYSTEM_PROMPT } from './constants.js';
 
 /**
  * Parse rate limit headers from Anthropic response
@@ -13,6 +13,24 @@ import { getApiUrl, buildHeaders, resolveModelAlias, ANTHROPIC_TIMEOUT } from '.
 export function parseRateLimits(headers) {
     const rateLimits = {};
     let hasData = false;
+
+    // OAuth unified rate limits (5-hour and 7-day)
+    const unified5hUtilization = headers.get('anthropic-ratelimit-unified-5h-utilization');
+    const unified5hReset = headers.get('anthropic-ratelimit-unified-5h-reset');
+    const unified7dUtilization = headers.get('anthropic-ratelimit-unified-7d-utilization');
+    const unified7dReset = headers.get('anthropic-ratelimit-unified-7d-reset');
+
+    if (unified5hUtilization || unified7dUtilization) {
+        rateLimits.unified5h = {
+            utilization: unified5hUtilization ? parseFloat(unified5hUtilization) : null,
+            reset: unified5hReset || null
+        };
+        rateLimits.unified7d = {
+            utilization: unified7dUtilization ? parseFloat(unified7dUtilization) : null,
+            reset: unified7dReset || null
+        };
+        hasData = true;
+    }
 
     // Request limits
     const requestsLimit = headers.get('anthropic-ratelimit-requests-limit');
@@ -216,7 +234,7 @@ export async function* sendMessageStream(request, account) {
 
 /**
  * Verify Anthropic API credentials
- * @param {string} accessToken - API key
+ * @param {string} accessToken - API key or OAuth token
  * @param {string} apiBaseUrl - Custom API URL (optional)
  * @returns {Promise<object>} Verification result
  */
@@ -224,18 +242,27 @@ export async function verifyCredentials(accessToken, apiBaseUrl = null) {
     const account = { accessToken, apiBaseUrl };
     const apiUrl = getApiUrl(account);
     const headers = buildHeaders(accessToken);
+    const isOAuth = isOAuthToken(accessToken);
+
+    // Build request body - OAuth tokens require system prompt
+    const requestBody = {
+        model: isOAuth ? 'claude-haiku-4-5' : 'claude-3-haiku-20240307',
+        max_tokens: 10,
+        messages: [{ role: 'user', content: 'hi' }]
+    };
+
+    // OAuth tokens require the Claude Code system prompt
+    if (isOAuth) {
+        requestBody.system = CLAUDE_CODE_SYSTEM_PROMPT;
+    }
 
     try {
-        console.log(`[Anthropic] Verifying credentials via ${apiUrl}`);
+        console.log(`[Anthropic] Verifying ${isOAuth ? 'OAuth' : 'API'} credentials via ${apiUrl}`);
 
         const response = await fetch(apiUrl, {
             method: 'POST',
             headers,
-            body: JSON.stringify({
-                model: 'claude-3-haiku-20240307',
-                max_tokens: 10,
-                messages: [{ role: 'user', content: 'hi' }]
-            })
+            body: JSON.stringify(requestBody)
         });
 
         const rateLimits = parseRateLimits(response.headers);
