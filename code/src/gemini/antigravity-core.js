@@ -41,9 +41,75 @@ const OAUTH_SCOPE = ['https://www.googleapis.com/auth/cloud-platform'];
 const OAUTH_CALLBACK_PORT = 8086;
 
 // Default configuration
-const DEFAULT_USER_AGENT = 'antigravity/1.11.9 windows/amd64';
+const FALLBACK_VERSION = '1.15.8';
+const VERSION_FETCH_URL = 'https://antigravity-auto-updater-837917073086.us-central1.run.app/app-updater/latest';
+const VERSION_FETCH_TIMEOUT = 3000; // 3 seconds
 const REFRESH_SKEW = 3000; // 3000 seconds (50 minutes) early token refresh
 const REQUEST_TIMEOUT = 120000; // 2 minutes
+
+// Cached version info
+let cachedVersion = null;
+let versionFetchPromise = null;
+
+/**
+ * Fetch the latest Antigravity version from auto-updater endpoint
+ * @returns {Promise<string>} The latest version string
+ */
+async function fetchLatestAntigravityVersion() {
+    // Return cached version if available
+    if (cachedVersion) {
+        return cachedVersion;
+    }
+
+    // If fetch is already in progress, wait for it
+    if (versionFetchPromise) {
+        return versionFetchPromise;
+    }
+
+    versionFetchPromise = (async () => {
+        try {
+            const axios = (await import('axios')).default;
+            const response = await axios.get(VERSION_FETCH_URL, {
+                timeout: VERSION_FETCH_TIMEOUT,
+                headers: {
+                    'Accept': 'text/plain'
+                }
+            });
+
+            const versionMatch = String(response.data).match(/\d+\.\d+\.\d+/);
+            if (versionMatch) {
+                cachedVersion = versionMatch[0];
+                console.log(`[Antigravity] Fetched latest version: ${cachedVersion}`);
+                return cachedVersion;
+            }
+        } catch (error) {
+            console.log(`[Antigravity] Failed to fetch latest version: ${error.message}, using fallback ${FALLBACK_VERSION}`);
+        }
+
+        cachedVersion = FALLBACK_VERSION;
+        return cachedVersion;
+    })();
+
+    return versionFetchPromise;
+}
+
+/**
+ * Get the User-Agent string with dynamic version
+ * @returns {Promise<string>} The User-Agent string
+ */
+async function getAntigravityUserAgent() {
+    const version = await fetchLatestAntigravityVersion();
+    return `antigravity/${version} windows/amd64`;
+}
+
+/**
+ * Get the User-Agent string synchronously (uses cached or fallback)
+ * @returns {string} The User-Agent string
+ */
+function getAntigravityUserAgentSync() {
+    const version = cachedVersion || FALLBACK_VERSION;
+    return `antigravity/${version} windows/amd64`;
+}
 
 // ============ Model Configuration ============
 
@@ -323,7 +389,7 @@ export class AntigravityApiService {
         this.config = config;
         this.oauthCredsFilePath = config.oauthCredsFilePath;
         this.projectId = config.projectId;
-        this.userAgent = config.userAgent || DEFAULT_USER_AGENT;
+        this.userAgent = config.userAgent || getAntigravityUserAgentSync();
         this.baseURLs = config.baseURLs || ANTIGRAVITY_BASE_URLS;
         this.availableModels = GEMINI_MODELS;
         this.isInitialized = false;
@@ -378,6 +444,11 @@ export class AntigravityApiService {
     async initialize() {
         if (this.isInitialized) return;
         console.log('[Antigravity] Initializing Antigravity API Service...');
+
+        // Fetch latest version and update User-Agent
+        if (!this.config.userAgent) {
+            this.userAgent = await getAntigravityUserAgent();
+        }
 
         // Check if token needs refresh
         if (this.isTokenExpiringSoon()) {
