@@ -614,11 +614,8 @@ function createCardHTML(cred) {
     };
     const displayEmail = truncateEmail(email, 28);
 
-    let html = '<div class="account-card' + (isSelected ? ' selected' : '') + (cred.isActive ? ' active' : '') + '" data-id="' + cred.id + '">';
+    let html = '<div class="account-card' + (isSelected ? ' selected' : '') + '" data-id="' + cred.id + '">';
     html += '<div class="card-status">';
-    if (cred.isActive) {
-        html += '<span class="active-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Active</span>';
-    }
     html += '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
     if (subscriptionTitle) {
         html += '<span class="subscription-badge">' + subscriptionTitle + '</span>';
@@ -643,9 +640,9 @@ function createCardHTML(cred) {
     html += '<span class="date-value">' + formatExpireDate(cred.expiresAt) + '</span></div></div>';
 
     html += '<div class="card-actions">';
+    html += '<button class="card-action-btn' + (cred.isActive ? ' active' : '') + '" data-action="activate" title="' + (cred.isActive ? 'Active' : 'Set Active') + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>';
     html += '<button class="card-action-btn" data-action="chat" title="Chat"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></button>';
     html += '<button class="card-action-btn" data-action="refresh" title="Refresh Token"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg></button>';
-    html += '<button class="card-action-btn" data-action="test" title="Test Connection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg></button>';
     html += '<button class="card-action-btn danger" data-action="delete" title="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>';
     html += '</div></div></div>';
 
