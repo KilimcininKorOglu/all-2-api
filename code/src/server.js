@@ -830,8 +830,8 @@ async function cleanupExpiredSessions() {
 // Run cleanup periodically
 setInterval(cleanupExpiredSessions, SESSION_CLEANUP_INTERVAL_MS);
 
-async function createSession(userId) {
-    return await sessionStore.create(userId);
+async function createSession(userId, userAgent = null, ipAddress = null) {
+    return await sessionStore.create(userId, userAgent, ipAddress);
 }
 
 async function getSession(token) {
@@ -957,7 +957,9 @@ app.post('/api/auth/setup', async (req, res) => {
         }
         const passwordHash = await hashPassword(password);
         const userId = await userStore.create(username, passwordHash, true);
-        const token = await createSession(userId);
+        const userAgent = req.headers['user-agent'] || null;
+        const ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || null;
+        const token = await createSession(userId, userAgent, ipAddress);
         res.json({ success: true, data: { token, userId, username, isAdmin: true } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -979,7 +981,9 @@ app.post('/api/auth/login', async (req, res) => {
         if (!isValid) {
             return res.status(401).json({ success: false, error: 'Invalid username or password' });
         }
-        const token = await createSession(user.id);
+        const userAgent = req.headers['user-agent'] || null;
+        const ipAddress = req.headers['x-forwarded-for']?.split(',')[0] || req.socket?.remoteAddress || null;
+        const token = await createSession(user.id, userAgent, ipAddress);
         res.json({ success: true, data: { token, userId: user.id, username: user.username, isAdmin: user.isAdmin } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
@@ -4235,19 +4239,13 @@ app.post('/api/anthropic/credentials', authMiddleware, async (req, res) => {
             return res.status(400).json({ success: false, error: 'Name and access token are required' });
         }
 
-        // Skip verification for OAuth tokens (sk-ant-oat01-...) as they don't support API calls
-        const isOAuthToken = accessToken.startsWith('sk-ant-oat');
-        let verification = { valid: true, rateLimits: null };
-
-        if (!isOAuthToken) {
-            // Verify credentials for regular API keys
-            verification = await verifyAnthropicCredentials(accessToken, apiBaseUrl);
-            if (!verification.valid) {
-                return res.status(400).json({
-                    success: false,
-                    error: `Credential verification failed: ${verification.error}`
-                });
-            }
+        // Verify credentials by calling API
+        const verification = await verifyAnthropicCredentials(accessToken, apiBaseUrl);
+        if (!verification.valid) {
+            return res.status(400).json({
+                success: false,
+                error: `Credential verification failed: ${verification.error}`
+            });
         }
 
         const id = await anthropicStore.add({
@@ -4338,19 +4336,6 @@ app.post('/api/anthropic/credentials/:id/test', authMiddleware, async (req, res)
 
         if (!credential) {
             return res.status(404).json({ success: false, error: 'Credential not found' });
-        }
-
-        // Skip verification for OAuth tokens (sk-ant-oat...) as they don't support API calls
-        const isOAuthToken = credential.accessToken.startsWith('sk-ant-oat');
-        if (isOAuthToken) {
-            return res.json({
-                success: true,
-                data: {
-                    valid: true,
-                    message: 'OAuth token - verification skipped',
-                    rateLimits: null
-                }
-            });
         }
 
         const verification = await verifyAnthropicCredentials(credential.accessToken, credential.apiBaseUrl);

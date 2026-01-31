@@ -1,5 +1,6 @@
 import mysql from 'mysql2/promise';
 import path from 'path';
+import crypto from 'crypto';
 
 // MySQL connection configuration
 const DB_CONFIG = {
@@ -536,12 +537,22 @@ export async function initDatabase() {
         CREATE TABLE IF NOT EXISTS sessions (
             token VARCHAR(64) PRIMARY KEY,
             user_id INT NOT NULL,
+            user_agent VARCHAR(512),
+            ip_address VARCHAR(45),
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             expires_at DATETIME NOT NULL,
             INDEX idx_user_id (user_id),
             INDEX idx_expires_at (expires_at)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Add columns if they don't exist (for existing databases)
+    try {
+        await pool.execute(`ALTER TABLE sessions ADD COLUMN user_agent VARCHAR(512) AFTER user_id`);
+    } catch (e) { /* column already exists */ }
+    try {
+        await pool.execute(`ALTER TABLE sessions ADD COLUMN ip_address VARCHAR(45) AFTER user_agent`);
+    } catch (e) { /* column already exists */ }
 
     return pool;
 }
@@ -4331,14 +4342,13 @@ export class SessionStore {
         return new SessionStore(database);
     }
 
-    async create(userId) {
-        const crypto = await import('crypto');
+    async create(userId, userAgent = null, ipAddress = null) {
         const token = crypto.randomBytes(32).toString('hex');
         const expiresAt = new Date(Date.now() + this.expiryMs);
 
         await this.db.execute(
-            'INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)',
-            [token, userId, expiresAt]
+            'INSERT INTO sessions (token, user_id, user_agent, ip_address, expires_at) VALUES (?, ?, ?, ?, ?)',
+            [token, userId, userAgent, ipAddress, expiresAt]
         );
 
         return token;
@@ -4346,7 +4356,7 @@ export class SessionStore {
 
     async get(token) {
         const [rows] = await this.db.execute(
-            'SELECT user_id, created_at, expires_at FROM sessions WHERE token = ? AND expires_at > NOW()',
+            'SELECT user_id, user_agent, ip_address, created_at, expires_at FROM sessions WHERE token = ? AND expires_at > NOW()',
             [token]
         );
 
@@ -4354,6 +4364,8 @@ export class SessionStore {
 
         return {
             userId: rows[0].user_id,
+            userAgent: rows[0].user_agent,
+            ipAddress: rows[0].ip_address,
             createdAt: rows[0].created_at,
             expiresAt: rows[0].expires_at
         };
