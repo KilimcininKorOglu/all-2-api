@@ -384,10 +384,10 @@ export class KiroAuth {
             // Provide more helpful error message
             if (errorData.error === 'invalid_request') {
                 throw new Error(
-                    `IAM Identity Center authentication failed. ` +
-                    `The start URL "${startUrl}" may not be configured for CodeWhisperer/Q Developer access. ` +
-                    `Please verify: 1) The start URL is correct, 2) Your IdC instance has CodeWhisperer enabled, ` +
-                    `3) The region matches where your IdC is configured.`
+                    `IAM Identity Center authentication failed for "${startUrl}" in region "${region}". ` +
+                    `IMPORTANT: The region must match where your IdC instance is configured! ` +
+                    `For example, if your IdC is in us-east-2, select us-east-2 (not us-east-1). ` +
+                    `Check your AWS IAM Identity Center console to find the correct region.`
                 );
             }
 
