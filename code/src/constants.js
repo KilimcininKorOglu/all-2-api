@@ -460,11 +460,13 @@ export async function fetchRemotePricing() {
             }
 
             if (Object.keys(pricing).length > 0) {
+                let syncResult = { added: 0, updated: 0, skipped: 0 };
+
                 // Save to model_pricing table (only updates non-custom entries)
                 if (remotePricingStore) {
                     try {
-                        const result = await remotePricingStore.importRemotePricing(pricing);
-                        console.log(`[Pricing] Remote sync: ${result.added} added, ${result.updated} updated, ${result.skipped} skipped (custom)`);
+                        syncResult = await remotePricingStore.importRemotePricing(pricing);
+                        console.log(`[Pricing] Remote sync: ${syncResult.added} added, ${syncResult.updated} updated, ${syncResult.skipped} skipped (custom)`);
                     } catch (dbError) {
                         console.log(`[Pricing] Failed to save to database: ${dbError.message}`);
                     }
@@ -473,7 +475,7 @@ export async function fetchRemotePricing() {
                 // Reload from database to get merged pricing
                 await loadPricingFromDb();
                 console.log(`[Pricing] Fetched remote pricing for ${Object.keys(pricing).length} models`);
-                return remotePricingCache;
+                return syncResult;
             }
 
             throw new Error('No valid pricing data');
@@ -483,7 +485,7 @@ export async function fetchRemotePricing() {
             if (remotePricingStore && Object.keys(remotePricingCache).length === 0) {
                 await loadPricingFromDb();
             }
-            return remotePricingCache;
+            return { added: 0, updated: 0, skipped: 0, error: error.message };
         } finally {
             remotePricingPromise = null;
         }
