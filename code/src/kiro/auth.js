@@ -8,17 +8,74 @@ import { KIRO_OAUTH_CONFIG, KIRO_CONSTANTS } from '../constants.js';
 /**
  * Generate PKCE code verifier
  */
-function generateCodeVerifier() {
+export function generateCodeVerifier() {
     return crypto.randomBytes(32).toString('base64url');
 }
 
 /**
  * Generate PKCE code challenge
  */
-function generateCodeChallenge(codeVerifier) {
+export function generateCodeChallenge(codeVerifier) {
     const hash = crypto.createHash('sha256');
     hash.update(codeVerifier);
     return hash.digest('base64url');
+}
+
+/**
+ * Generate Social Auth URL for external redirect
+ * @param {string} provider - 'Google' or 'Github'
+ * @param {string} redirectUri - Callback URL
+ * @param {string} codeChallenge - PKCE code challenge
+ * @param {string} state - State parameter for CSRF protection
+ * @returns {string} Authorization URL
+ */
+export function generateSocialAuthUrl(provider, redirectUri, codeChallenge, state) {
+    return `${KIRO_OAUTH_CONFIG.authServiceEndpoint}/login?` +
+        `idp=${provider}&` +
+        `redirect_uri=${encodeURIComponent(redirectUri)}&` +
+        `code_challenge=${codeChallenge}&` +
+        `code_challenge_method=S256&` +
+        `state=${state}&` +
+        `prompt=select_account`;
+}
+
+/**
+ * Exchange authorization code for tokens
+ * @param {string} code - Authorization code
+ * @param {string} codeVerifier - PKCE code verifier
+ * @param {string} redirectUri - Redirect URI used in authorization
+ * @param {string} region - AWS region
+ * @returns {Promise<object>} Credentials object
+ */
+export async function exchangeSocialAuthCode(code, codeVerifier, redirectUri, region = 'us-east-1') {
+    const tokenResponse = await fetch(`${KIRO_OAUTH_CONFIG.authServiceEndpoint}/oauth/token`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'User-Agent': KIRO_CONSTANTS.USER_AGENT
+        },
+        body: JSON.stringify({
+            code,
+            code_verifier: codeVerifier,
+            redirect_uri: redirectUri
+        })
+    });
+
+    if (!tokenResponse.ok) {
+        const errorText = await tokenResponse.text();
+        throw new Error(`Token exchange failed: ${tokenResponse.status} - ${errorText}`);
+    }
+
+    const tokenData = await tokenResponse.json();
+
+    return {
+        accessToken: tokenData.accessToken,
+        refreshToken: tokenData.refreshToken,
+        profileArn: tokenData.profileArn,
+        expiresAt: new Date(Date.now() + (tokenData.expiresIn || 3600) * 1000).toISOString(),
+        authMethod: KIRO_CONSTANTS.AUTH_METHOD_SOCIAL,
+        region
+    };
 }
 
 /**

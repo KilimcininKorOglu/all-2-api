@@ -9,7 +9,7 @@ import { StrategyFactory, getStrategyManager, ThinkingBlocksParser } from './sel
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
 import { KiroAPI } from './kiro/api.js';
-import { KiroAuth } from './kiro/auth.js';
+import { KiroAuth, generateCodeVerifier, generateCodeChallenge, generateSocialAuthUrl, exchangeSocialAuthCode } from './kiro/auth.js';
 import { OrchidsAPI } from './orchids/orchids-service.js';
 import { OrchidsChatService, ORCHIDS_MODELS } from './orchids/orchids-chat-service.js';
 import { setupOrchidsRoutes } from './orchids/orchids-routes.js';
@@ -3199,8 +3199,21 @@ app.post('/api/credentials/batch-import', authMiddleware, async (req, res) => {
 
 // ==================== OAuth Login API ====================
 
-// Store active OAuth authentication instances
+// Store active OAuth authentication instances (for Builder ID polling)
 const activeOAuthSessions = new Map();
+
+// Store pending Kiro Social OAuth sessions (state -> session info)
+const pendingKiroSocialSessions = new Map();
+
+// Clean up expired Kiro Social sessions (older than 10 minutes)
+setInterval(() => {
+    const now = Date.now();
+    for (const [state, session] of pendingKiroSocialSessions) {
+        if (now - session.createdAt > 10 * 60 * 1000) {
+            pendingKiroSocialSessions.delete(state);
+        }
+    }
+}, 60 * 1000);
 
 /**
  * Generate credential name
@@ -3284,57 +3297,38 @@ app.post('/api/oauth/social/start', async (req, res) => {
         const {
             provider = 'Google',  // 'Google' or 'Github'
             saveToDatabase = true,
-            saveToFile = false,
             name,
             region = 'us-east-1'
         } = req.body;
 
-        const sessionId = crypto.randomBytes(16).toString('hex');
-        let credentialId = null;
+        // Generate PKCE parameters
+        const codeVerifier = generateCodeVerifier();
+        const codeChallenge = generateCodeChallenge(codeVerifier);
+        const state = crypto.randomBytes(32).toString('hex');
 
-        // Create success callback to save to database
-        const onSuccess = saveToDatabase ? async (credentials) => {
-            const credName = name || generateCredentialName(provider);
-            credentialId = await store.add({
-                name: credName,
-                provider: provider,
-                ...credentials
-            });
-            // console.log(`[OAuth] Social Auth credential saved to database, ID: ${credentialId}, Name: ${credName}`);
-        } : null;
+        // Get server's base URL from request
+        const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+        const host = req.headers['x-forwarded-host'] || req.headers.host;
+        const redirectUri = `${protocol}://${host}/api/oauth/social/callback`;
 
-        const auth = new KiroAuth({
-            saveToFile,
+        // Generate auth URL
+        const authUrl = generateSocialAuthUrl(provider, redirectUri, codeChallenge, state);
+
+        // Store pending session
+        pendingKiroSocialSessions.set(state, {
+            provider,
+            codeVerifier,
+            redirectUri,
             region,
-            onSuccess
-        });
-
-        const result = await auth.startSocialAuth(provider);
-
-        // Store session
-        activeOAuthSessions.set(sessionId, {
-            auth,
-            provider: provider,
             saveToDatabase,
-            getCredentialId: () => credentialId,
-            startTime: Date.now()
+            credentialName: name || generateCredentialName(provider),
+            createdAt: Date.now()
         });
-
-        // Auto cleanup session after 5 minutes
-        setTimeout(() => {
-            const session = activeOAuthSessions.get(sessionId);
-            if (session) {
-                session.auth.close();
-                activeOAuthSessions.delete(sessionId);
-            }
-        }, 5 * 60 * 1000);
 
         res.json({
             success: true,
             data: {
-                sessionId,
-                authUrl: result.authUrl,
-                port: result.port,
+                authUrl,
                 provider,
                 saveToDatabase
             }
@@ -3343,6 +3337,193 @@ app.post('/api/oauth/social/start', async (req, res) => {
         res.status(500).json({ success: false, error: error.message });
     }
 });
+
+// Kiro Social OAuth callback handler
+app.get('/api/oauth/social/callback', async (req, res) => {
+    try {
+        const { code, state, error: oauthError } = req.query;
+
+        if (oauthError) {
+            console.error(`[Kiro OAuth] Authorization failed:`, oauthError);
+            return res.status(400).send(generateKiroOAuthErrorPage(oauthError));
+        }
+
+        if (!code || !state) {
+            return res.status(400).send(generateKiroOAuthErrorPage('Missing code or state parameter'));
+        }
+
+        // Find pending session
+        const session = pendingKiroSocialSessions.get(state);
+        if (!session) {
+            return res.status(400).send(generateKiroOAuthErrorPage('Invalid or expired OAuth session'));
+        }
+
+        // Remove pending session
+        pendingKiroSocialSessions.delete(state);
+
+        console.log(`[Kiro OAuth] Received authorization callback for ${session.provider}`);
+
+        // Exchange code for tokens
+        const credentials = await exchangeSocialAuthCode(
+            code,
+            session.codeVerifier,
+            session.redirectUri,
+            session.region
+        );
+
+        // Save to database if requested
+        let credentialId = null;
+        if (session.saveToDatabase) {
+            credentialId = await store.add({
+                name: session.credentialName,
+                provider: session.provider,
+                ...credentials
+            });
+            console.log(`[Kiro OAuth] Credential saved to database, ID: ${credentialId}, Name: ${session.credentialName}`);
+        }
+
+        res.send(generateKiroOAuthSuccessPage(session.provider, credentialId));
+    } catch (error) {
+        console.error(`[Kiro OAuth] Callback error:`, error.message);
+        res.status(500).send(generateKiroOAuthErrorPage(error.message));
+    }
+});
+
+/**
+ * Generate Kiro OAuth success page HTML
+ */
+function generateKiroOAuthSuccessPage(provider, credentialId) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization Successful</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+        h1 { color: #1f2937; margin-bottom: 10px; }
+        p { color: #6b7280; margin-bottom: 20px; }
+        .info { font-size: 14px; color: #9ca3af; }
+        .close-hint { font-size: 14px; color: #9ca3af; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        <h1>Authorization Successful!</h1>
+        <p>Kiro ${provider} credential has been added successfully.</p>
+        ${credentialId ? `<p class="info">Credential ID: ${credentialId}</p>` : ''}
+        <p class="close-hint">You can close this window now.</p>
+    </div>
+    <script>setTimeout(() => window.close(), 3000);</script>
+</body>
+</html>`;
+}
+
+/**
+ * Generate Kiro OAuth error page HTML
+ */
+function generateKiroOAuthErrorPage(errorMessage) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization Failed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+        h1 { color: #1f2937; margin-bottom: 10px; }
+        p { color: #6b7280; margin-bottom: 10px; }
+        .error-detail {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px;
+            color: #dc2626;
+            font-size: 14px;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </div>
+        <h1>Authorization Failed</h1>
+        <p>An error occurred during authorization:</p>
+        <div class="error-detail">${errorMessage}</div>
+    </div>
+</body>
+</html>`;
+}
 
 // Check OAuth session status
 app.get('/api/oauth/session/:sessionId', (req, res) => {
