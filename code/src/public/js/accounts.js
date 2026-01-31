@@ -3,7 +3,6 @@
 // State variables
 let credentials = [];
 let selectedIds = new Set();
-let currentFilter = 'all';
 let searchQuery = '';
 let contextMenuTarget = null;
 
@@ -89,16 +88,6 @@ function setupEventListeners() {
             closeEditModal();
             hideContextMenu();
         }
-    });
-
-    // Filter tabs
-    document.querySelectorAll('.header-tab').forEach(tab => {
-        tab.addEventListener('click', () => {
-            document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
-            tab.classList.add('active');
-            currentFilter = tab.dataset.filter;
-            renderCards();
-        });
     });
 
     // Select all
@@ -467,12 +456,10 @@ async function handleContextAction(action) {
 // Rendering functions
 function getFilteredCredentials() {
     return credentials.filter(function(c) {
-        const matchesFilter = currentFilter === 'all' ||
-            (c.provider && c.provider.toLowerCase() === currentFilter);
-        const matchesSearch = !searchQuery ||
-            (c.email && c.email.toLowerCase().includes(searchQuery)) ||
+        if (!searchQuery) return true;
+        return (c.email && c.email.toLowerCase().includes(searchQuery)) ||
+            (c.name && c.name.toLowerCase().includes(searchQuery)) ||
             (c.provider && c.provider.toLowerCase().includes(searchQuery));
-        return matchesFilter && matchesSearch;
     });
 }
 
@@ -666,15 +653,6 @@ function createCardHTML(cred) {
 
 // Helper functions
 function updateCounts() {
-    const total = credentials.length;
-    const google = credentials.filter(function(c) { return c.provider && c.provider.toLowerCase() === 'google'; }).length;
-    const github = credentials.filter(function(c) { return c.provider && c.provider.toLowerCase() === 'github'; }).length;
-
-    document.getElementById('tab-count-all').textContent = total;
-    document.getElementById('tab-count-google').textContent = google;
-    document.getElementById('tab-count-github').textContent = github;
-
-    // Update stats cards
     updateStatsCards();
 }
 
