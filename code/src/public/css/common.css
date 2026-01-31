@@ -654,6 +654,64 @@ body {
 .quota-warning { color: var(--accent-warning); font-weight: 600; }
 .quota-critical { color: var(--accent-danger); font-weight: 600; }
 
+/* Quota progress bar */
+.quota-row {
+    margin: 8px 0;
+    padding: 8px;
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-sm);
+}
+
+.quota-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.quota-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.quota-value {
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.quota-progress {
+    height: 6px;
+    background: var(--bg-primary);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 4px;
+}
+
+.quota-progress-bar {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.3s ease;
+}
+
+.quota-progress-bar.quota-ok { background: var(--accent-success); }
+.quota-progress-bar.quota-warning { background: var(--accent-warning); }
+.quota-progress-bar.quota-critical { background: var(--accent-danger); }
+
+.quota-reset {
+    font-size: 10px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.quota-reset::before {
+    content: "⏱";
+    font-size: 10px;
+}
+
 .active-indicator {
     display: flex;
     align-items: center;

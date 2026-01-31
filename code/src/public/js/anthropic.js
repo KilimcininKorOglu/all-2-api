@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Bind events
     bindEvents();
+
+    // Start countdown timer update
+    startQuotaCountdown();
 });
 
 // ============ Data Loading ============
@@ -136,15 +139,27 @@ function createCardHTML(cred) {
                 </div>
                 ` : ''}
                 ${cred.rateLimits?.unified5h ? `
-                <div class="info-row">
-                    <span class="info-label">5h Quota:</span>
-                    <span class="info-value ${getQuotaClass(cred.rateLimits.unified5h.utilization)}">${formatQuota(cred.rateLimits.unified5h.utilization)}</span>
+                <div class="quota-row">
+                    <div class="quota-header">
+                        <span class="quota-label">5h Quota</span>
+                        <span class="quota-value ${getQuotaClass(cred.rateLimits.unified5h.utilization)}">${formatQuota(cred.rateLimits.unified5h.utilization)}</span>
+                    </div>
+                    <div class="quota-progress">
+                        <div class="quota-progress-bar ${getQuotaClass(cred.rateLimits.unified5h.utilization)}" style="width: ${Math.min(cred.rateLimits.unified5h.utilization * 100, 100)}%"></div>
+                    </div>
+                    <span class="quota-reset" data-reset="${cred.rateLimits.unified5h.reset}">${formatResetTime(cred.rateLimits.unified5h.reset)}</span>
                 </div>
                 ` : ''}
                 ${cred.rateLimits?.unified7d ? `
-                <div class="info-row">
-                    <span class="info-label">7d Quota:</span>
-                    <span class="info-value ${getQuotaClass(cred.rateLimits.unified7d.utilization)}">${formatQuota(cred.rateLimits.unified7d.utilization)}</span>
+                <div class="quota-row">
+                    <div class="quota-header">
+                        <span class="quota-label">7d Quota</span>
+                        <span class="quota-value ${getQuotaClass(cred.rateLimits.unified7d.utilization)}">${formatQuota(cred.rateLimits.unified7d.utilization)}</span>
+                    </div>
+                    <div class="quota-progress">
+                        <div class="quota-progress-bar ${getQuotaClass(cred.rateLimits.unified7d.utilization)}" style="width: ${Math.min(cred.rateLimits.unified7d.utilization * 100, 100)}%"></div>
+                    </div>
+                    <span class="quota-reset" data-reset="${cred.rateLimits.unified7d.reset}">${formatResetTime(cred.rateLimits.unified7d.reset)}</span>
                 </div>
                 ` : ''}
             </div>
@@ -706,18 +721,30 @@ function getQuotaClass(utilization) {
 
 function formatResetTime(timestamp) {
     if (!timestamp) return '-';
-    const resetDate = new Date(parseInt(timestamp) * 1000);
+    const resetDate = new Date(timestamp);
     const now = new Date();
     const diff = resetDate - now;
 
-    if (diff <= 0) return 'Now';
+    if (diff <= 0) return 'Ready';
 
-    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
-    if (hours > 24) {
-        const days = Math.floor(hours / 24);
-        return `${days}d ${hours % 24}h`;
+    if (days > 0) {
+        return `${days}d ${hours}h ${minutes}m`;
     }
     return `${hours}h ${minutes}m`;
+}
+
+function startQuotaCountdown() {
+    // Update countdown every minute
+    setInterval(() => {
+        document.querySelectorAll('.quota-reset[data-reset]').forEach(el => {
+            const timestamp = el.getAttribute('data-reset');
+            if (timestamp) {
+                el.textContent = formatResetTime(timestamp);
+            }
+        });
+    }, 60000); // Update every minute
 }
