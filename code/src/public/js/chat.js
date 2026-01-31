@@ -5,11 +5,9 @@ let chatHistory = [];
 let isStreaming = false;
 let currentChatAccountId = null;
 let currentGeminiAccountId = null;
-let chatApiEndpoint = localStorage.getItem('chatApiEndpoint') || '';
-let chatApiKey = localStorage.getItem('chatApiKey') || '';
 
 // DOM elements
-let chatMessages, chatInput, chatSendBtn, chatModel, chatSettingsModal;
+let chatMessages, chatInput, chatSendBtn, chatModel;
 
 // Check if it's a Gemini model
 function isGeminiModel(model) {
@@ -23,7 +21,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     chatInput = document.getElementById('chat-input');
     chatSendBtn = document.getElementById('chat-send-btn');
     chatModel = document.getElementById('chat-model');
-    chatSettingsModal = document.getElementById('chat-settings-modal');
 
     // Load site settings first
     await loadSiteSettings();
@@ -107,22 +104,6 @@ function setupEventListeners() {
 
     // Clear button
     document.getElementById('chat-clear-btn').addEventListener('click', clearChat);
-
-    // Settings button
-    document.getElementById('chat-settings-btn').addEventListener('click', openChatSettings);
-    document.getElementById('settings-modal-close').addEventListener('click', closeChatSettings);
-    document.getElementById('settings-modal-cancel').addEventListener('click', closeChatSettings);
-    document.getElementById('settings-modal-save').addEventListener('click', saveChatSettings);
-    chatSettingsModal.addEventListener('click', function(e) {
-        if (e.target === chatSettingsModal) closeChatSettings();
-    });
-
-    // Keyboard shortcuts
-    document.addEventListener('keydown', function(e) {
-        if (e.key === 'Escape') {
-            closeChatSettings();
-        }
-    });
 }
 
 // Update send button state
@@ -131,12 +112,12 @@ function updateSendButtonState() {
     const model = chatModel.value;
     const isGemini = isGeminiModel(model);
 
-    // Gemini models require Gemini account, Claude models require Kiro account or API endpoint
+    // Gemini models require Gemini account, Claude models require Kiro account
     let canChat = false;
     if (isGemini) {
         canChat = currentGeminiAccountId !== null;
     } else {
-        canChat = chatApiEndpoint || currentChatAccountId !== null;
+        canChat = currentChatAccountId !== null;
     }
 
     chatSendBtn.disabled = !hasText || isStreaming || !canChat;
@@ -178,21 +159,6 @@ async function sendMessage() {
                     message: message,
                     model: model,
                     history: chatHistory.slice(0, -1)
-                })
-            });
-        } else if (chatApiEndpoint) {
-            response = await fetch('/api/claude-proxy/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': 'Bearer ' + authToken
-                },
-                body: JSON.stringify({
-                    message: message,
-                    model: model,
-                    history: chatHistory.slice(0, -1),
-                    apiKey: chatApiKey,
-                    endpoint: chatApiEndpoint
                 })
             });
         } else if (currentChatAccountId) {
@@ -343,23 +309,3 @@ function clearChat() {
     showToast('Chat cleared', 'success');
 }
 
-// Settings modal
-function openChatSettings() {
-    document.getElementById('chat-api-endpoint').value = chatApiEndpoint;
-    document.getElementById('chat-api-key').value = chatApiKey;
-    chatSettingsModal.classList.add('active');
-}
-
-function closeChatSettings() {
-    chatSettingsModal.classList.remove('active');
-}
-
-function saveChatSettings() {
-    chatApiEndpoint = document.getElementById('chat-api-endpoint').value.trim();
-    chatApiKey = document.getElementById('chaey').value.trim();
-    localStorage.setItem('chatApiEndpoint', chatApiEndpoint);
-    localStorage.setItem('chatApiKey', chatApiKey);
-    closeChatSettings();
-    showToast('API settings saved', 'success');
-    updateSendButtonState();
-}

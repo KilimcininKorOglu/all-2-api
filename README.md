@@ -430,14 +430,6 @@ curl -X POST 'http://localhost:13003/gemini-antigravity/v1/messages' \
 | GET    | `/api/logs-stats`      | Get log statistics          |
 | GET    | `/api/logs-stats/cost` | Get cost statistics summary |
 
-### Proxy Configuration (Requires Login)
-
-| Method | Path                | Description              |
-|--------|---------------------|--------------------------|
-| GET    | `/api/proxy/config` | Get proxy configuration  |
-| POST   | `/api/proxy/config` | Save proxy configuration |
-| POST   | `/api/proxy/test`   | Test proxy connection    |
-
 ### Public API (No Login Required)
 
 | Method | Path                | Description                        |
@@ -453,33 +445,7 @@ curl -X POST 'http://localhost:13003/gemini-antigravity/v1/messages' \
 ## Advanced Configuration
 
 <details>
-<summary>Click to expand proxy configuration, programming interface, and other advanced settings</summary>
-
-### Proxy Settings
-
-The system supports HTTP/HTTPS proxy for accessing APIs in network-restricted environments.
-
-**Configure via Web Interface:**
-1. Access web management interface at http://localhost:13003
-2. Go to "Proxy Settings" page
-3. Enter proxy address and enable
-
-**Supported proxy formats:**
-```
-# Standard URL format
-http://host:port
-http://username:password@host:port
-
-# ISP format (auto-converted)
-host:port:username:password
-host:port
-```
-
-**Environment variable proxy:**
-```bash
-export https_proxy=http://127.0.0.1:7890
-export http_proxy=http://127.0.0.1:7890
-```
+<summary>Click to expand programming interface and other advanced settings</summary>
 
 ### Programming Interface
 
@@ -551,7 +517,6 @@ code/src/
 ├── constants.js            # Constants and model mappings
 ├── db.js                   # Database connection and management
 ├── logger.js               # Logging module
-├── proxy.js                # Proxy configuration
 ├── quota-refresh.js        # Background quota monitoring
 ├── kiro/                   # Kiro (Claude via AWS) module
 │   ├── client.js           # KiroClient class
