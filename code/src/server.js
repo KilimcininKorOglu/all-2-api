@@ -3357,7 +3357,8 @@ async function pollIdCToken(sessionId, authData, startUrl, region, name) {
     const maxAttempts = 60; // 5 minutes max
     let attempts = 0;
 
-    const ssoEndpoint = `https://oidc.${region}.amazonaws.com`;
+    // IAM Identity Center uses sso-oidc endpoint (not oidc)
+    const ssoEndpoint = `https://sso-oidc.${region}.amazonaws.com`;
 
     while (attempts < maxAttempts) {
         attempts++;

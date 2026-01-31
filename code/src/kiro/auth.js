@@ -334,9 +334,11 @@ export class KiroAuth {
      * @returns {Promise<object>} Device authorization data with client credentials
      */
     async startIdCAuth(startUrl, region = 'us-east-1') {
+        // IAM Identity Center uses sso-oidc endpoint (different from Builder ID's oidc endpoint)
+        const ssoOidcEndpoint = `https://sso-oidc.${region}.amazonaws.com`;
+
         // 1. Register OIDC client
-        const ssoEndpoint = KIRO_OAUTH_CONFIG.ssoOIDCEndpoint.replace('{{region}}', region);
-        const regResponse = await fetch(`${ssoEndpoint}/client/register`, {
+        const regResponse = await fetch(`${ssoOidcEndpoint}/client/register`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -345,7 +347,7 @@ export class KiroAuth {
             body: JSON.stringify({
                 clientName: 'Kiro IDE',
                 clientType: 'public',
-                scopes: KIRO_OAUTH_CONFIG.scopes,
+                scopes: KIRO_OAUTH_CONFIG.scopes,  // Use CodeWhisperer scopes
                 grantTypes: ['urn:ietf:params:oauth:grant-type:device_code', 'refresh_token']
             })
         });
@@ -358,7 +360,7 @@ export class KiroAuth {
         const regData = await regResponse.json();
 
         // 2. Start device authorization with custom startUrl
-        const authResponse = await fetch(`${ssoEndpoint}/device_authorization`, {
+        const authResponse = await fetch(`${ssoOidcEndpoint}/device_authorization`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
