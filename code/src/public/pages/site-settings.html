@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>站点设置 - Kiro Account Manager</title>
+    <title>Site Settings - Kiro Account Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -178,8 +178,8 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 class="page-title">站点设置</h1>
-                            <p class="page-subtitle">自定义站点名称和 Logo</p>
+                            <h1 class="page-title">Site Settings</h1>
+                            <p class="page-subtitle">Customize site name and logo</p>
                         </div>
                     </div>
                 </div>
@@ -197,28 +197,28 @@
                             </svg>
                         </div>
                         <div>
-                            <div class="settings-card-title">站点信息</div>
-                            <div class="settings-card-subtitle">自定义站点名称、Logo 和副标题</div>
+                            <div class="settings-card-title">Site Information</div>
+                            <div class="settings-card-subtitle">Customize site name, logo and subtitle</div>
                         </div>
                     </div>
 
                     <form class="settings-form" id="settings-form">
                         <div class="form-group">
-                            <label class="form-label">站点名称</label>
-                            <input type="text" class="form-input" id="site-name" placeholder="例如：Kiro" maxlength="50">
-                            <div class="form-hint">显示在侧边栏和页面标题中，最多 50 个字符</div>
+                            <label class="form-label">Site Name</label>
+                            <input type="text" class="form-input" id="site-name" placeholder="e.g.: Kiro" maxlength="50">
+                            <div class="form-hint">Displayed in sidebar and page title, max 50 characters</div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Logo 文字</label>
-                            <input type="text" class="form-input" id="site-logo" placeholder="例如：K" maxlength="10">
-                            <div class="form-hint">显示在 Logo 图标中，建议 1-2 个字符</div>
+                            <label class="form-label">Logo Text</label>
+                            <input type="text" class="form-input" id="site-logo" placeholder="e.g.: K" maxlength="10">
+                            <div class="form-hint">Displayed in logo icon, recommended 1-2 characters</div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">副标题</label>
-                            <input type="text" class="form-input" id="site-subtitle" placeholder="例如：Account Manager" maxlength="100">
-                            <div class="form-hint">显示在站点名称下方，最多 100 个字符</div>
+                            <label class="form-label">Subtitle</label>
+                            <input type="text" class="form-input" id="site-subtitle" placeholder="e.g.: Account Manager" maxlength="100">
+                            <div class="form-hint">Displayed below site name, max 100 characters</div>
                         </div>
 
                         <div class="form-actions">
@@ -227,7 +227,7 @@
                                     <polyline points="1 4 1 10 7 10"/>
                                     <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
                                 </svg>
-                                重置默认
+                                Reset Default
                             </button>
                             <button type="submit" class="btn btn-primary" id="submit-btn">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -235,7 +235,7 @@
                                     <polyline points="17 21 17 13 7 13 7 21"/>
                                     <polyline points="7 3 7 8 15 8"/>
                                 </svg>
-                                保存设置
+                                Save Settings
                             </button>
                         </div>
                     </form>
@@ -249,7 +249,7 @@
                                 <circle cx="12" cy="12" r="3"/>
                             </svg>
                         </div>
-                        <div class="preview-card-title">预览效果</div>
+                        <div class="preview-card-title">Preview</div>
                     </div>
                     <div class="preview-content">
                         <div class="preview-logo-icon" id="preview-logo">K</div>
@@ -268,27 +268,27 @@
 
     <script src="/js/common.js"></script>
     <script>
-        // 初始化
+        // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
-            // 检查登录状态
+            // Check login status
             if (!await checkAuth()) return;
 
-            // 加载站点设置
+            // Load site settings
             await loadSiteSettings();
 
-            // 加载侧边栏
+            // Load sidebar
             document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
             initSidebar('site-settings');
             updateSidebarStats();
 
-            // 加载当前设置到表单
+            // Load current settings to form
             loadCurrentSettings();
 
-            // 绑定事件
+            // Bind events
             bindEvents();
         });
 
-        // 加载当前设置
+        // Load current settings
         function loadCurrentSettings() {
             const settings = window.siteSettings || {};
             document.getElementById('site-name').value = settings.siteName || 'Kiro';
@@ -297,21 +297,21 @@
             updatePreview();
         }
 
-        // 绑定事件
+        // Bind events
         function bindEvents() {
-            // 表单提交
+            // Form submit
             document.getElementById('settings-form').addEventListener('submit', handleSubmit);
 
-            // 重置按钮
+            // Reset button
             document.getElementById('reset-btn').addEventListener('click', resetToDefault);
 
-            // 实时预览
+            // Real-time preview
             document.getElementById('site-name').addEventListener('input', updatePreview);
             document.getElementById('site-logo').addEventListener('input', updatePreview);
             document.getElementById('site-subtitle').addEventListener('input', updatePreview);
         }
 
-        // 更新预览
+        // Update preview
         function updatePreview() {
             const siteName = document.getElementById('site-name').value || 'Kiro';
             const siteLogo = document.getElementById('site-logo').value || 'K';
@@ -322,7 +322,7 @@
             document.getElementById('preview-subtitle').textContent = siteSubtitle;
         }
 
-        // 表单提交
+        // Form submit
         async function handleSubmit(e) {
             e.preventDefault();
 
@@ -331,7 +331,7 @@
             const siteSubtitle = document.getElementById('site-subtitle').value.trim() || 'Account Manager';
 
             if (siteLogo.length > 10) {
-                showToast('Logo 文字最多 10 个字符', 'warning');
+                showToast('Logo text can be at most 10 characters', 'warning');
                 return;
             }
 
@@ -339,7 +339,7 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = `
                 <div class="loading-spinner" style="width: 16px; height: 16px; border-width: 2px;"></div>
-                保存中...
+                Saving...
             `;
 
             try {
@@ -355,19 +355,19 @@
                 const result = await res.json();
 
                 if (result.success) {
-                    // 更新全局设置
+                    // Update global settings
                     window.siteSettings = result.data;
-                    showToast('站点设置已保存', 'success');
+                    showToast('Site settings saved', 'success');
 
-                    // 刷新侧边栏以显示新设置
+                    // Refresh sidebar to display new settings
                     document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
                     initSidebar('site-settings');
                     updateSidebarStats();
                 } else {
-                    showToast(result.error || '保存失败', 'error');
+                    showToast(result.error || 'Save failed', 'error');
                 }
             } catch (error) {
-                showToast('网络错误，请重试', 'error');
+                showToast('Network error, please retry', 'error');
             } finally {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = `
@@ -376,18 +376,18 @@
                         <polyline points="17 21 17 13 7 13 7 21"/>
                         <polyline points="7 3 7 8 15 8"/>
                     </svg>
-                    保存设置
+                    Save Settings
                 `;
             }
         }
 
-        // 重置为默认值
+        // Reset to default values
         function resetToDefault() {
             document.getElementById('site-name').value = 'Kiro';
             document.getElementById('site-logo').value = 'K';
             document.getElementById('site-subtitle').value = 'Account Manager';
             updatePreview();
-            showToast('已重置为默认值，请点击保存以应用', 'info');
+            showToast('Reset to default, click save to apply', 'info');
         }
     </script>
 </body>
