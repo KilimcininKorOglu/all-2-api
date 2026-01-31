@@ -417,6 +417,25 @@ function showIdCOptions() {
     document.getElementById('idc-start-url').focus();
 }
 
+// Show IdC Auth status (PKCE flow)
+function showIdCAuthStatus(data) {
+    const statusEl = document.getElementById('oauth-status');
+    statusEl.classList.add('active');
+
+    document.getElementById('status-badge').innerHTML = '<span class="spinner"></span> Waiting for authorization';
+    document.getElementById('status-badge').className = 'status-badge pending';
+
+    // Show authorization link
+    const authUrlItem = document.getElementById('auth-url-item');
+    authUrlItem.style.display = 'flex';
+    document.getElementById('auth-url').href = data.authUrl;
+    document.getElementById('auth-url').textContent = 'Click to open IAM Identity Center login';
+
+    // Hide user code (not needed for PKCE flow)
+    document.getElementById('user-code-item').style.display = 'none';
+    document.getElementById('credential-id-item').style.display = 'none';
+}
+
 // Hide IAM Identity Center options
 function hideIdCOptions() {
     const idcOptions = document.getElementById('idc-options');
@@ -424,7 +443,7 @@ function hideIdCOptions() {
     document.getElementById('idc-start-url').value = '';
 }
 
-// Start IAM Identity Center OAuth
+// Start IAM Identity Center OAuth (PKCE Flow)
 async function startIAMIdentityCenter() {
     if (currentSessionId) {
         showToast('A login is already in progress, please cancel first', 'warning');
@@ -471,11 +490,11 @@ async function startIAMIdentityCenter() {
         // Hide IdC options
         hideIdCOptions();
 
-        // Show status area (reuse Builder ID status)
-        showBuilderIDStatus(result.data);
+        // Show status area (PKCE flow - similar to Social Auth)
+        showIdCAuthStatus(result.data);
 
         // Automatically open authorization link
-        window.open(result.data.verificationUriComplete, '_blank');
+        window.open(result.data.authUrl, '_blank');
 
         // Start polling status
         startPolling();
