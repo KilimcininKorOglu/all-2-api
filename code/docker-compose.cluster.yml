@@ -1,4 +1,3 @@
-version: '3.8'
 
 # Cluster mode with bridge network
 # Usage: docker-compose -f docker-compose.cluster.yml up -d

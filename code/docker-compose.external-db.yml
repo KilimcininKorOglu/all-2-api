@@ -1,4 +1,3 @@
-version: '3.8'
 
 # Configuration for external database (does not start built-in MySQL)
 # Usage: docker-compose -f docker-compose.external-db.yml up -d
