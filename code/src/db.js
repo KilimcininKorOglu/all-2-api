@@ -374,12 +374,26 @@ export async function initDatabase() {
             output_price DECIMAL(10, 4) NOT NULL COMMENT 'Output price (USD per million tokens)',
             is_active TINYINT DEFAULT 1,
             sort_order INT DEFAULT 0,
+            source ENUM('default', 'remote', 'manual') DEFAULT 'manual' COMMENT 'Price source',
+            is_custom TINYINT DEFAULT 0 COMMENT 'User has customized this price',
+            remote_updated_at DATETIME COMMENT 'When remote price was last synced',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
-    // Create remote pricing cache table (auto-fetched from llm-prices.com)
+    // Migration: Add new columns to model_pricing if not exists
+    try {
+        await pool.execute(`ALTER TABLE model_pricing ADD COLUMN source ENUM('default', 'remote', 'manual') DEFAULT 'manual' COMMENT 'Price source'`);
+    } catch (e) { /* Column already exists */ }
+    try {
+        await pool.execute(`ALTER TABLE model_pricing ADD COLUMN is_custom TINYINT DEFAULT 0 COMMENT 'User has customized this price'`);
+    } catch (e) { /* Column already exists */ }
+    try {
+        await pool.execute(`ALTER TABLE model_pricing ADD COLUMN remote_updated_at DATETIME COMMENT 'When remote price was last synced'`);
+    } catch (e) { /* Column already exists */ }
+
+    // Note: remote_pricing_cache table is deprecated, keeping for backward compatibility
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS remote_pricing_cache (
             id INT PRIMARY KEY AUTO_INCREMENT,
@@ -3311,8 +3325,8 @@ export class ModelPricingStore {
      */
     async add(pricing) {
         const [result] = await this.db.execute(`
-            INSERT INTO model_pricing (model_name, display_name, provider, input_price, output_price, is_active, sort_order)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO model_pricing (model_name, display_name, provider, input_price, output_price, is_active, sort_order, source, is_custom)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             pricing.modelName,
             pricing.displayName || pricing.modelName,
@@ -3320,16 +3334,21 @@ export class ModelPricingStore {
             pricing.inputPrice,
             pricing.outputPrice,
             pricing.isActive !== false ? 1 : 0,
-            pricing.sortOrder || 0
+            pricing.sortOrder || 0,
+            pricing.source || 'manual',
+            pricing.isCustom ? 1 : 0
         ]);
         this.clearCache();
         return result.insertId;
     }
 
     /**
-     * Update pricing configuration
+     * Update pricing configuration (marks as custom when user edits)
      */
     async update(id, pricing) {
+        // If user is updating price, mark as custom
+        const markAsCustom = pricing.inputPrice !== undefined || pricing.outputPrice !== undefined;
+
         await this.db.execute(`
             UPDATE model_pricing SET
                 model_name = COALESCE(?, model_name),
@@ -3338,7 +3357,9 @@ export class ModelPricingStore {
                 input_price = COALESCE(?, input_price),
                 output_price = COALESCE(?, output_price),
                 is_active = COALESCE(?, is_active),
-                sort_order = COALESCE(?, sort_order)
+                sort_order = COALESCE(?, sort_order),
+                source = CASE WHEN ? THEN 'manual' ELSE source END,
+                is_custom = CASE WHEN ? THEN 1 ELSE is_custom END
             WHERE id = ?
         `, [
             pricing.modelName || null,
@@ -3348,6 +3369,8 @@ export class ModelPricingStore {
             pricing.outputPrice || null,
             pricing.isActive !== undefined ? (pricing.isActive ? 1 : 0) : null,
             pricing.sortOrder !== undefined ? pricing.sortOrder : null,
+            markAsCustom,
+            markAsCustom,
             id
         ]);
         this.clearCache();
@@ -3395,34 +3418,163 @@ export class ModelPricingStore {
     async initDefaultPricing() {
         const defaultPricing = [
             // Claude Opus 4.5
-            { modelName: 'claude-opus-4-5-20251101', displayName: 'Claude Opus 4.5', provider: 'anthropic', inputPrice: 15, outputPrice: 75, sortOrder: 1 },
-            { modelName: 'claude-opus-4.5', displayName: 'Claude Opus 4.5 (alias)', provider: 'anthropic', inputPrice: 15, outputPrice: 75, sortOrder: 2 },
+            { modelName: 'claude-opus-4-5-20251101', displayName: 'Claude Opus 4.5', provider: 'anthropic', inputPrice: 15, outputPrice: 75, sortOrder: 1, source: 'default' },
+            { modelName: 'claude-opus-4.5', displayName: 'Claude Opus 4.5 (alias)', provider: 'anthropic', inputPrice: 15, outputPrice: 75, sortOrder: 2, source: 'default' },
             // Claude Sonnet 4.5
-            { modelName: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 10 },
+            { modelName: 'claude-sonnet-4-5-20250929', displayName: 'Claude Sonnet 4.5', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 10, source: 'default' },
             // Claude Sonnet 4
-            { modelName: 'claude-sonnet-4-20250514', displayName: 'Claude Sonnet 4', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 11 },
+            { modelName: 'claude-sonnet-4-20250514', displayName: 'Claude Sonnet 4', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 11, source: 'default' },
             // Claude 3.7 Sonnet
-            { modelName: 'claude-3-7-sonnet-20250219', displayName: 'Claude 3.7 Sonnet', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 12 },
+            { modelName: 'claude-3-7-sonnet-20250219', displayName: 'Claude 3.7 Sonnet', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 12, source: 'default' },
             // Claude 3.5 Sonnet
-            { modelName: 'claude-3-5-sonnet-20241022', displayName: 'Claude 3.5 Sonnet v2', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 13 },
-            { modelName: 'claude-3-5-sonnet-20240620', displayName: 'Claude 3.5 Sonnet v1', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 14 },
+            { modelName: 'claude-3-5-sonnet-20241022', displayName: 'Claude 3.5 Sonnet v2', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 13, source: 'default' },
+            { modelName: 'claude-3-5-sonnet-20240620', displayName: 'Claude 3.5 Sonnet v1', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 14, source: 'default' },
             // Claude Haiku 4.5
-            { modelName: 'claude-haiku-4-5', displayName: 'Claude Haiku 4.5', provider: 'anthropic', inputPrice: 0.80, outputPrice: 4, sortOrder: 20 },
+            { modelName: 'claude-haiku-4-5', displayName: 'Claude Haiku 4.5', provider: 'anthropic', inputPrice: 0.80, outputPrice: 4, sortOrder: 20, source: 'default' },
             // Claude 3.5 Haiku
-            { modelName: 'claude-3-5-haiku-20241022', displayName: 'Claude 3.5 Haiku', provider: 'anthropic', inputPrice: 0.80, outputPrice: 4, sortOrder: 21 },
+            { modelName: 'claude-3-5-haiku-20241022', displayName: 'Claude 3.5 Haiku', provider: 'anthropic', inputPrice: 0.80, outputPrice: 4, sortOrder: 21, source: 'default' },
             // Claude 3 Opus
-            { modelName: 'claude-3-opus-20240229', displayName: 'Claude 3 Opus', provider: 'anthropic', inputPrice: 15, outputPrice: 75, sortOrder: 30 },
+            { modelName: 'claude-3-opus-20240229', displayName: 'Claude 3 Opus', provider: 'anthropic', inputPrice: 15, outputPrice: 75, sortOrder: 30, source: 'default' },
             // Claude 3 Sonnet
-            { modelName: 'claude-3-sonnet-20240229', displayName: 'Claude 3 Sonnet', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 31 },
+            { modelName: 'claude-3-sonnet-20240229', displayName: 'Claude 3 Sonnet', provider: 'anthropic', inputPrice: 3, outputPrice: 15, sortOrder: 31, source: 'default' },
             // Claude 3 Haiku
-            { modelName: 'claude-3-haiku-20240307', displayName: 'Claude 3 Haiku', provider: 'anthropic', inputPrice: 0.25, outputPrice: 1.25, sortOrder: 32 },
+            { modelName: 'claude-3-haiku-20240307', displayName: 'Claude 3 Haiku', provider: 'anthropic', inputPrice: 0.25, outputPrice: 1.25, sortOrder: 32, source: 'default' },
             // Gemini models
-            { modelName: 'gemini-3-pro-preview', displayName: 'Gemini 3 Pro', provider: 'google', inputPrice: 1.25, outputPrice: 5, sortOrder: 50 },
-            { modelName: 'gemini-3-flash-preview', displayName: 'Gemini 3 Flash', provider: 'google', inputPrice: 0.075, outputPrice: 0.30, sortOrder: 51 },
-            { modelName: 'gemini-2.5-flash-preview', displayName: 'Gemini 2.5 Flash', provider: 'google', inputPrice: 0.075, outputPrice: 0.30, sortOrder: 52 },
+            { modelName: 'gemini-3-pro-preview', displayName: 'Gemini 3 Pro', provider: 'google', inputPrice: 1.25, outputPrice: 5, sortOrder: 50, source: 'default' },
+            { modelName: 'gemini-3-flash-preview', displayName: 'Gemini 3 Flash', provider: 'google', inputPrice: 0.075, outputPrice: 0.30, sortOrder: 51, source: 'default' },
+            { modelName: 'gemini-2.5-flash-preview', displayName: 'Gemini 2.5 Flash', provider: 'google', inputPrice: 0.075, outputPrice: 0.30, sortOrder: 52, source: 'default' },
         ];
 
-        return await this.batchImport(defaultPricing);
+        return await this.batchImportWithSource(defaultPricing);
+    }
+
+    /**
+     * Import remote pricing (only updates non-custom entries)
+     * @param {object} remotePricing - Map of modelName -> { input, output, vendor }
+     * @returns {Promise<object>} Import results
+     */
+    async importRemotePricing(remotePricing) {
+        const results = { added: 0, updated: 0, skipped: 0, errors: [] };
+
+        for (const [modelName, pricing] of Object.entries(remotePricing)) {
+            try {
+                // Check if already exists
+                const [rows] = await this.db.execute(
+                    'SELECT id, is_custom FROM model_pricing WHERE model_name = ?',
+                    [modelName]
+                );
+
+                if (rows.length > 0) {
+                    // Model exists
+                    if (rows[0].is_custom) {
+                        // User has customized this, skip
+                        results.skipped++;
+                        continue;
+                    }
+                    // Update existing non-custom entry
+                    await this.db.execute(`
+                        UPDATE model_pricing SET
+                            input_price = ?,
+                            output_price = ?,
+                            provider = ?,
+                            source = 'remote',
+                            remote_updated_at = NOW()
+                        WHERE id = ? AND is_custom = 0
+                    `, [pricing.input, pricing.output, pricing.vendor || 'unknown', rows[0].id]);
+                    results.updated++;
+                } else {
+                    // Add new entry
+                    await this.db.execute(`
+                        INSERT INTO model_pricing (model_name, display_name, provider, input_price, output_price, source, is_custom, remote_updated_at, sort_order)
+                        VALUES (?, ?, ?, ?, ?, 'remote', 0, NOW(), 1000)
+                    `, [modelName, modelName, pricing.vendor || 'unknown', pricing.input, pricing.output]);
+                    results.added++;
+                }
+            } catch (err) {
+                results.errors.push({ modelName, error: err.message });
+            }
+        }
+
+        this.clearCache();
+        return results;
+    }
+
+    /**
+     * Batch import with source preservation
+     */
+    async batchImportWithSource(pricingList) {
+        const results = { success: 0, failed: 0, errors: [] };
+
+        for (const pricing of pricingList) {
+            try {
+                // Check if already exists
+                const [rows] = await this.db.execute(
+                    'SELECT id, is_custom FROM model_pricing WHERE model_name = ?',
+                    [pricing.modelName]
+                );
+
+                if (rows.length > 0) {
+                    // Skip if user has customized
+                    if (rows[0].is_custom) {
+                        results.success++;
+                        continue;
+                    }
+                    // Update existing
+                    await this.db.execute(`
+                        UPDATE model_pricing SET
+                            display_name = ?,
+                            provider = ?,
+                            input_price = ?,
+                            output_price = ?,
+                            sort_order = ?,
+                            source = ?
+                        WHERE id = ? AND is_custom = 0
+                    `, [
+                        pricing.displayName || pricing.modelName,
+                        pricing.provider || 'anthropic',
+                        pricing.inputPrice,
+                        pricing.outputPrice,
+                        pricing.sortOrder || 0,
+                        pricing.source || 'manual',
+                        rows[0].id
+                    ]);
+                } else {
+                    // Add new record
+                    await this.add(pricing);
+                }
+                results.success++;
+            } catch (err) {
+                results.failed++;
+                results.errors.push({ modelName: pricing.modelName, error: err.message });
+            }
+        }
+
+        this.clearCache();
+        return results;
+    }
+
+    /**
+     * Get remote pricing stats
+     */
+    async getRemoteStats() {
+        const [rows] = await this.db.execute(`
+            SELECT
+                COUNT(*) as total,
+                SUM(CASE WHEN source = 'remote' THEN 1 ELSE 0 END) as remote,
+                SUM(CASE WHEN source = 'default' THEN 1 ELSE 0 END) as defaultCount,
+                SUM(CASE WHEN source = 'manual' THEN 1 ELSE 0 END) as manual,
+                SUM(CASE WHEN is_custom = 1 THEN 1 ELSE 0 END) as custom,
+                MAX(remote_updated_at) as lastRemoteUpdate
+            FROM model_pricing
+        `);
+        return {
+            total: Number(rows[0].total) || 0,
+            remote: Number(rows[0].remote) || 0,
+            default: Number(rows[0].defaultCount) || 0,
+            manual: Number(rows[0].manual) || 0,
+            custom: Number(rows[0].custom) || 0,
+            lastRemoteUpdate: rows[0].lastRemoteUpdate
+        };
     }
 
     /**
@@ -3443,6 +3595,9 @@ export class ModelPricingStore {
             outputPrice: row.output_price,
             isActive: row.is_active === 1,
             sortOrder: row.sort_order,
+            source: row.source || 'manual',
+            isCustom: row.is_custom === 1,
+            remoteUpdatedAt: row.remote_updated_at,
             createdAt: row.created_at,
             updatedAt: row.updated_at
         };

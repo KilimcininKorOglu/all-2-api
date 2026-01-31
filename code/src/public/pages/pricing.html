@@ -267,6 +267,61 @@
             color: var(--text-secondary);
             margin-top: 4px;
         }
+        .source-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .source-manual {
+            background: rgba(139, 92, 246, 0.15);
+            color: #8b5cf6;
+        }
+        .source-remote {
+            background: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+        .source-default {
+            background: rgba(107, 114, 128, 0.15);
+            color: #6b7280;
+        }
+        .sync-info {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            padding: 12px 16px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .sync-info strong {
+            color: var(--text-primary);
+        }
+        .btn-sync {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+        .btn-sync:hover {
+            background: rgba(16, 185, 129, 0.2);
+        }
+        .btn-sync:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .spin {
+            animation: spin 1s linear infinite;
+        }
     </style>
 </head>
 <body>
@@ -298,9 +353,24 @@
                 </div>
             </div>
 
+            <div id="syncInfo" class="sync-info" style="display: none;">
+                <span>Remote Pricing: <strong id="remoteCount">0</strong> models synced</span>
+                <span>|</span>
+                <span>Last sync: <strong id="lastSync">Never</strong></span>
+            </div>
+
             <div class="pricing-header">
                 <div></div>
                 <div class="pricing-actions">
+                    <button class="btn btn-sync" id="syncBtn" onclick="syncRemote()">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                            <path d="M3 3v5h5"/>
+                            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/>
+                            <path d="M21 21v-5h-5"/>
+                        </svg>
+                        Sync Remote
+                    </button>
                     <button class="btn btn-secondary" onclick="resetDefault()">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
@@ -437,6 +507,7 @@
                         <tr>
                             <th>Model</th>
                             <th>Provider</th>
+                            <th>Source</th>
                             <th>Input Price</th>
                             <th>Output Price</th>
                             <th>Status</th>
@@ -452,6 +523,9 @@
                                 </td>
                                 <td>
                                     <span class="provider-badge provider-${p.provider}">${getProviderName(p.provider)}</span>
+                                </td>
+                                <td>
+                                    <span class="source-badge source-${p.source || 'manual'}">${getSourceName(p.source)}</span>
                                 </td>
                                 <td class="price-cell">$${parseFloat(p.inputPrice).toFixed(4)}</td>
                                 <td class="price-cell">$${parseFloat(p.outputPrice).toFixed(4)}</td>
@@ -480,6 +554,15 @@
                 'other': 'Other'
             };
             return names[provider] || provider;
+        }
+
+        function getSourceName(source) {
+            const names = {
+                'manual': 'Manual',
+                'remote': 'Remote',
+                'default': 'Default'
+            };
+            return names[source] || 'Manual';
         }
 
         function openAddModal() {
@@ -593,6 +676,81 @@
             }
         }
 
+        async function syncRemote() {
+            const syncBtn = document.getElementById('syncBtn');
+            const originalText = syncBtn.innerHTML;
+            syncBtn.disabled = true;
+            syncBtn.innerHTML = `
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="spin">
+                    <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                    <path d="M3 3v5h5"/>
+                </svg>
+                Syncing...
+            `;
+
+            try {
+                const response = await fetch('/api/pricing/sync-remote', {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                });
+
+                const result = await response.json();
+                if (result.success) {
+                    alert(`Sync complete! Imported: ${result.data.imported}, Updated: ${result.data.updated}, Skipped (custom): ${result.data.skipped}`);
+                    loadPricing();
+                    loadRemoteStats();
+                } else {
+                    alert(result.error || 'Sync failed');
+                }
+            } catch (error) {
+                console.error('Sync failed:', error);
+                alert('Sync failed');
+            } finally {
+                syncBtn.disabled = false;
+                syncBtn.innerHTML = originalText;
+            }
+        }
+
+        async function loadRemoteStats() {
+            try {
+                const response = await fetch('/api/pricing/remote-stats', {
+                    headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
+                });
+                const data = await response.json();
+                if (data.success && data.data) {
+                    const stats = data.data;
+                    document.getElementById('remoteCount').textContent = stats.remoteCount || 0;
+
+                    if (stats.lastSync) {
+                        const lastSync = new Date(stats.lastSync);
+                        const now = new Date();
+                        const diffMs = now - lastSync;
+                        const diffMins = Math.floor(diffMs / 60000);
+                        const diffHours = Math.floor(diffMins / 60);
+                        const diffDays = Math.floor(diffHours / 24);
+
+                        let timeAgo;
+                        if (diffDays > 0) {
+                            timeAgo = `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
+                        } else if (diffHours > 0) {
+                            timeAgo = `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
+                        } else if (diffMins > 0) {
+                            timeAgo = `${diffMins} minute${diffMins > 1 ? 's' : ''} ago`;
+                        } else {
+                            timeAgo = 'Just now';
+                        }
+                        document.getElementById('lastSync').textContent = timeAgo;
+                    } else {
+                        document.getElementById('lastSync').textContent = 'Never';
+                    }
+
+                    document.getElementById('syncInfo').style.display = 'flex';
+                }
+            } catch (error) {
+                console.error('Failed to load remote stats:', error);
+            }
+        }
+
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             // Check login status
@@ -604,6 +762,7 @@
 
             // Load data
             loadPricing();
+            loadRemoteStats();
             updateSidebarStats();
         });
     </script>

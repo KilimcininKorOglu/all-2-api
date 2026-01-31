@@ -388,26 +388,26 @@ export function calculateTokenCost(model, inputTokens, outputTokens, cacheReadTo
 }
 
 /**
- * Set remote pricing store (call from server.js)
- * @param {object} store - RemotePricingCacheStore instance
+ * Set pricing store (call from server.js)
+ * @param {object} store - ModelPricingStore instance
  */
 export function setRemotePricingStore(store) {
     remotePricingStore = store;
 }
 
 /**
- * Load remote pricing from database into memory cache
- * @returns {Promise<object>} Remote pricing map
+ * Load pricing from database into memory cache (includes remote prices)
+ * @returns {Promise<object>} Pricing map
  */
-async function loadRemotePricingFromDb() {
+async function loadPricingFromDb() {
     if (!remotePricingStore) return {};
 
     try {
         const pricingMap = await remotePricingStore.getPricingMap();
         if (Object.keys(pricingMap).length > 0) {
+            // Store in remote cache for backward compatibility
             remotePricingCache = pricingMap;
-            const lastFetch = await remotePricingStore.getLastFetchTime();
-            remotePricingLastFetch = lastFetch ? lastFetch.getTime() : 0;
+            remotePricingLastFetch = Date.now();
         }
         return pricingMap;
     } catch (error) {
@@ -417,26 +417,11 @@ async function loadRemotePricingFromDb() {
 }
 
 /**
- * Fetch remote pricing from llm-prices.com and save to database
+ * Fetch remote pricing from llm-prices.com and save to model_pricing table
+ * Only updates non-custom entries
  * @returns {Promise<object>} Remote pricing map
  */
 export async function fetchRemotePricing() {
-    // Check if database cache is still valid
-    if (remotePricingStore) {
-        try {
-            const isValid = await remotePricingStore.isCacheValid();
-            if (isValid && Object.keys(remotePricingCache).length === 0) {
-                // Load from database if memory cache is empty but db cache is valid
-                await loadRemotePricingFromDb();
-            }
-            if (isValid && Object.keys(remotePricingCache).length > 0) {
-                return remotePricingCache;
-            }
-        } catch (error) {
-            console.log(`[Pricing] Database check failed: ${error.message}`);
-        }
-    }
-
     // Return existing promise if fetch in progress
     if (remotePricingPromise) {
         return remotePricingPromise;
@@ -475,29 +460,28 @@ export async function fetchRemotePricing() {
             }
 
             if (Object.keys(pricing).length > 0) {
-                // Save to database
+                // Save to model_pricing table (only updates non-custom entries)
                 if (remotePricingStore) {
                     try {
-                        const result = await remotePricingStore.updateCache(pricing);
-                        console.log(`[Pricing] Saved to database: ${result.inserted} inserted, ${result.updated} updated`);
+                        const result = await remotePricingStore.importRemotePricing(pricing);
+                        console.log(`[Pricing] Remote sync: ${result.added} added, ${result.updated} updated, ${result.skipped} skipped (custom)`);
                     } catch (dbError) {
                         console.log(`[Pricing] Failed to save to database: ${dbError.message}`);
                     }
                 }
 
-                // Update memory cache
-                remotePricingCache = pricing;
-                remotePricingLastFetch = Date.now();
+                // Reload from database to get merged pricing
+                await loadPricingFromDb();
                 console.log(`[Pricing] Fetched remote pricing for ${Object.keys(pricing).length} models`);
-                return pricing;
+                return remotePricingCache;
             }
 
             throw new Error('No valid pricing data');
         } catch (error) {
-            console.log(`[Pricing] Remote fetch failed: ${error.message}, using cached/static pricing`);
-            // Try to load from database as fallback
+            console.log(`[Pricing] Remote fetch failed: ${error.message}, using database/static pricing`);
+            // Load from database as fallback
             if (remotePricingStore && Object.keys(remotePricingCache).length === 0) {
-                await loadRemotePricingFromDb();
+                await loadPricingFromDb();
             }
             return remotePricingCache;
         } finally {
@@ -509,26 +493,26 @@ export async function fetchRemotePricing() {
 }
 
 /**
- * Initialize remote pricing (call at server startup)
- * First loads from database, then fetches from remote if needed
+ * Initialize pricing (call at server startup)
+ * Loads from database, then fetches remote updates in background
  * @returns {Promise<void>}
  */
 export async function initializeRemotePricing() {
     try {
-        // First try to load from database
+        // First load existing pricing from database
         if (remotePricingStore) {
-            await loadRemotePricingFromDb();
-            const isValid = await remotePricingStore.isCacheValid();
-            if (isValid && Object.keys(remotePricingCache).length > 0) {
-                console.log(`[Pricing] Loaded ${Object.keys(remotePricingCache).length} models from database cache`);
-                return;
+            await loadPricingFromDb();
+            if (Object.keys(remotePricingCache).length > 0) {
+                console.log(`[Pricing] Loaded ${Object.keys(remotePricingCache).length} models from database`);
             }
         }
 
-        // Fetch from remote if database cache is invalid or empty
-        await fetchRemotePricing();
+        // Fetch remote updates (non-blocking, updates in background)
+        fetchRemotePricing().catch(err => {
+            console.log(`[Pricing] Background remote fetch failed: ${err.message}`);
+        });
     } catch (error) {
-        console.log(`[Pricing] Failed to initialize remote pricing: ${error.message}`);
+        console.log(`[Pricing] Failed to initialize pricing: ${error.message}`);
     }
 }
 

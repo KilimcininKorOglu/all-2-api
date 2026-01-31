@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, initDatabase } from './db.js';
 import { StrategyFactory, getStrategyManager, ThinkingBlocksParser } from './selection/index.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
@@ -4191,6 +4191,41 @@ app.post('/api/pricing/reset-default', authMiddleware, async (req, res) => {
     }
 });
 
+// Sync pricing from OpenRouter API
+app.post('/api/pricing/sync-remote', authMiddleware, async (req, res) => {
+    try {
+        if (!pricingStore) {
+            return res.status(500).json({ success: false, error: 'Pricing store not initialized' });
+        }
+
+        // Fetch and import remote pricing
+        const { fetchRemotePricing } = await import('./constants.js');
+        const result = await fetchRemotePricing(pricingStore);
+
+        // Refresh dynamic pricing cache
+        const pricingMap = await pricingStore.getPricingMap();
+        setDynamicPricing(pricingMap);
+
+        res.json({ success: true, data: result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get remote pricing statistics
+app.get('/api/pricing/remote-stats', authMiddleware, async (req, res) => {
+    try {
+        if (!pricingStore) {
+            return res.status(500).json({ success: false, error: 'Pricing store not initialized' });
+        }
+
+        const stats = await pricingStore.getRemoteStats();
+        res.json({ success: true, data: stats });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ Anthropic API Credentials Management ============
 
 // Get all Anthropic credentials
@@ -5242,16 +5277,15 @@ async function start() {
         console.error(`[${getTimestamp()}] Failed to load pricing configuration:`, err.message);
     }
 
-    // Initialize remote pricing cache store (MySQL)
-    const remotePricingCacheStore = await RemotePricingCacheStore.create();
-    setRemotePricingStore(remotePricingCacheStore);
+    // Set pricing store for remote pricing sync (uses unified model_pricing table)
+    setRemotePricingStore(pricingStore);
 
-    // Initialize remote pricing (non-blocking, falls back to database/static)
+    // Initialize remote pricing (non-blocking, syncs remote prices to model_pricing table)
     initializeRemotePricing().then(async () => {
-        const pricingInfo = await getPricingInfo();
-        console.log(`[${getTimestamp()}] Remote pricing: ${pricingInfo.remoteModels} models (source: ${pricingInfo.source}, db: ${pricingInfo.dbCache?.totalModels || 0})`);
+        const stats = await pricingStore.getRemoteStats();
+        console.log(`[${getTimestamp()}] Pricing: ${stats.total} models (remote: ${stats.remote}, default: ${stats.default}, custom: ${stats.custom})`);
     }).catch(() => {
-        console.log(`[${getTimestamp()}] Using static pricing only`);
+        console.log(`[${getTimestamp()}] Using database/static pricing only`);
     });
 
     // Auto-create default admin account (if no users exist)
