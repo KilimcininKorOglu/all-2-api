@@ -1,47 +1,102 @@
 /**
  * Gemini Antigravity Credential Management Routes
  */
+import crypto from 'crypto';
 import {
     AntigravityApiService,
     GEMINI_MODELS,
     refreshGeminiToken,
-    startOAuthFlow as startGeminiOAuthFlow
+    generateAuthUrl as generateGeminiAuthUrl,
+    getTokenFromCode as getGeminiTokenFromCode
 } from './antigravity-core.js';
 
+// Pending OAuth sessions (state -> session info)
+const pendingOAuthSessions = new Map();
+
+// Clean up expired sessions (older than 10 minutes)
+setInterval(() => {
+    const now = Date.now();
+    for (const [state, session] of pendingOAuthSessions) {
+        if (now - session.createdAt > 10 * 60 * 1000) {
+            pendingOAuthSessions.delete(state);
+        }
+    }
+}, 60 * 1000);
+
 export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
-    // Gemini OAuth start authorization (using independent callback server, port 8086)
+    // Gemini OAuth start authorization
     app.post('/api/gemini/oauth/start', async (req, res) => {
         try {
             const { name } = req.body;
             const credentialName = name || `Gemini-${Date.now()}`;
 
-            // Start independent OAuth callback server (port 8086)
-            const { authUrl, port } = await startGeminiOAuthFlow({
-                port: 8086,
-                onSuccess: async (tokens) => {
-                    try {
-                        // Save to database
-                        const id = await geminiStore.add({
-                            name: credentialName,
-                            accessToken: tokens.accessToken,
-                            refreshToken: tokens.refreshToken,
-                            expiresAt: tokens.expiresAt
-                        });
-                        // console.log(`[${getTimestamp()}] [Gemini OAuth] New credential added: ${credentialName} (ID: ${id})`);
-                    } catch (err) {
-                        console.error(`[${getTimestamp()}] [Gemini OAuth] Failed to save credentials:`, err.message);
-                    }
-                },
-                onError: (error) => {
-                    console.error(`[${getTimestamp()}] [Gemini OAuth] Authorization failed:`, error.message);
-                }
+            // Generate unique state for this OAuth session
+            const state = crypto.randomBytes(32).toString('hex');
+
+            // Get server's base URL from request
+            const protocol = req.headers['x-forwarded-proto'] || req.protocol || 'http';
+            const host = req.headers['x-forwarded-host'] || req.headers.host;
+            const redirectUri = `${protocol}://${host}/api/gemini/oauth/callback`;
+
+            // Generate auth URL
+            const authUrl = generateGeminiAuthUrl(redirectUri, state);
+
+            // Store pending session
+            pendingOAuthSessions.set(state, {
+                credentialName,
+                redirectUri,
+                createdAt: Date.now()
             });
 
-            // console.log(`[${getTimestamp()}] [Gemini OAuth] Callback server started on port ${port}`);
             res.json({ success: true, authUrl });
         } catch (error) {
             console.error(`[${getTimestamp()}] [Gemini OAuth] Startup failed:`, error.message);
             res.status(500).json({ success: false, error: error.message });
+        }
+    });
+
+    // Gemini OAuth callback handler
+    app.get('/api/gemini/oauth/callback', async (req, res) => {
+        try {
+            const { code, state, error: oauthError } = req.query;
+
+            if (oauthError) {
+                console.error(`[${getTimestamp()}] [Gemini OAuth] Authorization failed:`, oauthError);
+                return res.status(400).send(generateErrorPage(oauthError));
+            }
+
+            if (!code || !state) {
+                return res.status(400).send(generateErrorPage('Missing code or state parameter'));
+            }
+
+            // Find pending session
+            const session = pendingOAuthSessions.get(state);
+            if (!session) {
+                return res.status(400).send(generateErrorPage('Invalid or expired OAuth session'));
+            }
+
+            // Remove pending session
+            pendingOAuthSessions.delete(state);
+
+            console.log(`[${getTimestamp()}] [Gemini OAuth] Received authorization callback`);
+
+            // Exchange code for tokens
+            const tokens = await getGeminiTokenFromCode(code, session.redirectUri);
+
+            // Save to database
+            const id = await geminiStore.add({
+                name: session.credentialName,
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken,
+                expiresAt: tokens.expiresAt
+            });
+
+            console.log(`[${getTimestamp()}] [Gemini OAuth] New credential added: ${session.credentialName} (ID: ${id})`);
+
+            res.send(generateSuccessPage());
+        } catch (error) {
+            console.error(`[${getTimestamp()}] [Gemini OAuth] Callback error:`, error.message);
+            res.status(500).send(generateErrorPage(error.message));
         }
     });
 
@@ -518,4 +573,138 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
             res.status(500).json({ success: false, error: `Restore failed: ${error.message}` });
         }
     });
+}
+
+/**
+ * Generate success page HTML
+ */
+function generateSuccessPage() {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization Successful</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: #10b981;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+        h1 { color: #1f2937; margin-bottom: 10px; }
+        p { color: #6b7280; margin-bottom: 20px; }
+        .close-hint { font-size: 14px; color: #9ca3af; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+            </svg>
+        </div>
+        <h1>Authorization Successful!</h1>
+        <p>Gemini credential has been added successfully.</p>
+        <p class="close-hint">You can close this window now.</p>
+    </div>
+    <script>setTimeout(() => window.close(), 3000);</script>
+</body>
+</html>`;
+}
+
+/**
+ * Generate error page HTML
+ */
+function generateErrorPage(errorMessage) {
+    return `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Authorization Failed</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        }
+        .container {
+            background: white;
+            padding: 40px 60px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+            text-align: center;
+            max-width: 500px;
+        }
+        .icon {
+            width: 80px;
+            height: 80px;
+            background: #ef4444;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 20px;
+        }
+        .icon svg {
+            width: 40px;
+            height: 40px;
+            color: white;
+        }
+        h1 { color: #1f2937; margin-bottom: 10px; }
+        p { color: #6b7280; margin-bottom: 10px; }
+        .error-detail {
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            padding: 12px;
+            color: #dc2626;
+            font-size: 14px;
+            word-break: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">
+            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </div>
+        <h1>Authorization Failed</h1>
+        <p>An error occurred during authorization:</p>
+        <div class="error-detail">${errorMessage}</div>
+    </div>
+</body>
+</html>`;
 }
