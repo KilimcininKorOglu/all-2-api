@@ -37,9 +37,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!await checkAuth()) return;
 
-    loadCredentials();
+    await loadCredentials();
     setupEventListeners();
     updateSidebarStats();
+
+    // Auto-load usage for all credentials (like Gemini page)
+    batchRefreshUsage();
 });
 
 // Event Listeners
@@ -333,10 +336,16 @@ async function handleAddAccount(e) {
         });
 
         if (res.ok) {
+            const result = await res.json();
             showToast('Account added successfully', 'success');
             closeAddModal();
-            loadCredentials();
+            await loadCredentials();
             updateSidebarStats();
+
+            // Auto-fetch quota for the new credential
+            if (result.data?.id) {
+                refreshSingleUsage(result.data.id);
+            }
         } else {
             const err = await res.json();
             showToast(err.error || 'Failed to add', 'error');
@@ -408,6 +417,11 @@ async function handleContextAction(action) {
             });
             const testData = await testRes.json();
             showToast(testData.success ? 'Connection test successful' : 'Connection test failed', testData.success ? 'success' : 'error');
+
+            // Auto-refresh quota after successful test
+            if (testData.success) {
+                refreshSingleUsage(id);
+            }
             break;
         case 'usage':
             const usageRes = await fetch('/api/credentials/' + id + '/usage', {
