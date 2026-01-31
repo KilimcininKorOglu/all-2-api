@@ -1,6 +1,6 @@
 /**
- * Orchids 自动注册服务
- * 执行 Python 注册脚本并将结果上传到系统
+ * Orchids Auto Registration Service
+ * Execute Python registration script and upload results to system
  */
 import { spawn } from 'child_process';
 import path from 'path';
@@ -10,15 +10,15 @@ import { OrchidsAPI } from './orchids-service.js';
 
 const log = logger.api;
 
-// 获取当前目录
+// Get current directory
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// 注册任务状态
+// Registration task status
 const registerTasks = new Map();
 
 /**
- * 注册任务类
+ * Registration Task class
  */
 class RegisterTask {
     constructor(id, count, store, serverUrl) {
@@ -50,7 +50,7 @@ class RegisterTask {
             progress: this.progress,
             success: this.success,
             failed: this.failed,
-            logs: this.logs.slice(-50), // 只返回最后50条日志
+            logs: this.logs.slice(-50), // Only return last 50 logs
             startTime: this.startTime,
             endTime: this.endTime,
             duration: this.endTime ? (this.endTime - this.startTime) : (this.startTime ? (Date.now() - this.startTime) : 0)
@@ -59,20 +59,20 @@ class RegisterTask {
 }
 
 /**
- * 启动注册任务
+ * Start registration task
  */
 export async function startRegisterTask(count, store, serverUrl) {
     const taskId = `reg_${Date.now()}_${Math.random().toString(36).substr(2, 6)}`;
     const task = new RegisterTask(taskId, count, store, serverUrl);
     registerTasks.set(taskId, task);
 
-    task.addLog(`创建注册任务: ${count} 个账号`);
+    task.addLog(`Creating registration task: ${count} accounts`);
     task.status = 'running';
     task.startTime = Date.now();
 
-    // 异步执行注册
+    // Async execute registration
     executeRegister(task).catch(err => {
-        task.addLog(`任务异常: ${err.message}`, 'ERROR');
+        task.addLog(`Task exception: ${err.message}`, 'ERROR');
         task.status = 'error';
         task.endTime = Date.now();
     });
@@ -81,22 +81,22 @@ export async function startRegisterTask(count, store, serverUrl) {
 }
 
 /**
- * 执行注册流程
+ * Execute registration process
  */
 async function executeRegister(task) {
     const scriptPath = path.join(__dirname, '..', '..', 'register', 'orchids_register.py');
-    
-    task.addLog(`脚本路径: ${scriptPath}`);
-    task.addLog(`开始注册 ${task.count} 个账号...`);
 
-    // 检查 Python 是否可用
+    task.addLog(`Script path: ${scriptPath}`);
+    task.addLog(`Starting registration of ${task.count} accounts...`);
+
+    // Check if Python is available
     const pythonCmd = process.platform === 'win32' ? 'python' : 'python3';
-    
+
     return new Promise((resolve, reject) => {
         const args = [scriptPath, '--count', task.count.toString(), '--server', task.serverUrl];
-        
-        task.addLog(`执行命令: ${pythonCmd} ${args.join(' ')}`);
-        
+
+        task.addLog(`Executing command: ${pythonCmd} ${args.join(' ')}`);
+
         const proc = spawn(pythonCmd, args, {
             cwd: path.dirname(scriptPath),
             env: {
@@ -105,7 +105,7 @@ async function executeRegister(task) {
                 PYTHONIOENCODING: 'utf-8',
                 PYTHONUTF8: '1'
             },
-            // Windows 需要 shell 模式来正确处理路径
+            // Windows requires shell mode for correct path handling
             shell: process.platform === 'win32'
         });
 
@@ -116,18 +116,18 @@ async function executeRegister(task) {
             for (const line of lines) {
                 task.addLog(line);
                 
-                // 解析进度
+                // Parse progress
                 const progressMatch = line.match(/开始注册第 (\d+)\/(\d+)/);
                 if (progressMatch) {
                     task.progress = parseInt(progressMatch[1]);
                 }
-                
-                // 解析成功
+
+                // Parse success
                 if (line.includes('成功提取 __client') || line.includes('服务器保存成功')) {
                     task.success++;
                 }
-                
-                // 解析 client_key 并直接添加到数据库
+
+                // Parse client_key and directly add to database
                 const clientKeyMatch = line.match(/CLIENT_KEY:(.+)/);
                 if (clientKeyMatch && task.store) {
                     const clientKey = clientKeyMatch[1].trim();
@@ -150,17 +150,17 @@ async function executeRegister(task) {
             task.endTime = Date.now();
             if (code === 0) {
                 task.status = 'completed';
-                task.addLog(`任务完成: 成功 ${task.success} 个，失败 ${task.failed} 个`);
+                task.addLog(`Task completed: ${task.success} succeeded, ${task.failed} failed`);
             } else {
                 task.status = 'error';
-                task.addLog(`任务异常退出，代码: ${code}`, 'ERROR');
+                task.addLog(`Task exited abnormally, code: ${code}`, 'ERROR');
             }
             resolve();
         });
 
         proc.on('error', (err) => {
             task.status = 'error';
-            task.addLog(`进程错误: ${err.message}`, 'ERROR');
+            task.addLog(`Process error: ${err.message}`, 'ERROR');
             task.endTime = Date.now();
             reject(err);
         });
@@ -168,25 +168,25 @@ async function executeRegister(task) {
 }
 
 /**
- * 将账号添加到数据库
+ * Add account to database
  */
 async function addAccountToStore(task, clientKey) {
     try {
-        task.addLog(`正在验证并添加账号...`);
-        
-        // 获取完整账号信息
+        task.addLog(`Validating and adding account...`);
+
+        // Get full account info
         const accountInfo = await OrchidsAPI.getFullAccountInfo(clientKey);
         if (!accountInfo.success) {
-            task.addLog(`Token 验证失败: ${accountInfo.error}`, 'ERROR');
+            task.addLog(`Token validation failed: ${accountInfo.error}`, 'ERROR');
             return;
         }
 
         const name = accountInfo.email || `orchids-${Date.now()}`;
-        
-        // 检查是否已存在
+
+        // Check if already exists
         const existing = await task.store.getByName(name);
         if (existing) {
-            task.addLog(`账号已存在: ${name}`, 'WARN');
+            task.addLog(`Account already exists: ${name}`, 'WARN');
             return;
         }
 
@@ -200,29 +200,29 @@ async function addAccountToStore(task, clientKey) {
             weight: 1
         });
 
-        task.addLog(`✅ 账号添加成功: ${name}`);
+        task.addLog(`Account added successfully: ${name}`);
         task.success++;
     } catch (error) {
-        task.addLog(`添加账号失败: ${error.message}`, 'ERROR');
+        task.addLog(`Failed to add account: ${error.message}`, 'ERROR');
     }
 }
 
 /**
- * 获取任务状态
+ * Get task status
  */
 export function getRegisterTask(taskId) {
     return registerTasks.get(taskId);
 }
 
 /**
- * 获取所有任务
+ * Get all tasks
  */
 export function getAllRegisterTasks() {
     return Array.from(registerTasks.values()).map(t => t.toJSON());
 }
 
 /**
- * 取消任务
+ * Cancel task
  */
 export function cancelRegisterTask(taskId) {
     const task = registerTasks.get(taskId);
@@ -230,19 +230,19 @@ export function cancelRegisterTask(taskId) {
         task.process.kill('SIGTERM');
         task.status = 'cancelled';
         task.endTime = Date.now();
-        task.addLog('任务已取消');
+        task.addLog('Task cancelled');
         return true;
     }
     return false;
 }
 
 /**
- * 清理旧任务
+ * Clean up old tasks
  */
 export function cleanupTasks() {
     const now = Date.now();
-    const maxAge = 24 * 60 * 60 * 1000; // 24小时
-    
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+
     for (const [id, task] of registerTasks) {
         if (task.endTime && (now - task.endTime) > maxAge) {
             registerTasks.delete(id);
@@ -250,8 +250,8 @@ export function cleanupTasks() {
     }
 }
 
-// 定期清理
-setInterval(cleanupTasks, 60 * 60 * 1000); // 每小时清理一次
+// Periodic cleanup
+setInterval(cleanupTasks, 60 * 60 * 1000); // Clean up every hour
 
 export default {
     startRegisterTask,
