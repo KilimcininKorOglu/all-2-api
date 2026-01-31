@@ -355,6 +355,8 @@ export async function initDatabase() {
             orchids_debug TINYINT DEFAULT 0,
             token_refresh_interval INT DEFAULT 30 COMMENT 'Token refresh interval in minutes',
             token_refresh_threshold INT DEFAULT 10 COMMENT 'Refresh tokens expiring within N minutes',
+            quota_refresh_interval INT DEFAULT 5 COMMENT 'Quota refresh interval in minutes',
+            selection_strategy ENUM('hybrid','sticky','round-robin') DEFAULT 'hybrid' COMMENT 'Pool selection strategy',
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
@@ -368,7 +370,9 @@ export async function initDatabase() {
         { name: 'warp_debug', sql: 'ADD COLUMN warp_debug TINYINT DEFAULT 0' },
         { name: 'orchids_debug', sql: 'ADD COLUMN orchids_debug TINYINT DEFAULT 0' },
         { name: 'token_refresh_interval', sql: "ADD COLUMN token_refresh_interval INT DEFAULT 30 COMMENT 'Token refresh interval in minutes'" },
-        { name: 'token_refresh_threshold', sql: "ADD COLUMN token_refresh_threshold INT DEFAULT 10 COMMENT 'Refresh tokens expiring within N minutes'" }
+        { name: 'token_refresh_threshold', sql: "ADD COLUMN token_refresh_threshold INT DEFAULT 10 COMMENT 'Refresh tokens expiring within N minutes'" },
+        { name: 'quota_refresh_interval', sql: "ADD COLUMN quota_refresh_interval INT DEFAULT 5 COMMENT 'Quota refresh interval in minutes'" },
+        { name: 'selection_strategy', sql: "ADD COLUMN selection_strategy ENUM('hybrid','sticky','round-robin') DEFAULT 'hybrid' COMMENT 'Pool selection strategy'" }
     ];
     for (const col of newColumns) {
         try {
@@ -3165,7 +3169,9 @@ export class SiteSettingsStore {
                 warpDebug: false,
                 orchidsDebug: false,
                 tokenRefreshInterval: 30,
-                tokenRefreshThreshold: 10
+                tokenRefreshThreshold: 10,
+                quotaRefreshInterval: 5,
+                selectionStrategy: 'hybrid'
             };
         }
         return this._mapRow(rows[0]);
@@ -3186,6 +3192,8 @@ export class SiteSettingsStore {
         if (settings.orchidsDebug !== undefined) { fields.push('orchids_debug = ?'); values.push(settings.orchidsDebug ? 1 : 0); }
         if (settings.tokenRefreshInterval !== undefined) { fields.push('token_refresh_interval = ?'); values.push(settings.tokenRefreshInterval); }
         if (settings.tokenRefreshThreshold !== undefined) { fields.push('token_refresh_threshold = ?'); values.push(settings.tokenRefreshThreshold); }
+        if (settings.quotaRefreshInterval !== undefined) { fields.push('quota_refresh_interval = ?'); values.push(settings.quotaRefreshInterval); }
+        if (settings.selectionStrategy !== undefined) { fields.push('selection_strategy = ?'); values.push(settings.selectionStrategy); }
 
         if (fields.length > 0) {
             await this.db.execute(`UPDATE site_settings SET ${fields.join(', ')} WHERE id = 1`, values);
@@ -3206,6 +3214,8 @@ export class SiteSettingsStore {
             orchidsDebug: row.orchids_debug === 1,
             tokenRefreshInterval: row.token_refresh_interval || 30,
             tokenRefreshThreshold: row.token_refresh_threshold || 10,
+            quotaRefreshInterval: row.quota_refresh_interval || 5,
+            selectionStrategy: row.selection_strategy || 'hybrid',
             updatedAt: row.updated_at
         };
     }

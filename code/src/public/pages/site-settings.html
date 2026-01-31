@@ -389,6 +389,26 @@
                             <div class="form-hint">Refresh tokens expiring within this time (1-60 minutes)</div>
                         </div>
 
+                        <div class="settings-section-title" style="margin-top: 24px;">Quota Refresh</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Quota Refresh Interval (minutes)</label>
+                            <input type="number" class="form-input" id="quota-refresh-interval" min="1" max="60" value="5">
+                            <div class="form-hint">How often to fetch quota/usage from providers (1-60 minutes)</div>
+                        </div>
+
+                        <div class="settings-section-title" style="margin-top: 24px;">Pool Strategy</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Selection Strategy</label>
+                            <select class="form-select" id="selection-strategy">
+                                <option value="hybrid">Hybrid - Score-based selection (recommended)</option>
+                                <option value="sticky">Sticky - Same account per session</option>
+                                <option value="round-robin">Round Robin - Rotate accounts</option>
+                            </select>
+                            <div class="form-hint">How to select accounts from the pool for API requests</div>
+                        </div>
+
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary" id="system-submit-btn">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -449,6 +469,8 @@
             document.getElementById('orchids-debug').checked = settings.orchidsDebug === true;
             document.getElementById('token-refresh-interval').value = settings.tokenRefreshInterval || 30;
             document.getElementById('token-refresh-threshold').value = settings.tokenRefreshThreshold || 10;
+            document.getElementById('quota-refresh-interval').value = settings.quotaRefreshInterval || 5;
+            document.getElementById('selection-strategy').value = settings.selectionStrategy || 'hybrid';
         }
 
         // Bind events
@@ -559,14 +581,20 @@
             const orchidsDebug = document.getElementById('orchids-debug').checked;
             const tokenRefreshInterval = parseInt(document.getElementById('token-refresh-interval').value) || 30;
             const tokenRefreshThreshold = parseInt(document.getElementById('token-refresh-threshold').value) || 10;
+            const quotaRefreshInterval = parseInt(document.getElementById('quota-refresh-interval').value) || 5;
+            const selectionStrategy = document.getElementById('selection-strategy').value;
 
             // Validate
             if (tokenRefreshInterval < 1 || tokenRefreshInterval > 1440) {
-                showToast('Refresh interval must be between 1 and 1440 minutes', 'error');
+                showToast('Token refresh interval must be between 1 and 1440 minutes', 'error');
                 return;
             }
             if (tokenRefreshThreshold < 1 || tokenRefreshThreshold > 60) {
-                showToast('Refresh threshold must be between 1 and 60 minutes', 'error');
+                showToast('Token refresh threshold must be between 1 and 60 minutes', 'error');
+                return;
+            }
+            if (quotaRefreshInterval < 1 || quotaRefreshInterval > 60) {
+                showToast('Quota refresh interval must be between 1 and 60 minutes', 'error');
                 return;
             }
 
@@ -592,7 +620,9 @@
                         warpDebug,
                         orchidsDebug,
                         tokenRefreshInterval,
-                        tokenRefreshThreshold
+                        tokenRefreshThreshold,
+                        quotaRefreshInterval,
+                        selectionStrategy
                     })
                 });
 

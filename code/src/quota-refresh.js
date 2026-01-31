@@ -9,11 +9,16 @@ import { OrchidsAPI } from './orchids/orchids-service.js';
 import { WarpService, getRequestLimit } from './warp/warp-service.js';
 import { verifyCredentials as verifyAnthropicCredentials } from './anthropic/anthropic-service.js';
 
-// Configuration
-const QUOTA_REFRESH_INTERVAL = 5 * 60 * 1000;   // 5 minutes
+// Configuration (defaults, can be overridden by dynamic settings)
+let quotaRefreshIntervalMs = 5 * 60 * 1000;     // 5 minutes default
 const INITIAL_DELAY = 60 * 1000;                 // 1 minute
 const DELAY_BETWEEN_CREDENTIALS = 2000;          // 2 seconds
 const DELAY_BETWEEN_VENDORS = 5000;              // 5 seconds
+
+// Setter for dynamic interval (called from server.js)
+export function setQuotaRefreshInterval(intervalMs) {
+    quotaRefreshIntervalMs = intervalMs;
+}
 
 /**
  * Get current timestamp string
@@ -357,19 +362,26 @@ async function refreshAllQuotas(stores) {
 /**
  * Start the unified quota refresh task
  * @param {Object} stores - Object containing all vendor stores { kiro, gemini, orchids, warp }
+ * @param {Function} getIntervalMs - Optional function to get dynamic interval in ms
  */
-export function startUnifiedQuotaRefreshTask(stores) {
-    console.log(`[${getTimestamp()}] [Quota Refresh] Unified task started, interval: ${QUOTA_REFRESH_INTERVAL / 60000} minutes`);
+export function startUnifiedQuotaRefreshTask(stores, getIntervalMs = null) {
+    const initialInterval = getIntervalMs ? getIntervalMs() : quotaRefreshIntervalMs;
+    console.log(`[${getTimestamp()}] [Quota Refresh] Task started (interval: ${initialInterval / 60000}min)`);
 
     // Execute initial refresh after INITIAL_DELAY
     setTimeout(async () => {
         await refreshAllQuotas(stores);
     }, INITIAL_DELAY);
 
-    // Execute on schedule
-    setInterval(async () => {
-        await refreshAllQuotas(stores);
-    }, QUOTA_REFRESH_INTERVAL);
+    // Schedule next run using dynamic interval (re-reads interval each time)
+    const scheduleNext = () => {
+        const interval = getIntervalMs ? getIntervalMs() : quotaRefreshIntervalMs;
+        setTimeout(async () => {
+            await refreshAllQuotas(stores);
+            scheduleNext();
+        }, interval);
+    };
+    scheduleNext();
 }
 
 export {

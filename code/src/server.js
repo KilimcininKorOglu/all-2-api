@@ -255,8 +255,10 @@ let systemSettings = {
     disableCredentialLock: process.env.DISABLE_CREDENTIAL_LOCK === 'true',
     warpDebug: process.env.WARP_DEBUG === 'true',
     orchidsDebug: process.env.ORCHIDS_DEBUG === 'true',
-    tokenRefreshInterval: 30,  // minutes
-    tokenRefreshThreshold: 10  // minutes
+    tokenRefreshInterval: 30,   // minutes
+    tokenRefreshThreshold: 10,  // minutes
+    quotaRefreshInterval: 5,    // minutes
+    selectionStrategy: 'hybrid' // hybrid, sticky, round-robin
 };
 
 // Check if credential lock is disabled (dynamic)
@@ -273,6 +275,16 @@ function getTokenRefreshThreshold() {
     return systemSettings.tokenRefreshThreshold;
 }
 
+// Get quota refresh interval (dynamic)
+function getQuotaRefreshInterval() {
+    return systemSettings.quotaRefreshInterval * 60 * 1000; // convert to ms
+}
+
+// Get selection strategy (dynamic)
+function getSelectionStrategy() {
+    return systemSettings.selectionStrategy;
+}
+
 /**
  * Load and apply system settings from database
  */
@@ -286,6 +298,8 @@ async function loadSystemSettings() {
         systemSettings.orchidsDebug = settings.orchidsDebug;
         systemSettings.tokenRefreshInterval = settings.tokenRefreshInterval || 30;
         systemSettings.tokenRefreshThreshold = settings.tokenRefreshThreshold || 10;
+        systemSettings.quotaRefreshInterval = settings.quotaRefreshInterval || 5;
+        systemSettings.selectionStrategy = settings.selectionStrategy || 'hybrid';
 
         // Apply to logger
         updateLoggerSettings({
@@ -294,7 +308,7 @@ async function loadSystemSettings() {
             logConsole: settings.logConsole
         });
 
-        console.log(`[${getTimestamp()}] [Settings] Loaded from DB: logLevel=${settings.logLevel}, tokenRefresh=${settings.tokenRefreshInterval}min`);
+        console.log(`[${getTimestamp()}] [Settings] Loaded from DB: strategy=${settings.selectionStrategy}, quotaRefresh=${settings.quotaRefreshInterval}min`);
     } catch (error) {
         console.error(`[${getTimestamp()}] [Settings] Failed to load from DB: ${error.message}`);
     }
@@ -1113,7 +1127,8 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
             siteName, siteLogo, siteSubtitle,
             logLevel, logEnabled, logConsole,
             disableCredentialLock, warpDebug, orchidsDebug,
-            tokenRefreshInterval, tokenRefreshThreshold
+            tokenRefreshInterval, tokenRefreshThreshold,
+            quotaRefreshInterval, selectionStrategy
         } = req.body;
 
         // Validate siteLogo length
@@ -1135,6 +1150,17 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
             return res.status(400).json({ success: false, error: 'Token refresh threshold must be between 1 and 60 minutes' });
         }
 
+        // Validate quota refresh interval
+        if (quotaRefreshInterval !== undefined && (quotaRefreshInterval < 1 || quotaRefreshInterval > 60)) {
+            return res.status(400).json({ success: false, error: 'Quota refresh interval must be between 1 and 60 minutes' });
+        }
+
+        // Validate selection strategy
+        const validStrategies = ['hybrid', 'sticky', 'round-robin'];
+        if (selectionStrategy && !validStrategies.includes(selectionStrategy)) {
+            return res.status(400).json({ success: false, error: 'Invalid selection strategy' });
+        }
+
         // Build update object (only include provided fields)
         const updateData = {};
         if (siteName !== undefined) updateData.siteName = siteName || 'Hermes';
@@ -1148,6 +1174,8 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
         if (orchidsDebug !== undefined) updateData.orchidsDebug = orchidsDebug;
         if (tokenRefreshInterval !== undefined) updateData.tokenRefreshInterval = tokenRefreshInterval;
         if (tokenRefreshThreshold !== undefined) updateData.tokenRefreshThreshold = tokenRefreshThreshold;
+        if (quotaRefreshInterval !== undefined) updateData.quotaRefreshInterval = quotaRefreshInterval;
+        if (selectionStrategy !== undefined) updateData.selectionStrategy = selectionStrategy;
 
         const settings = await siteSettingsStore.update(updateData);
 
@@ -1157,6 +1185,8 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
         systemSettings.orchidsDebug = settings.orchidsDebug;
         systemSettings.tokenRefreshInterval = settings.tokenRefreshInterval;
         systemSettings.tokenRefreshThreshold = settings.tokenRefreshThreshold;
+        systemSettings.quotaRefreshInterval = settings.quotaRefreshInterval;
+        systemSettings.selectionStrategy = settings.selectionStrategy;
 
         // Apply logger settings dynamically
         updateLoggerSettings({
@@ -5549,14 +5579,14 @@ async function start() {
     console.log(`[${getTimestamp()}] Bedrock service started`);
 
     // Start scheduled refresh tasks
-    startUnifiedTokenRefreshTask(); // All providers token refresh (30min)
+    startUnifiedTokenRefreshTask(); // All providers token refresh
     startUnifiedQuotaRefreshTask({
         kiro: store,
         gemini: geminiStore,
         orchids: orchidsStore,
         warp: warpStore,
         anthropic: anthropicStore
-    });
+    }, getQuotaRefreshInterval); // Dynamic interval from settings
 
     // Start log cleanup task (clean logs older than 30 days daily)
     startLogCleanupTask();
