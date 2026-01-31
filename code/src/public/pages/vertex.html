@@ -3,436 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vertex AI Account Management - Hermes Account Manager</title>
+    <title>Vertex AI Account Management - All-2-API</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/common.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        /* Vertex AI specific styles */
-        .page-icon.vertex {
-            background: linear-gradient(135deg, #4285f4 0%, #34a853 50%, #fbbc04 100%);
-        }
-
-        .stat-icon.total { background: linear-gradient(135deg, #4285f4, #1a73e8); }
-        .stat-icon.active { background: linear-gradient(135deg, #34a853, #1e8e3e); }
-        .stat-icon.healthy { background: linear-gradient(135deg, #fbbc04, #f9ab00); }
-        .stat-icon.usage { background: linear-gradient(135deg, #ea4335, #d93025); }
-
-        .stats-row {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 16px;
-            margin-bottom: 24px;
-        }
-
-        @media (max-width: 1200px) {
-            .stats-row { grid-template-columns: repeat(2, 1fr); }
-        }
-
-        @media (max-width: 600px) {
-            .stats-row { grid-template-columns: 1fr; }
-        }
-
-        /* Vertex card styles */
-        .vertex-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            transition: all var(--transition-normal);
-            position: relative;
-            overflow: hidden;
-        }
-
-        .vertex-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 3px;
-            background: linear-gradient(90deg, #4285f4, #34a853, #fbbc04, #ea4335);
-            opacity: 0;
-            transition: opacity var(--transition-fast);
-        }
-
-        .vertex-card:hover {
-            border-color: var(--border-light);
-            background: var(--bg-card-hover);
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
-        }
-
-        .vertex-card:hover::before { opacity: 1; }
-
-        .vertex-card.selected {
-            border-color: #4285f4;
-            background: rgba(66, 133, 244, 0.05);
-        }
-
-        .vertex-card.selected::before { opacity: 1; }
-
-        .card-title-section {
-            flex: 1;
-            min-width: 0;
-        }
-
-        .card-title {
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .card-subtitle {
-            font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        .card-menu-btn {
-            width: 32px;
-            height: 32px;
-            border-radius: var(--radius-sm);
-            background: transparent;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            transition: all var(--transition-fast);
-            flex-shrink: 0;
-        }
-
-        .card-menu-btn:hover {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-        }
-
-        .card-menu-btn svg { width: 18px; height: 18px; }
-
-        .card-body {
-            margin: 16px 0;
-        }
-
-        .card-info-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .card-info-row:last-child { border-bottom: none; }
-
-        .card-info-label {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .card-info-value {
-            font-size: 13px;
-            color: var(--text-secondary);
-            font-weight: 500;
-            max-width: 200px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .card-info-value.error-text {
-            color: var(--accent-danger);
-            font-size: 11px;
-        }
-
-        .card-footer {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding-top: 16px;
-            border-top: 1px solid var(--border-color);
-        }
-
-        .card-date {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .status-badge.active {
-            background: rgba(52, 168, 83, 0.15);
-            color: #34a853;
-        }
-
-        .status-badge.inactive {
-            background: var(--bg-tertiary);
-            color: var(--text-muted);
-        }
-
-        .status-badge.error {
-            background: var(--accent-danger-bg);
-            color: var(--accent-danger);
-        }
-
-        /* Drag and drop upload area */
-        .drop-zone {
-            border: 2px dashed var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 40px 20px;
-            text-align: center;
-            transition: all var(--transition-fast);
-            cursor: pointer;
-            margin-bottom: 16px;
-        }
-
-        .drop-zone:hover,
-        .drop-zone.drag-over {
-            border-color: #4285f4;
-            background: rgba(66, 133, 244, 0.05);
-        }
-
-        .drop-zone-icon {
-            width: 48px;
-            height: 48px;
-            margin: 0 auto 12px;
-            color: var(--text-muted);
-        }
-
-        .drop-zone-text {
-            font-size: 14px;
-            color: var(--text-secondary);
-            margin-bottom: 4px;
-        }
-
-        .drop-zone-hint {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        /* Region selector styles */
-        .region-selector {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-top: 8px;
-        }
-
-        .region-option {
-            padding: 10px 12px;
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all var(--transition-fast);
-            text-align: center;
-        }
-
-        .region-option:hover {
-            border-color: var(--border-light);
-            background: var(--bg-elevated);
-        }
-
-        .region-option.selected {
-            border-color: #4285f4;
-            background: rgba(66, 133, 244, 0.1);
-        }
-
-        .region-option-name {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .region-option-desc {
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        /* Batch import preview */
-        .import-preview {
-            background: var(--bg-tertiary);
-            border-radius: var(--radius-md);
-            padding: 16px;
-            margin-top: 16px;
-            display: none;
-        }
-
-        .import-preview.show { display: block; }
-
-        .import-preview-title {
-            font-size: 13px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin-bottom: 12px;
-        }
-
-        .import-preview-item {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 0;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .import-preview-item:last-child { border-bottom: none; }
-
-        .import-preview-icon {
-            width: 32px;
-            height: 32px;
-            background: linear-gradient(135deg, #4285f4, #34a853);
-            border-radius: var(--radius-sm);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .import-preview-info { flex: 1; }
-
-        .import-preview-name {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-primary);
-        }
-
-        .import-preview-email {
-            font-size: 11px;
-            color: var(--text-muted);
-        }
-
-        /* Models display section */
-        .models-section {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-lg);
-            padding: 20px;
-            margin-bottom: 24px;
-        }
-
-        .models-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        .models-title {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 15px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .models-title svg {
-            color: #fbbc04;
-        }
-
-        .models-endpoint {
-            font-size: 12px;
-            color: var(--text-muted);
-        }
-
-        .models-endpoint code {
-            background: var(--bg-tertiary);
-            padding: 4px 8px;
-            border-radius: var(--radius-sm);
-            font-family: 'SF Mono', Monaco, monospace;
-            color: #4285f4;
-        }
-
-        .models-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-            gap: 12px;
-        }
-
-        .model-card {
-            background: var(--bg-tertiary);
-            border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
-            padding: 12px 14px;
-            cursor: pointer;
-            transition: all var(--transition-fast);
-            position: relative;
-        }
-
-        .model-card:hover {
-            border-color: var(--border-light);
-            background: var(--bg-elevated);
-        }
-
-        .model-card.copied {
-            border-color: #34a853;
-            background: rgba(52, 168, 83, 0.1);
-        }
-
-        .model-card-name {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--text-primary);
-            font-family: 'SF Mono', Monaco, monospace;
-            word-break: break-all;
-        }
-
-        .model-card-mapping {
-            font-size: 11px;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        .model-card-badge {
-            position: absolute;
-            top: 8px;
-            right: 8px;
-            font-size: 9px;
-            padding: 2px 6px;
-            border-radius: 10px;
-            font-weight: 600;
-            text-transform: uppercase;
-        }
-
-        .model-card-badge.claude-4 {
-            background: linear-gradient(135deg, #4285f4, #34a853);
-            color: white;
-        }
-
-        .model-card-badge.claude-3 {
-            background: var(--bg-elevated);
-            color: var(--text-muted);
-        }
-
-        .model-card-copy-hint {
-            font-size: 10px;
-            color: var(--text-muted);
-            margin-top: 6px;
-            opacity: 0;
-            transition: opacity var(--transition-fast);
-        }
-
-        .model-card:hover .model-card-copy-hint {
-            opacity: 1;
-        }
-    </style>
 </head>
 <body>
     <div class="app-container">
@@ -483,58 +59,58 @@
                 </div>
             </header>
 
-            <div class="content-area" id="vertex-page">
-                <!-- Statistics cards -->
-                <div class="stats-row">
-                    <div class="stat-card">
-                        <div class="stat-icon total">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-                                <path d="M2 17l10 5 10-5"/>
-                                <path d="M2 12l10 5 10-5"/>
-                            </svg>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="stat-total">0</span>
-                            <span class="stat-label">Total Accounts</span>
-                        </div>
+            <!-- Statistics Cards -->
+            <div class="stats-cards" id="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #4285f4, #1a73e8);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                            <path d="M2 17l10 5 10-5"/>
+                            <path d="M2 12l10 5 10-5"/>
+                        </svg>
                     </div>
-                    <div class="stat-card">
-                        <div class="stat-icon active">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                <polyline points="22 4 12 14.01 9 11.01"/>
-                            </svg>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="stat-active">0</span>
-                            <span class="stat-label">Active Accounts</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon healthy">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
-                            </svg>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="stat-healthy">0</span>
-                            <span class="stat-label">Healthy Accounts</span>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon usage">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                            </svg>
-                        </div>
-                        <div class="stat-info">
-                            <span class="stat-value" id="stat-usage">0</span>
-                            <span class="stat-label">Total Usage</span>
-                        </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-total">0</div>
+                        <div class="stat-label">Total Accounts</div>
                     </div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-active">0</div>
+                        <div class="stat-label">Active Accounts</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-healthy">0</div>
+                        <div class="stat-label">Healthy Accounts</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-usage">0</div>
+                        <div class="stat-label">Total Usage</div>
+                    </div>
+                </div>
+            </div>
 
+            <div class="content-area" id="vertex-page">
                 <!-- Supported Models -->
                 <div class="models-section" id="models-section">
                     <div class="models-header">
@@ -557,7 +133,7 @@
                             <input type="checkbox" class="checkbox-custom" id="select-all">
                             <label class="select-label" for="select-all">Select All</label>
                         </div>
-                        <span class="account-count">Total <strong id="displayed-count">0</strong> accounts</span>
+                        <span class="account-count"><strong id="displayed-count">0</strong> accounts</span>
                     </div>
                     <div class="content-header-right">
                         <button class="btn btn-danger btn-sm" id="batch-delete-btn" style="display: none;">
@@ -679,7 +255,7 @@
 
     <!-- Import JSON Modal -->
     <div class="modal-overlay" id="import-modal">
-        <div class="modal" style="max-width: 700px;">
+        <div class="modal modal-lg">
             <div class="modal-header">
                 <h2 class="modal-title">Import GCP Service Account JSON</h2>
                 <button class="modal-close" id="import-modal-close">
@@ -784,7 +360,7 @@
             Set Active
         </div>
         <div class="context-menu-item" data-action="test">
-         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>
             </svg>
             Test Connection
@@ -792,7 +368,7 @@
         <div class="context-menu-item" data-action="edit">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
             </svg>
             Edit
         </div>
@@ -834,6 +410,7 @@
                     <div class="form-group">
                         <label class="form-label">Region</label>
                         <select class="form-input" id="edit-account-region">
+                            <option value="global">global</option>
                             <option value="us-central1">us-central1</option>
                             <option value="us-east5">us-east5</option>
                             <option value="europe-west1">europe-west1</option>

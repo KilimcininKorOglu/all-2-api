@@ -152,84 +152,58 @@ function renderCards() {
     emptyState.style.display = 'none';
 
     grid.innerHTML = filtered.map(c => createCard(c)).join('');
-
-    // Bind card events
-    grid.querySelectorAll('.vertex-card').forEach(card => {
-        const id = parseInt(card.dataset.id);
-
-        card.querySelector('.card-checkbox')?.addEventListener('change', (e) => {
-            if (e.target.checked) {
-                selectedIds.add(id);
-                card.classList.add('selected');
-            } else {
-                selectedIds.delete(id);
-                card.classList.remove('selected');
-            }
-            updateBatchButtons();
-        });
-
-        card.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            showContextMenu(e, id);
-        });
-    });
+    updateSelectAllCheckbox();
 }
 
 // Create card HTML
 function createCard(credential) {
-    const statusClass = credential.errorCount > 0 ? 'error' : (credential.isActive ? 'active' : 'inactive');
-    const statusText = credential.errorCount > 0 ? 'Error' : (credential.isActive ? 'Active' : 'Normal');
+    const isSelected = selectedIds.has(credential.id);
+    const displayName = credential.name || credential.projectId || 'Unnamed';
+    const statusBadge = credential.errorCount > 0 ? '<span class="pro-badge inactive">Error</span>' :
+                        (credential.isActive ? '<span class="pro-badge">Active</span>' : '<span class="pro-badge inactive">Inactive</span>');
 
     return `
-        <div class="vertex-card ${selectedIds.has(credential.id) ? 'selected' : ''}" data-id="${credential.id}">
+        <div class="account-card vertex-card ${isSelected ? 'selected' : ''}" data-id="${credential.id}" onclick="showCredentialDetail(${credential.id})" oncontextmenu="event.preventDefault(); showContextMenu(event, ${credential.id})">
             <div class="card-header">
-                <input type="checkbox" class="checkbox-custom card-checkbox" ${selectedIds.has(credential.id) ? 'checked' : ''}>
-                <div class="card-title-section">
-                    <h3 class="card-title" title="${escapeHtml(credential.name)}">${escapeHtml(credential.name)}</h3>
-                    <span class="card-subtitle">${escapeHtml(credential.projectId || '')}</span>
+                <div class="card-checkbox">
+                    <input type="checkbox" class="checkbox-custom" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelect(${credential.id}, this.checked)">
+                </div>
+                <div class="card-title">
+                    <span class="card-email" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</span>
+                    ${statusBadge}
                 </div>
             </div>
-            <div class="card-body">
-                <div class="card-info-row">
-                    <span class="card-info-label">Client Email</span>
-                    <span class="card-info-value" title="${escapeHtml(credential.clientEmail || '')}">${escapeHtml(credential.clientEmail || '-')}</span>
+            <div class="card-usage">
+                <div class="usage-header">
+                    <span class="usage-label">Project</span>
+                    <span class="usage-value">${escapeHtml(credential.projectId || '-')}</span>
                 </div>
-                <div class="card-info-row">
-                    <span class="card-info-label">Region</span>
-                    <span class="card-info-value">${escapeHtml(credential.region || 'global')}</span>
+                <div class="usage-details">
+                    <span class="usage-used">Region: ${escapeHtml(credential.region || 'global')}</span>
+                    <span class="usage-remaining">Usage: ${credential.useCount || 0}</span>
                 </div>
-                <div class="card-info-row">
-                    <span class="card-info-label">Usage Count</span>
-                    <span class="card-info-value">${credential.useCount || 0}</span>
-                </div>
-                ${credential.lastErrorMessage ? `
-                <div class="card-info-row">
-                    <span class="card-info-label">Last Error</span>
-                    <span class="card-info-value error-text" title="${escapeHtml(credential.lastErrorMessage)}">${escapeHtml(credential.lastErrorMessage.substring(0, 50))}${credential.lastErrorMessage.length > 50 ? '...' : ''}</span>
-                </div>
-                ` : ''}
             </div>
             <div class="card-footer">
-                <span class="status-badge ${statusClass}">${statusText}</span>
+                <span class="card-date">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    ${formatDateShort(credential.createdAt)}
+                </span>
                 <div class="card-actions">
-                    <button class="card-action-btn ${credential.isActive ? 'active' : ''}" title="${credential.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); toggleActiveCredential(${credential.id})">
+                    <button class="action-btn ${credential.isActive ? 'active' : ''}" title="${credential.isActive ? 'Active' : 'Set Active'}" onclick="event.stopPropagation(); toggleActiveCredential(${credential.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
                     </button>
-                    <button class="card-action-btn" title="Test" onclick="event.stopPropagation(); testCredential(${credential.id})">
+                    <button class="action-btn" title="Test" onclick="event.stopPropagation(); testCredential(${credential.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
                         </svg>
                     </button>
-                    <button class="card-action-btn" title="Details" onclick="event.stopPropagation(); showCredentialDetail(${credential.id})">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                        </svg>
-                    </button>
-                    <button class="card-action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteCredential(${credential.id})">
+                    <button class="action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteCredential(${credential.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"/>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -239,6 +213,38 @@ function createCard(credential) {
             </div>
         </div>
     `;
+}
+
+// Toggle select
+function toggleSelect(id, checked) {
+    if (checked) {
+        selectedIds.add(id);
+    } else {
+        selectedIds.delete(id);
+    }
+    updateBatchButtons();
+    updateSelectAllCheckbox();
+}
+
+// Update select all checkbox state
+function updateSelectAllCheckbox() {
+    const selectAllCheckbox = document.getElementById('select-all');
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = selectedIds.size > 0 && selectedIds.size === credentials.length;
+        selectAllCheckbox.indeterminate = selectedIds.size > 0 && selectedIds.size < credentials.length;
+    }
+}
+
+// Format date short
+function formatDateShort(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 // Setup event listeners
@@ -275,16 +281,13 @@ function setupEventListeners() {
 
     // Select all
     document.getElementById('select-all')?.addEventListener('change', (e) => {
-        const checkboxes = document.querySelectorAll('.card-checkbox');
-        checkboxes.forEach(cb => {
-            cb.checked = e.target.checked;
-            const id = parseInt(cb.closest('.account-card').dataset.id);
-            if (e.target.checked) {
-                selectedIds.add(id);
-            } else {
-                selectedIds.delete(id);
-            }
-        });
+        const isChecked = e.target.checked;
+        if (isChecked) {
+            credentials.forEach(c => selectedIds.add(c.id));
+        } else {
+            selectedIds.clear();
+        }
+        renderCards();
         updateBatchButtons();
     });
 

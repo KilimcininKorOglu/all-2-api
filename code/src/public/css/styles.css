@@ -2626,3 +2626,440 @@ body {
 #warp-page .empty-state .btn-primary:hover {
     box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
 }
+
+/* ============ Vertex Page Styles ============ */
+
+.page-icon.vertex {
+    background: linear-gradient(135deg, #4285f4 0%, #34a853 50%, #fbbc04 100%);
+    box-shadow: 0 0 30px rgba(66, 133, 244, 0.3);
+}
+
+/* Vertex Card Styles */
+.vertex-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.vertex-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #4285f4, #34a853, #fbbc04, #ea4335);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.vertex-card:hover {
+    border-color: var(--border-light);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.vertex-card:hover::before {
+    opacity: 1;
+}
+
+.vertex-card.selected {
+    border-color: #4285f4;
+    background: rgba(66, 133, 244, 0.05);
+}
+
+.vertex-card.selected::before {
+    opacity: 1;
+}
+
+.vertex-card .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.vertex-card .card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.vertex-card .card-email {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.vertex-card .pro-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.vertex-card .pro-badge.inactive {
+    background: linear-gradient(135deg, #6b7280, #9ca3af);
+}
+
+.vertex-card .card-usage {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 16px;
+}
+
+.vertex-card .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.vertex-card .card-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.vertex-card .card-date svg {
+    opacity: 0.7;
+}
+
+.vertex-card .card-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.vertex-card .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.vertex-card .action-btn:hover {
+    background: var(--bg-tertiary);
+    color: #4285f4;
+}
+
+.vertex-card .action-btn.active {
+    color: #34a853;
+}
+
+.vertex-card .action-btn.danger:hover {
+    background: var(--accent-danger-bg);
+    color: var(--accent-danger);
+}
+
+.vertex-card .action-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Vertex page specific styles */
+#vertex-page .account-card::before {
+    background: linear-gradient(90deg, #4285f4, #34a853, #fbbc04, #ea4335);
+}
+
+#vertex-page .account-card:hover {
+    border-color: rgba(66, 133, 244, 0.4);
+}
+
+#vertex-page .account-card.selected {
+    border-color: #4285f4;
+    background: rgba(66, 133, 244, 0.05);
+}
+
+#vertex-page .empty-state .empty-icon {
+    color: #4285f4;
+    opacity: 0.6;
+}
+
+#vertex-page .empty-state .btn-primary {
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+}
+
+#vertex-page .empty-state .btn-primary:hover {
+    box-shadow: 0 4px 16px rgba(66, 133, 244, 0.4);
+}
+
+/* Vertex Models Section */
+.models-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    margin-bottom: 24px;
+}
+
+.models-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.models-title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.models-title svg {
+    color: #fbbc04;
+}
+
+.models-endpoint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.models-endpoint code {
+    background: var(--bg-tertiary);
+    padding: 4px 8px;
+    border-radius: var(--radius-sm);
+    font-family: 'SF Mono', Monaco, monospace;
+    color: #4285f4;
+}
+
+.models-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 12px;
+}
+
+.model-card {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 12px 14px;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    position: relative;
+}
+
+.model-card:hover {
+    border-color: var(--border-light);
+    background: var(--bg-elevated);
+}
+
+.model-card.copied {
+    border-color: #34a853;
+    background: rgba(52, 168, 83, 0.1);
+}
+
+.model-card-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: 'SF Mono', Monaco, monospace;
+    word-break: break-all;
+}
+
+.model-card-mapping {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.model-card-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.model-card-badge.claude-4 {
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    color: white;
+}
+
+.model-card-badge.claude-3 {
+    background: var(--bg-elevated);
+    color: var(--text-muted);
+}
+
+.model-card-copy-hint {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.model-card:hover .model-card-copy-hint {
+    opacity: 1;
+}
+
+/* Vertex Drop Zone */
+.drop-zone {
+    border: 2px dashed var(--border-color);
+    border-radius: var(--radius-md);
+    padding: 40px 20px;
+    text-align: center;
+    transition: all var(--transition-fast);
+    cursor: pointer;
+    margin-bottom: 16px;
+}
+
+.drop-zone:hover,
+.drop-zone.drag-over {
+    border-color: #4285f4;
+    background: rgba(66, 133, 244, 0.05);
+}
+
+.drop-zone-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 12px;
+    color: var(--text-muted);
+}
+
+.drop-zone-text {
+    font-size: 14px;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+
+.drop-zone-hint {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Vertex Region Selector */
+.region-selector {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.region-option {
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    text-align: center;
+}
+
+.region-option:hover {
+    border-color: var(--border-light);
+    background: var(--bg-elevated);
+}
+
+.region-option.selected {
+    border-color: #4285f4;
+    background: rgba(66, 133, 244, 0.1);
+}
+
+.region-option-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.region-option-desc {
+    font-size: 10px;
+    color: var(--text-muted);
+    margin-top: 2px;
+}
+
+/* Vertex Import Preview */
+.import-preview {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 16px;
+    margin-top: 16px;
+    display: none;
+}
+
+.import-preview.show {
+    display: block;
+}
+
+.import-preview-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 12px;
+}
+
+.import-preview-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.import-preview-item:last-child {
+    border-bottom: none;
+}
+
+.import-preview-icon {
+    width: 32px;
+    height: 32px;
+    background: linear-gradient(135deg, #4285f4, #34a853);
+    border-radius: var(--radius-sm);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.import-preview-info {
+    flex: 1;
+}
+
+.import-preview-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.import-preview-email {
+    font-size: 11px;
+    color: var(--text-muted);
+}
