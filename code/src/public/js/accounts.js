@@ -820,8 +820,9 @@ function showCredentialDetail(id) {
 
     // Setup edit button
     document.getElementById('detail-edit-btn').onclick = function() {
+        const id = currentDetailId;
         closeDetailModal();
-        openEditModal(currentDetailId);
+        openEditModal(id);
     };
 
     document.getElementById('detail-modal').classList.add('active');

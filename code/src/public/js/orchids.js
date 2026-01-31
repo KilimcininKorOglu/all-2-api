@@ -480,8 +480,9 @@ async function handleDeleteAccount() {
 
 function handleEditAccount() {
     if (!OrchidsState.detailTarget) return;
+    const cred = OrchidsState.detailTarget;
     closeDetailModal();
-    openEditModal(OrchidsState.detailTarget);
+    openEditModal(cred);
 }
 
 function openEditModal(cred) {

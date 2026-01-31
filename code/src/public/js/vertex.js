@@ -748,8 +748,9 @@ function showCredentialDetail(id) {
     const editBtn = document.getElementById('detail-edit-btn');
     if (editBtn) {
         editBtn.onclick = function() {
+            const id = currentDetailId;
             closeDetailModal();
-            showEditModal(currentDetailId);
+            showEditModal(id);
         };
     }
 
