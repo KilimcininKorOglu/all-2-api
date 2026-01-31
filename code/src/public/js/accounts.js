@@ -392,11 +392,16 @@ async function handleContextAction(action) {
 
     switch (action) {
         case 'activate':
-            await fetch('/api/credentials/' + id + '/activate', {
+            const activateRes = await fetch('/api/credentials/' + id + '/activate', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + authToken }
             });
-            showToast('Set as active account', 'success');
+            const activateData = await activateRes.json();
+            if (activateData.success) {
+                showToast('Set as active account', 'success');
+            } else {
+                showToast('Failed to activate: ' + (activateData.error || 'Unknown error'), 'error');
+            }
             break;
         case 'refresh':
             showToast('Refreshing token...', 'warning');
@@ -609,8 +614,11 @@ function createCardHTML(cred) {
     };
     const displayEmail = truncateEmail(email, 28);
 
-    let html = '<div class="account-card' + (isSelected ? ' selected' : '') + '" data-id="' + cred.id + '">';
+    let html = '<div class="account-card' + (isSelected ? ' selected' : '') + (cred.isActive ? ' active' : '') + '" data-id="' + cred.id + '">';
     html += '<div class="card-status">';
+    if (cred.isActive) {
+        html += '<span class="active-indicator"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>Active</span>';
+    }
     html += '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
     if (subscriptionTitle) {
         html += '<span class="subscription-badge">' + subscriptionTitle + '</span>';
