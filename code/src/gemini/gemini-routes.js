@@ -65,7 +65,7 @@ async function fetchAndSaveQuota(credentialId, geminiStore, getTimestamp) {
     }
 }
 
-export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
+export function setupGeminiRoutes(app, geminiStore, getTimestamp, apiLogStore = null) {
     // Gemini OAuth start authorization
     app.post('/api/gemini/oauth/start', async (req, res) => {
         try {
@@ -428,17 +428,48 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
     // Gemini streaming chat
     app.post('/api/gemini/chat/:id', async (req, res) => {
         const credentialId = parseInt(req.params.id);
+        const startTime = Date.now();
+        const requestId = crypto.randomUUID();
+        const selectedModel = req.body.model || 'gemini-3-flash-preview';
+
+        // Log data for API logging
+        const logData = {
+            requestId,
+            endpoint: '/api/gemini/chat/:id',
+            method: 'POST',
+            model: selectedModel,
+            provider: 'gemini',
+            clientIp: req.ip || req.connection.remoteAddress,
+            statusCode: 200,
+            isStream: true,
+            source: 'chat-page'
+        };
+
+        let outputContent = '';
 
         try {
             const credential = await geminiStore.getById(credentialId);
             if (!credential) {
+                logData.statusCode = 404;
+                logData.errorMessage = 'Credential not found';
+                if (apiLogStore) await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
                 return res.status(404).json({ success: false, error: 'Credential not found' });
             }
 
+            logData.credentialId = credential.id;
+            logData.credentialName = credential.name || credential.email;
+
             const { message, model, history } = req.body;
             if (!message) {
+                logData.statusCode = 400;
+                logData.errorMessage = 'Message content is required';
+                if (apiLogStore) await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
                 return res.status(400).json({ success: false, error: 'Message content is required' });
             }
+
+            // Estimate input tokens
+            const inputText = (history || []).map(m => m.content).join('') + message;
+            logData.inputTokens = Math.ceil(inputText.length / 4);
 
             const service = AntigravityApiService.fromCredentials({
                 accessToken: credential.accessToken,
@@ -472,8 +503,6 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
             res.setHeader('Cache-Control', 'no-cache');
             res.setHeader('Connection', 'keep-alive');
 
-            const selectedModel = model || 'gemini-3-flash-preview';
-
             // Streaming output
             for await (const chunk of service.generateContentStream(selectedModel, { contents })) {
                 if (chunk && chunk.candidates && chunk.candidates[0]) {
@@ -481,16 +510,27 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
                     if (candidate.content && candidate.content.parts) {
                         for (const part of candidate.content.parts) {
                             if (part.text) {
-                              res.write(`data: ${JSON.stringify({ content: part.text })}\n\n`);
+                                outputContent += part.text;
+                                res.write(`data: ${JSON.stringify({ content: part.text })}\n\n`);
                             }
                         }
                     }
                 }
             }
 
+            // Estimate output tokens and log
+            logData.outputTokens = Math.ceil(outputContent.length / 4);
+            logData.durationMs = Date.now() - startTime;
+            if (apiLogStore) await apiLogStore.create(logData);
+
             res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
             res.end();
         } catch (error) {
+            logData.statusCode = 500;
+            logData.errorMessage = error.message;
+            logData.durationMs = Date.now() - startTime;
+            if (apiLogStore) await apiLogStore.create(logData);
+
             if (!res.headersSent) {
                 res.status(500).json({ success: false, error: `Chat failed: ${error.message}` });
             } else {

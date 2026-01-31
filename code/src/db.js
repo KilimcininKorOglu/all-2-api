@@ -149,11 +149,13 @@ export async function initDatabase() {
             status_code INT DEFAULT 200,
             error_message TEXT,
             duration_ms INT DEFAULT 0,
+            source VARCHAR(50) DEFAULT 'api',
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
             INDEX idx_created_at (created_at),
             INDEX idx_api_key_id (api_key_id),
             INDEX idx_ip_address (ip_address),
-            INDEX idx_request_id (request_id)
+            INDEX idx_request_id (request_id),
+            INDEX idx_source (source)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
@@ -187,6 +189,14 @@ export async function initDatabase() {
     try {
         await pool.execute(`ALTER TABLE gemini_credentials ADD COLUMN quota_updated_at DATETIME COMMENT 'When quota was last fetched' AFTER quota_data`);
     } catch (e) { /* Column may already exist */ }
+
+    // Add source column to api_logs (migration)
+    try {
+        await pool.execute(`ALTER TABLE api_logs ADD COLUMN source VARCHAR(50) DEFAULT 'api' AFTER duration_ms`);
+    } catch (e) { /* Column may already exist */ }
+    try {
+        await pool.execute(`ALTER TABLE api_logs ADD INDEX idx_source (source)`);
+    } catch (e) { /* Index may already exist */ }
 
     // Create Gemini error credentials table
     await pool.execute(`
@@ -1271,25 +1281,26 @@ export class ApiLogStore {
                 request_id, api_key_id, api_key_prefix, credential_id, credential_name,
                 ip_address, user_agent, method, path, model, stream,
                 input_tokens, output_tokens,
-                status_code, error_message, duration_ms
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                status_code, error_message, duration_ms, source
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             logData.requestId || null,
             logData.apiKeyId !== undefined ? logData.apiKeyId : null,
             logData.apiKeyPrefix !== undefined ? logData.apiKeyPrefix : null,
             logData.credentialId !== undefined ? logData.credentialId : null,
             logData.credentialName !== undefined ? logData.credentialName : null,
-            logData.ipAddress !== undefined ? logData.ipAddress : null,
+            logData.clientIp || logData.ipAddress || null,
             logData.userAgent !== undefined ? logData.userAgent : null,
             logData.method || 'POST',
-            logData.path || '/v1/messages',
+            logData.endpoint || logData.path || '/v1/messages',
             logData.model !== undefined ? logData.model : null,
-            logData.stream ? 1 : 0,
+            logData.isStream || logData.stream ? 1 : 0,
             logData.inputTokens || 0,
             logData.outputTokens || 0,
             logData.statusCode || 200,
             logData.errorMessage !== undefined ? logData.errorMessage : null,
-            logData.durationMs || 0
+            logData.durationMs || 0,
+            logData.source || 'api'
         ]);
         return result.insertId;
     }
@@ -1394,6 +1405,7 @@ export class ApiLogStore {
             statusCode: row.status_code,
             errorMessage: row.error_message,
             durationMs: row.duration_ms,
+            source: row.source || 'api',
             createdAt: row.created_at
         };
     }

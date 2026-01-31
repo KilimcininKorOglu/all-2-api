@@ -5242,19 +5242,50 @@ app.get('/api/logs-stats/by-interval', authMiddleware, async (req, res) => {
 // Streaming conversation
 app.post('/api/chat/:id', async (req, res) => {
     const credentialId = parseInt(req.params.id);
+    const startTime = Date.now();
+    const requestId = crypto.randomUUID();
+    const selectedModel = req.body.model || 'claude-sonnet-4-20250514';
+
+    // Log data for API logging
+    const logData = {
+        requestId,
+        endpoint: '/api/chat/:id',
+        method: 'POST',
+        model: selectedModel,
+        provider: 'kiro',
+        clientIp: req.ip || req.connection.remoteAddress,
+        statusCode: 200,
+        isStream: true,
+        source: 'chat-page'
+    };
+
+    let outputContent = '';
 
     try {
         const credential = await store.getById(credentialId);
 
         if (!credential) {
+            logData.statusCode = 404;
+            logData.errorMessage = 'Credential does not exist';
+            await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
             return res.status(404).json({ success: false, error: 'Credential does not exist' });
         }
+
+        logData.credentialId = credential.id;
+        logData.credentialName = credential.name || credential.email;
 
         const { message, model, history, skipTokenRefresh } = req.body;
 
         if (!message) {
+            logData.statusCode = 400;
+            logData.errorMessage = 'Message content is required';
+            await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
             return res.status(400).json({ success: false, error: 'Message content is required' });
         }
+
+        // Estimate input tokens
+        const inputText = (history || []).map(m => m.content).join('') + message;
+        logData.inputTokens = Math.ceil(inputText.length / 4);
 
         // Acquire credential lock (if credential in use, will queue and wait)
         await acquireCredentialLock(credentialId);
@@ -5283,8 +5314,9 @@ app.post('/api/chat/:id', async (req, res) => {
         res.setHeader('Connection', 'keep-alive');
 
         // Stream output
-        for await (const event of client.chatStream(messages, model || 'claude-sonnet-4-20250514', { skipTokenRefresh: skipTokenRefresh !== false })) {
+        for await (const event of client.chatStream(messages, selectedModel, { skipTokenRefresh: skipTokenRefresh !== false })) {
             if (event.type === 'content') {
+                outputContent += event.content;
                 res.write(`data: ${JSON.stringify({ content: event.content })}\n\n`);
             }
         }
@@ -5292,11 +5324,21 @@ app.post('/api/chat/:id', async (req, res) => {
         // Release credential lock
         releaseCredentialLock(credentialId);
 
+        // Estimate output tokens and log
+        logData.outputTokens = Math.ceil(outputContent.length / 4);
+        logData.durationMs = Date.now() - startTime;
+        await apiLogStore.create(logData);
+
         res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
         res.end();
     } catch (error) {
         // Release credential lock
         releaseCredentialLock(credentialId);
+
+        logData.statusCode = 500;
+        logData.errorMessage = error.message;
+        logData.durationMs = Date.now() - startTime;
+        await apiLogStore.create(logData);
 
         if (!res.headersSent) {
             res.status(500).json({
@@ -5569,7 +5611,7 @@ async function start() {
     // console.log(`[${getTimestamp()}] Warp proxy service started`);
 
     // Setup Gemini routes
-    setupGeminiRoutes(app, geminiStore, getTimestamp);
+    setupGeminiRoutes(app, geminiStore, getTimestamp, apiLogStore);
 
     // Setup Vertex AI routes
     await setupVertexRoutes(app);
