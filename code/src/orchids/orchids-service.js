@@ -1,7 +1,7 @@
 /**
- * Orchids API 服务
- * 提供 Orchids 账户管理和 Token 验证功能
- * 整合自 orchids-api-main 的功能
+ * Orchids API Service
+ * Provides Orchids account management and Token validation features
+ * Integrated from orchids-api-main functionality
  */
 import axios from 'axios';
 import { logger } from '../logger.js';
@@ -10,7 +10,7 @@ import { getAxiosProxyConfig } from '../proxy.js';
 const log = logger.api;
 
 /**
- * Orchids 常量配置
+ * Orchids constants configuration
  */
 export const ORCHIDS_CONSTANTS = {
     CLERK_CLIENT_URL: 'https://clerk.orchids.app/v1/client',
@@ -21,9 +21,9 @@ export const ORCHIDS_CONSTANTS = {
     ORIGIN: 'https://www.orchids.app',
     DEFAULT_TIMEOUT: 30000,
     DEFAULT_PROJECT_ID: '280b7bae-cd29-41e4-a0a6-7f603c43b607',
-    // Orchids API 服务器地址
+    // Orchids API server address
     ORCHIDS_API_BASE: 'https://orchids-server.calmstone-6964e08a.westeurope.azurecontainerapps.io',
-    // 套餐配额映射 (credits/月)
+    // Plan quota mapping (credits/month)
     PLAN_QUOTAS: {
         'free': 150000,
         'pro': 2000000,
@@ -34,21 +34,21 @@ export const ORCHIDS_CONSTANTS = {
 };
 
 /**
- * Orchids API 服务类
+ * Orchids API Service class
  */
 export class OrchidsAPI {
     /**
-     * 从 clientJwt 获取完整账号信息（包括 email）
-     * 参考 orchids-api-main 的 clerk.go 实现
-     * @param {string} clientJwt - Clerk client JWT token (__client cookie 值)
+     * Get full account info from clientJwt (including email)
+     * Based on orchids-api-main's clerk.go implementation
+     * @param {string} clientJwt - Clerk client JWT token (__client cookie value)
      * @returns {Promise<Object>} {success, sessionId, userId, email, wsToken, expiresAt, clientUat, projectId, error}
      */
     static async getFullAccountInfo(clientJwt) {
         if (!clientJwt) {
-            return { success: false, error: '缺少 clientJwt' };
+            return { success: false, error: 'Missing clientJwt' };
         }
 
-        log.info('从 Clerk API 获取完整账号信息');
+        log.info('Getting full account info from Clerk API');
 
         try {
             const proxyConfig = getAxiosProxyConfig();
@@ -64,8 +64,8 @@ export class OrchidsAPI {
             });
 
             if (response.status !== 200) {
-                log.error(`Clerk API 返回状态码: ${response.status}`);
-                return { success: false, error: `Clerk API 返回 ${response.status}` };
+                log.error(`Clerk API returned status code: ${response.status}`);
+                return { success: false, error: `Clerk API returned ${response.status}` };
             }
 
             const data = response.data;
@@ -73,8 +73,8 @@ export class OrchidsAPI {
             const sessions = responseData.sessions || [];
 
             if (sessions.length === 0) {
-                log.error('未找到活跃的 session');
-                return { success: false, error: '未找到活跃的 session' };
+                log.error('No active session found');
+                return { success: false, error: 'No active session found' };
             }
 
             const session = sessions[0];
@@ -82,25 +82,25 @@ export class OrchidsAPI {
             const userId = session.user?.id;
             const wsToken = session.last_active_token?.jwt;
             
-            // 获取 email - 从 email_addresses 数组中提取
+            // Get email - extract from email_addresses array
             let email = null;
             if (session.user?.email_addresses && session.user.email_addresses.length > 0) {
                 email = session.user.email_addresses[0].email_address;
             }
 
             if (!sessionId || !wsToken) {
-                log.error('Session 数据无效');
-                return { success: false, error: 'Session 数据无效' };
+                log.error('Session data invalid');
+                return { success: false, error: 'Session data invalid' };
             }
 
-            // 解析 JWT 过期时间
+            // Parse JWT expiration time
             const expiresAt = this._parseJwtExpiry(wsToken);
 
-            log.success('成功获取完整账号信息');
+            log.success('Successfully obtained full account info');
             log.info(`Session ID: ${sessionId}`);
             log.info(`User ID: ${userId || 'unknown'}`);
             log.info(`Email: ${email || 'unknown'}`);
-            log.info(`Token 过期时间: ${expiresAt || '未知'}`);
+            log.info(`Token expires at: ${expiresAt || 'unknown'}`);
 
             return {
                 success: true,
@@ -115,7 +115,7 @@ export class OrchidsAPI {
 
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.message;
-            log.fail(`获取账号信息失败: ${errorMsg}`, error.response?.status);
+            log.fail(`Failed to get account info: ${errorMsg}`, error.response?.status);
             return {
                 success: false,
                 error: errorMsg,
@@ -125,12 +125,12 @@ export class OrchidsAPI {
     }
 
     /**
-     * 从 clientJwt 获取 session 信息（兼容旧版）
+     * Get session info from clientJwt (legacy compatible)
      * @param {string} clientJwt - Clerk client JWT token
      * @returns {Promise<Object>} {success, sessionId, userId, wsToken, expiresAt, email, error}
      */
     static async getSessionFromClerk(clientJwt) {
-        // 使用新的完整方法获取信息
+        // Use new complete method to get info
         const result = await this.getFullAccountInfo(clientJwt);
         if (!result.success) {
             return result;
@@ -147,7 +147,7 @@ export class OrchidsAPI {
     }
 
     /**
-     * 验证 clientJwt 是否有效
+     * Validate if clientJwt is valid
      * @param {string} clientJwt - Clerk client JWT token
      * @returns {Promise<Object>} {success, valid, email, userId, expiresAt, error}
      */
@@ -172,8 +172,8 @@ export class OrchidsAPI {
     }
 
     /**
-     * 从 cookies 字符串中提取 clientJwt
-     * @param {string} cookies - Cookies 字符串
+     * Extract clientJwt from cookies string
+     * @param {string} cookies - Cookies string
      * @returns {string|null} clientJwt
      */
     static extractClientJwtFromCookies(cookies) {
@@ -182,7 +182,7 @@ export class OrchidsAPI {
         const match = cookies.match(/__client=([^;]+)/);
         if (match && match[1]) {
             const jwt = match[1].trim();
-            // 验证是否为有效的 JWT 格式（三部分，用 . 分隔）
+            // Validate if it's a valid JWT format (three parts, separated by .)
             if (jwt.split('.').length === 3) {
                 return jwt;
             }
@@ -192,10 +192,10 @@ export class OrchidsAPI {
     }
 
     /**
-     * 解析 JWT 的过期时间
+     * Parse JWT expiration time
      * @private
      * @param {string} jwt - JWT token
-     * @returns {string|null} ISO 格式的过期时间
+     * @returns {string|null} ISO formatted expiration time
      */
     static _parseJwtExpiry(jwt) {
         if (!jwt) return null;
@@ -213,15 +213,15 @@ export class OrchidsAPI {
 
             return null;
         } catch (error) {
-            log.warn(`解析 JWT 过期时间失败: ${error.message}`);
+            log.warn(`Failed to parse JWT expiration time: ${error.message}`);
             return null;
         }
     }
 
     /**
-     * 检查 Token 是否即将过期
-     * @param {string} expiresAt - 过期时间 ISO 字符串
-     * @param {number} minutes - 提前多少分钟判定为即将过期 (默认 10)
+     * Check if Token is about to expire
+     * @param {string} expiresAt - Expiration time ISO string
+     * @param {number} minutes - How many minutes ahead to determine as expiring soon (default 10)
      * @returns {boolean}
      */
     static isTokenExpiringSoon(expiresAt, minutes = 10) {
@@ -236,12 +236,12 @@ export class OrchidsAPI {
     }
 
     /**
-     * 批量导入 Orchids 账号
-     * @param {Array} accounts - 账号数组 [{email, clientJwt}]
-     * @param {Object} options - 选项
-     * @param {number} options.delay - 每个请求之间的延迟毫秒 (默认 1000)
-     * @param {Function} options.onProgress - 进度回调 (index, total, result)
-     * @returns {Promise<Object>} 批量导入结果 {success, failed, results}
+     * Batch import Orchids accounts
+     * @param {Array} accounts - Account array [{email, clientJwt}]
+     * @param {Object} options - Options
+     * @param {number} options.delay - Delay in milliseconds between requests (default 1000)
+     * @param {Function} options.onProgress - Progress callback (index, total, result)
+     * @returns {Promise<Object>} Batch import result {success, failed, results}
      */
     static async batchImport(accounts, options = {}) {
         const { delay = 1000, onProgress } = options;
@@ -270,7 +270,7 @@ export class OrchidsAPI {
                 onProgress(i + 1, accounts.length, result);
             }
 
-            // 延迟，避免请求过快
+            // Delay to avoid too frequent requests
             if (i < accounts.length - 1 && delay > 0) {
                 await new Promise(resolve => setTimeout(resolve, delay));
             }
@@ -280,8 +280,8 @@ export class OrchidsAPI {
     }
 
     /**
-     * 测试账号激活状态
-     * 发送一个简单的测试请求验证账号是否可用
+     * Test account activation status
+     * Send a simple test request to verify if account is available
      * @param {string} clientJwt - Clerk client JWT token
      * @returns {Promise<Object>} {success, isHealthy, durationMs, response, error}
      */
@@ -320,8 +320,8 @@ export class OrchidsAPI {
     }
 
     /**
-     * 批量检查账号健康状态
-     * @param {Array} credentials - 凭证数组 [{id, clientJwt}]
+     * Batch check account health status
+     * @param {Array} credentials - Credential array [{id, clientJwt}]
      * @returns {Promise<Object>} {accounts: [{accountId, isHealthy}]}
      */
     static async batchHealthCheck(credentials) {
@@ -348,30 +348,30 @@ export class OrchidsAPI {
     }
 
     /**
-     * 刷新单个账号信息
+     * Refresh single account info
      * @param {string} clientJwt - Clerk client JWT token
-     * @returns {Promise<Object>} 刷新后的完整账号信息
+     * @returns {Promise<Object>} Refreshed full account info
      */
     static async refreshAccountInfo(clientJwt) {
         return await this.getFullAccountInfo(clientJwt);
     }
 
     /**
-     * 获取账号用量信息（从 Clerk 用户 metadata 和 Orchids API 获取）
+     * Get account usage info (from Clerk user metadata and Orchids API)
      * @param {string} clientJwt - Clerk client JWT token
      * @returns {Promise<Object>} {success, usage: {used, limit, remaining, plan, resetDate, percentage}, error}
      */
     static async getAccountUsage(clientJwt) {
         if (!clientJwt) {
-            return { success: false, error: '缺少 clientJwt' };
+            return { success: false, error: 'Missing clientJwt' };
         }
 
-        log.info('获取 Orchids 账号用量信息');
+        log.info('Getting Orchids account usage info');
 
         try {
             const proxyConfig = getAxiosProxyConfig();
             
-            // 首先从 Clerk API 获取用户信息（可能包含 metadata）
+            // First get user info from Clerk API (may contain metadata)
             const clerkResponse = await axios.get(ORCHIDS_CONSTANTS.CLERK_CLIENT_URL_V2, {
                 headers: {
                     'Cookie': `__client=${clientJwt}`,
@@ -384,7 +384,7 @@ export class OrchidsAPI {
             });
 
             if (clerkResponse.status !== 200) {
-                return { success: false, error: `Clerk API 返回 ${clerkResponse.status}` };
+                return { success: false, error: `Clerk API returned ${clerkResponse.status}` };
             }
 
             const clerkData = clerkResponse.data;
@@ -392,22 +392,22 @@ export class OrchidsAPI {
             const sessions = responseData.sessions || [];
 
             if (sessions.length === 0) {
-                return { success: false, error: '未找到活跃的 session' };
+                return { success: false, error: 'No active session found' };
             }
 
             const session = sessions[0];
             const user = session.user || {};
             const wsToken = session.last_active_token?.jwt;
             
-            // 尝试从 user metadata 获取用量信息
+            // Try to get usage info from user metadata
             const publicMetadata = user.public_metadata || {};
             const privateMetadata = user.private_metadata || {};
             const unsafeMetadata = user.unsafe_metadata || {};
-            
-            // Orchids 可能在 metadata 中存储用量信息
+
+            // Orchids may store usage info in metadata
             let usageData = null;
-            
-            // 检查各种可能的 metadata 位置
+
+            // Check various possible metadata locations
             if (publicMetadata.usage || publicMetadata.credits) {
                 usageData = publicMetadata.usage || publicMetadata;
             } else if (privateMetadata.usage || privateMetadata.credits) {
@@ -416,16 +416,16 @@ export class OrchidsAPI {
                 usageData = unsafeMetadata.usage || unsafeMetadata;
             }
 
-            // 尝试从 Orchids API 获取用量
+            // Try to get usage from Orchids API
             if (!usageData) {
                 try {
                     usageData = await this._getUsageFromOrchidsAPI(clientJwt, wsToken);
                 } catch (e) {
-                    log.warn(`从 Orchids API 获取用量失败: ${e.message}`);
+                    log.warn(`Failed to get usage from Orchids API: ${e.message}`);
                 }
             }
 
-            // 如果仍然没有用量数据，尝试从用户套餐推断
+            // If still no usage data, try to infer from user plan
             const plan = publicMetadata.plan || privateMetadata.plan || 
                          unsafeMetadata.plan || user.plan || 'free';
             const planQuota = ORCHIDS_CONSTANTS.PLAN_QUOTAS[plan.toLowerCase()] || 
@@ -437,11 +437,11 @@ export class OrchidsAPI {
                 const remaining = Math.max(0, limit - used);
                 const percentage = Math.round((used / limit) * 100);
                 
-                // 计算重置日期（通常是下个月1号）
+                // Calculate reset date (usually 1st of next month)
                 const now = new Date();
                 const resetDate = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-                log.success(`获取用量成功: ${used}/${limit} (${percentage}%)`);
+                log.success(`Successfully got usage: ${used}/${limit} (${percentage}%)`);
 
                 return {
                     success: true,
@@ -457,8 +457,8 @@ export class OrchidsAPI {
                 };
             }
 
-            // 如果没有具体用量数据，返回套餐默认值
-            log.info(`未获取到具体用量，使用套餐默认值: ${plan}`);
+            // If no specific usage data, return plan default value
+            log.info(`No specific usage data, using plan default: ${plan}`);
             
             return {
                 success: true,
@@ -475,7 +475,7 @@ export class OrchidsAPI {
 
         } catch (error) {
             const errorMsg = error.response?.data?.message || error.message;
-            log.fail(`获取用量信息失败: ${errorMsg}`, error.response?.status);
+            log.fail(`Failed to get usage info: ${errorMsg}`, error.response?.status);
             return {
                 success: false,
                 error: errorMsg,
@@ -485,16 +485,16 @@ export class OrchidsAPI {
     }
 
     /**
-     * 从 Orchids API 获取用量信息
+     * Get usage info from Orchids API
      * @private
      * @param {string} clientJwt - Clerk client JWT token
      * @param {string} wsToken - WebSocket/API token
-     * @returns {Promise<Object|null>} 用量数据
+     * @returns {Promise<Object|null>} Usage data
      */
     static async _getUsageFromOrchidsAPI(clientJwt, wsToken) {
         const proxyConfig = getAxiosProxyConfig();
         
-        // 尝试多个可能的用量 API 端点
+        // Try multiple possible usage API endpoints
         const possibleEndpoints = [
             `${ORCHIDS_CONSTANTS.ORCHIDS_API_BASE}/api/usage`,
             `${ORCHIDS_CONSTANTS.ORCHIDS_API_BASE}/api/user/usage`,
@@ -525,15 +525,15 @@ export class OrchidsAPI {
 
                 if (response.status === 200 && response.data) {
                     const data = response.data;
-                    // 检查响应是否包含用量信息
+                    // Check if response contains usage info
                     if (data.used !== undefined || data.credits_used !== undefined ||
                         data.usage !== undefined || data.credits !== undefined) {
-                        log.success(`从 ${endpoint} 获取到用量数据`);
+                        log.success(`Got usage data from ${endpoint}`);
                         return data.usage || data;
                     }
                 }
             } catch (e) {
-                // 继续尝试下一个端点
+                // Continue trying next endpoint
                 continue;
             }
         }
@@ -542,8 +542,8 @@ export class OrchidsAPI {
     }
 
     /**
-     * 批量获取所有账号的用量信息
-     * @param {Array} credentials - 凭证数组 [{id, clientJwt}]
+     * Batch get all accounts usage info
+     * @param {Array} credentials - Credential array [{id, clientJwt}]
      * @returns {Promise<Object>} {accounts: [{id, usage}], totalUsed, totalLimit}
      */
     static async batchGetUsage(credentials) {
@@ -589,7 +589,7 @@ export class OrchidsAPI {
                 results.failCount++;
             }
             
-            // 添加小延迟避免请求过快
+            // Add small delay to avoid too frequent requests
             await new Promise(resolve => setTimeout(resolve, 200));
         }
 
