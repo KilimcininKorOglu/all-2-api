@@ -1,4 +1,4 @@
-// ============ API 密钥页面 JS ============
+// ============ API Keys Page JS ============
 
 let apiKeys = [];
 let createKeyModal;
@@ -32,7 +32,7 @@ function setupEventListeners() {
         if (e.target === createKeyModal) closeCreateModal();
     });
 
-    // 限制配置模态框事件
+    // Limits configuration modal events
     document.getElementById('limits-modal-close').addEventListener('click', closeLimitsModal);
     document.getElementById('limits-modal-cancel').addEventListener('click', closeLimitsModal);
     document.getElementById('limits-modal-submit').addEventListener('click', saveLimits);
@@ -40,7 +40,7 @@ function setupEventListeners() {
         if (e.target === limitsModal) closeLimitsModal();
     });
 
-    // 批量生成模态框事件
+    // Batch create modal events
     document.getElementById('batch-create-btn').addEventListener('click', openBatchCreateModal);
     document.getElementById('batch-modal-close').addEventListener('click', closeBatchCreateModal);
     document.getElementById('batch-modal-cancel').addEventListener('click', closeBatchCreateModal);
@@ -50,7 +50,7 @@ function setupEventListeners() {
         if (e.target === batchCreateModal) closeBatchCreateModal();
     });
 
-    // 续费模态框事件
+    // Renew modal events
     document.getElementById('renew-modal-close').addEventListener('click', closeRenewModal);
     document.getElementById('renew-modal-cancel').addEventListener('click', closeRenewModal);
     document.getElementById('renew-modal-submit').addEventListener('click', submitRenew);
@@ -78,7 +78,7 @@ async function loadApiKeys() {
         renderApiKeys();
     } catch (err) {
         console.error('Load API keys error:', err);
-        showToast('加载 API 密钥失败', 'error');
+        showToast('Failed to load API keys', 'error');
     }
 }
 
@@ -87,7 +87,7 @@ function renderApiKeys() {
     const emptyState = document.getElementById('empty-state');
     const countEl = document.getElementById('api-keys-count');
 
-    countEl.textContent = '共 ' + apiKeys.length + ' 个密钥';
+    countEl.textContent = 'Total ' + apiKeys.length + ' keys';
 
     if (apiKeys.length === 0) {
         list.innerHTML = '';
@@ -95,7 +95,7 @@ function renderApiKeys() {
         return;
     }
 
-    // 按最后使用时间排序，最新的在最上面（未使用的排在最后）
+    // Sort by last used time, newest on top (unused at bottom)
     const sortedKeys = [...apiKeys].sort((a, b) => {
         if (!a.lastUsedAt && !b.lastUsedAt) return 0;
         if (!a.lastUsedAt) return 1;
@@ -106,12 +106,12 @@ function renderApiKeys() {
     emptyState.style.display = 'none';
     list.innerHTML = sortedKeys.map(function(key) {
         const statusClass = key.isActive ? 'success' : 'error';
-        const statusText = key.isActive ? '启用' : '禁用';
+        const statusText = key.isActive ? 'Enabled' : 'Disabled';
         const keyDisplay = key.keyValue || key.keyPrefix || '***';
-        // 转义特殊字符，防止 XSS 和语法错误
+        // Escape special characters to prevent XSS and syntax errors
         const escapedKey = keyDisplay.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '&quot;');
 
-        // 构建限制显示
+        // Build limits display
         let limitsDisplay = '<span class="usage-loading">-</span>';
 
         return '<tr data-key-value="' + escapedKey + '">' +
@@ -130,19 +130,19 @@ function renderApiKeys() {
             '<td class="api-key-limits" data-key-id="' + key.id + '">' + limitsDisplay + '</td>' +
             '<td class="api-key-expire" data-key-id="' + key.id + '">-</td>' +
             '<td>' + formatDateTime(key.createdAt) + '</td>' +
-            '<td>' + (key.lastUsedAt ? formatDateTime(key.lastUsedAt) : '从未使用') + '</td>' +
+            '<td>' + (key.lastUsedAt ? formatDateTime(key.lastUsedAt) : 'Never used') + '</td>' +
             '<td>' +
             '<div class="api-key-actions-cell">' +
-            '<button class="btn btn-secondary btn-sm" onclick="openLimitsModal(' + key.id + ')" title="配置限制">限制</button>' +
-            '<button class="btn btn-secondary btn-sm" onclick="openRenewModal(' + key.id + ')" title="续费">续费</button>' +
-            '<button class="btn btn-secondary btn-sm" onclick="toggleApiKey(' + key.id + ')">' + (key.isActive ? '禁用' : '启用') + '</button>' +
-            '<button class="btn btn-danger btn-sm" onclick="deleteApiKey(' + key.id + ')">删除</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="openLimitsModal(' + key.id + ')" title="Configure limits">Limits</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="openRenewModal(' + key.id + ')" title="Renew">Renew</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="toggleApiKey(' + key.id + ')">' + (key.isActive ? 'Disable' : 'Enable') + '</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="deleteApiKey(' + key.id + ')">Delete</button>' +
             '</div>' +
             '</td>' +
             '</tr>';
     }).join('');
 
-    // 绑定复制按钮事件
+    // Bind copy button events
     document.querySelectorAll('.api-key-copy-btn').forEach(function(btn) {
         btn.addEventListener('click', function() {
             const row = btn.closest('tr');
@@ -151,7 +151,7 @@ function renderApiKeys() {
         });
     });
 
-    // 加载用量统计
+    // Load usage statistics
     sortedKeys.forEach(function(key) {
         loadKeyLimitsStatus(key.id);
     });
@@ -194,7 +194,7 @@ async function createApiKey() {
     const customKey = document.getElementById('custom-key').value.trim();
 
     if (!name) {
-        showToast('请输入密钥名称', 'error');
+        showToast('Please enter key name', 'error');
         return;
     }
 
@@ -210,17 +210,17 @@ async function createApiKey() {
 
         const result = await res.json();
         if (result.success) {
-            showToast('API 密钥创建成功', 'success');
+            showToast('API key created successfully', 'success');
             if (result.data.key) {
-                alert('请保存您的 API 密钥（只显示一次）:\n\n' + result.data.key);
+                alert('Please save your API key (shown only once):\n\n' + result.data.key);
             }
             closeCreateModal();
             loadApiKeys();
         } else {
-            showToast(result.error || '创建失败', 'error');
+            showToast(result.error || 'Create failed', 'error');
         }
     } catch (err) {
-        showToast('创建失败: ' + err.message, 'error');
+        showToast('Create failed: ' + err.message, 'error');
     }
 }
 
@@ -232,28 +232,28 @@ async function toggleApiKey(id) {
         });
         const result = await res.json();
         if (result.success) {
-            showToast('状态已更新', 'success');
+            showToast('Status updated', 'success');
             loadApiKeys();
         } else {
-            showToast(result.error || '操作失败', 'error');
+            showToast(result.error || 'Operation failed', 'error');
         }
     } catch (err) {
-        showToast('操作失败: ' + err.message, 'error');
+        showToast('Operation failed: ' + err.message, 'error');
     }
 }
 
 async function deleteApiKey(id) {
-    if (!confirm('确定要删除此 API 密钥吗？')) return;
+    if (!confirm('Are you sure you want to delete this API key?')) return;
 
     try {
         await fetch('/api/keys/' + id, {
             method: 'DELETE',
           headers: { 'Authorization': 'Bearer ' + authToken }
         });
-        showToast('API 密钥已删除', 'success');
+        showToast('API key deleted', 'success');
         loadApiKeys();
     } catch (err) {
-        showToast('删除失败: ' + err.message, 'error');
+        showToast('Delete failed: ' + err.message, 'error');
     }
 }
 
@@ -261,7 +261,7 @@ function copyApiKey(key) {
     copyToClipboard(key);
 }
 
-// ============ 限制配置相关函数 ============
+// ============ Limits Configuration Functions ============
 
 async function loadKeyLimitsStatus(keyId) {
     try {
@@ -277,36 +277,36 @@ async function loadKeyLimitsStatus(keyId) {
             if (cell) {
                 let html = '<div class="limits-mini">';
 
-                // 显示今日用量
+                // Display daily usage
                 if (limits.dailyLimit > 0) {
                     const percent = Math.min(100, (usage.daily / limits.dailyLimit) * 100);
-                    html += '<div class="limit-item" title="今日: ' + usage.daily + '/' + limits.dailyLimit + '">' +
-                        '<span class="limit-label">日</span>' +
+                    html += '<div class="limit-item" title="Daily: ' + usage.daily + '/' + limits.dailyLimit + '">' +
+                        '<span class="limit-label">Daily</span>' +
                         '<span class="limit-value ' + (percent >= 90 ? 'warning' : '') + '">' + usage.daily + '/' + limits.dailyLimit + '</span>' +
                         '</div>';
                 }
 
-                // 显示本月用量
+                // Display monthly usage
                 if (limits.monthlyLimit > 0) {
                     const percent = Math.min(100, (usage.monthly / limits.monthlyLimit) * 100);
-                    html += '<div class="limit-item" title="本月: ' + usage.monthly + '/' + limits.monthlyLimit + '">' +
-                        '<span class="limit-label">月</span>' +
+                    html += '<div class="limit-item" title="Monthly: ' + usage.monthly + '/' + limits.monthlyLimit + '">' +
+                        '<span class="limit-label">Monthly</span>' +
                         '<span class="limit-value ' + (percent >= 90 ? 'warning' : '') + '">' + usage.monthly + '/' + limits.monthlyLimit + '</span>' +
                         '</div>';
                 }
 
-                // 显示并发限制
+                // Display concurrent limit
                 if (limits.concurrentLimit > 0) {
-                    html += '<div class="limit-item" title="并发: ' + usage.currentConcurrent + '/' + limits.concurrentLimit + '">' +
-                        '<span class="limit-label">并发</span>' +
+                    html += '<div class="limit-item" title="Concurrent: ' + usage.currentConcurrent + '/' + limits.concurrentLimit + '">' +
+                        '<span class="limit-label">Concurrent</span>' +
                         '<span class="limit-value">' + usage.currentConcurrent + '/' + limits.concurrentLimit + '</span>' +
                         '</div>';
                 }
 
-                // 如果没有任何限制，显示总请求数
+                // If no limits set, show total requests
                 if (limits.dailyLimit === 0 && limits.monthlyLimit === 0 && limits.concurrentLimit === 0) {
                     html += '<div class="limit-item">' +
-                        '<span class="limit-value">' + usage.total + ' 请求</span>' +
+                        '<span class="limit-value">' + usage.total + ' requests</span>' +
                         '</div>';
                 }
 
@@ -314,16 +314,16 @@ async function loadKeyLimitsStatus(keyId) {
                 cell.innerHTML = html;
             }
 
-            // 显示过期时间到单独的列
+            // Display expiration time in separate column
             if (expireCell) {
                 if (expireDate) {
                     const daysLeft = remaining.days;
 
                     let expireClass = '';
-                    // expireDate 已经是后端格式化好的本地时间字符串 "YYYY-MM-DD HH:mm:ss"
-                    // 直接提取显示，不再用 new Date() 解析避免时区问题
+                    // expireDate is already a formatted local time string from backend "YYYY-MM-DD HH:mm:ss"
+                    // Extract for display directly, avoid using new Date() to prevent timezone issues
                     let expireDateStr = expireDate;
-                    // 格式化为 MM/DD HH:mm
+                    // Format as MM/DD HH:mm
                     const parts = expireDate.split(' ');
                     if (parts.length === 2) {
                         const dateParts = parts[0].split('-');
@@ -333,7 +333,7 @@ async function loadKeyLimitsStatus(keyId) {
                         }
                     }
 
-                    // 判断是否过期：用剩余天数判断
+                    // Determine if expired using remaining days
                     const isExpired = daysLeft <= 0;
 
                     if (isExpired) {
@@ -344,10 +344,10 @@ async function loadKeyLimitsStatus(keyId) {
                         expireClass = 'warning';
                     }
 
-                    expireCell.innerHTML = '<span class="limit-value ' + expireClass + '" title="剩余 ' + daysLeft + ' 天">' +
-                        (isExpired ? '已过期' : expireDateStr) + '</span>';
+                    expireCell.innerHTML = '<span class="limit-value ' + expireClass + '" title="' + daysLeft + ' days remaining">' +
+                        (isExpired ? 'Expired' : expireDateStr) + '</span>';
                 } else {
-                    expireCell.innerHTML = '<span class="limit-value" style="color: var(--text-muted);">永久</span>';
+                    expireCell.innerHTML = '<span class="limit-value" style="color: var(--text-muted);">Permanent</span>';
                 }
             }
         }
@@ -358,13 +358,13 @@ async function loadKeyLimitsStatus(keyId) {
 
 async function openLimitsModal(keyId) {
     try {
-        // 获取密钥详情
+        // Get key details
         const res = await fetch('/api/keys/' + keyId, {
             headers: { 'Authorization': 'Bearer ' + authToken }
         });
         const result = await res.json();
         if (!result.success) {
-            showToast(result.error || '获取密钥信息失败', 'error');
+            showToast(result.error || 'Failed to get key info', 'error');
             return;
         }
 
@@ -375,19 +375,19 @@ async function openLimitsModal(keyId) {
         document.getElementById('monthly-limit').value = key.monthlyLimit || 0;
         document.getElementById('total-limit').value = key.totalLimit || 0;
         document.getElementById('concurrent-limit').value = key.concurrentLimit || 0;
-        // 金额限制
+        // Cost limits
         document.getElementById('daily-cost-limit').value = key.dailyCostLimit || 0;
         document.getElementById('monthly-cost-limit').value = key.monthlyCostLimit || 0;
         document.getElementById('total-cost-limit').value = key.totalCostLimit || 0;
-        // 有效期
+        // Expiration
         document.getElementById('expires-in-days').value = key.expiresInDays || 0;
 
-        // 加载当前用量状态
+        // Load current usage status
         loadLimitsStatusInModal(keyId);
 
         limitsModal.classList.add('active');
     } catch (err) {
-        showToast('获取密钥信息失败: ' + err.message, 'error');
+        showToast('Failed to get key info: ' + err.message, 'error');
     }
 }
 
@@ -402,15 +402,15 @@ async function loadLimitsStatusInModal(keyId) {
             const statusDiv = document.getElementById('limits-status');
             const gridDiv = document.getElementById('usage-grid');
 
-            let html = '<div class="usage-item"><span class="usage-label">今日请求</span><span class="usage-value">' + usage.daily + '</span></div>' +
-                '<div class="usage-item"><span class="usage-label">本月请求</span><span class="usage-value">' + usage.monthly + '</span></div>' +
-                '<div class="usage-item"><span class="usage-label">总请求</span><span class="usage-value">' + usage.total + '</span></div>' +
-                '<div class="usage-item"><span class="usage-label">今日费用</span><span class="usage-value">$' + (usage.dailyCost || 0).toFixed(4) + '</span></div>' +
-                '<div class="usage-item"><span class="usage-label">本月费用</span><span class="usage-value">$' + (usage.monthlyCost || 0).toFixed(4) + '</span></div>' +
-                '<div class="usage-item"><span class="usage-label">总费用</span><span class="usage-value">$' + (usage.totalCost || 0).toFixed(4) + '</span></div>';
+            let html = '<div class="usage-item"><span class="usage-label">Daily Requests</span><span class="usage-value">' + usage.daily + '</span></div>' +
+                '<div class="usage-item"><span class="usage-label">Monthly Requests</span><span class="usage-value">' + usage.monthly + '</span></div>' +
+                '<div class="usage-item"><span class="usage-label">Total Requests</span><span class="usage-value">' + usage.total + '</span></div>' +
+                '<div class="usage-item"><span class="usage-label">Daily Cost</span><span class="usage-value">$' + (usage.dailyCost || 0).toFixed(4) + '</span></div>' +
+                '<div class="usage-item"><span class="usage-label">Monthly Cost</span><span class="usage-value">$' + (usage.monthlyCost || 0).toFixed(4) + '</span></div>' +
+                '<div class="usage-item"><span class="usage-label">Total Cost</span><span class="usage-value">$' + (usage.totalCost || 0).toFixed(4) + '</span></div>';
 
             if (remaining.days !== null) {
-                html += '<div class="usage-item"><span class="usage-label">剩余天数</span><span class="usage-value">' + remaining.days + ' 天</span></div>';
+                html += '<div class="usage-item"><span class="usage-label">Days Remaining</span><span class="usage-value">' + remaining.days + ' days</span></div>';
             }
 
             gridDiv.innerHTML = html;
@@ -432,11 +432,11 @@ async function saveLimits() {
     const monthlyLimit = parseInt(document.getElementById('monthly-limit').value) || 0;
     const totalLimit = parseInt(document.getElementById('total-limit').value) || 0;
     const concurrentLimit = parseInt(document.getElementById('concurrent-limit').value) || 0;
-    // 金额限制
+    // Cost limits
     const dailyCostLimit = parseFloat(document.getElementById('daily-cost-limit').value) || 0;
     const monthlyCostLimit = parseFloat(document.getElementById('monthly-cost-limit').value) || 0;
     const totalCostLimit = parseFloat(document.getElementById('total-cost-limit').value) || 0;
-    // 有效期
+    // Expiration
     const expiresInDays = parseInt(document.getElementById('expires-in-days').value) || 0;
 
     try {
@@ -460,18 +460,18 @@ async function saveLimits() {
 
         const result = await res.json();
         if (result.success) {
-            showToast('限制配置已保存', 'success');
+            showToast('Limits configuration saved', 'success');
             closeLimitsModal();
             loadApiKeys();
         } else {
-            showToast(result.error || '保存失败', 'error');
+            showToast(result.error || 'Save failed', 'error');
         }
     } catch (err) {
-        showToast('保存失败: ' + err.message, 'error');
+        showToast('Save failed: ' + err.message, 'error');
     }
 }
 
-// ============ 批量生成相关函数 ============
+// ============ Batch Create Functions ============
 
 function openBatchCreateModal() {
     document.getElementById('batch-name-prefix').value = '';
@@ -494,16 +494,16 @@ async function startBatchCreate() {
     const count = parseInt(document.getElementById('batch-count').value) || 0;
 
     if (!prefix) {
-        showToast('请输入名称前缀', 'error');
+        showToast('Please enter name prefix', 'error');
         return;
     }
 
     if (count < 1 || count > 100) {
-        showToast('生成数量必须在 1-100 之间', 'error');
+        showToast('Count must be between 1-100', 'error');
         return;
     }
 
-    // 显示进度条
+    // Show progress bar
     document.getElementById('batch-progress').style.display = 'block';
     document.getElementById('batch-modal-submit').disabled = true;
     document.getElementById('batch-results').innerHTML = '';
@@ -545,7 +545,7 @@ async function startBatchCreate() {
                 failCount++;
                 resultsDiv.innerHTML += '<div class="batch-result-item error">' +
                     '<span class="batch-result-name">' + keyName + '</span>' +
-                    '<span class="batch-result-error">' + (result.error || '创建失败') + '</span>' +
+                    '<span class="batch-result-error">' + (result.error || 'Create failed') + '</span>' +
                     '</div>';
             }
         } catch (err) {
@@ -556,26 +556,26 @@ async function startBatchCreate() {
                 '</div>';
         }
 
-        // 滚动到底部
+        // Scroll to bottom
         resultsDiv.scrollTop = resultsDiv.scrollHeight;
     }
 
-    // 完成
+    // Complete
     document.getElementById('batch-modal-submit').style.display = 'none';
     if (batchGeneratedKeys.length > 0) {
         document.getElementById('batch-copy-all').style.display = 'inline-flex';
     }
 
-    showToast('批量生成完成: 成功 ' + successCount + ' 个, 失败 ' + failCount + ' 个',
+    showToast('Batch create complete: ' + successCount + ' succeeded, ' + failCount + ' failed',
         failCount === 0 ? 'success' : 'warning');
 
-    // 刷新列表
+    // Refresh list
     loadApiKeys();
 }
 
 function copyAllBatchKeys() {
     if (batchGeneratedKeys.length === 0) {
-        showToast('没有可复制的密钥', 'error');
+        showToast('No keys to copy', 'error');
         return;
     }
 
@@ -586,7 +586,7 @@ function copyAllBatchKeys() {
     copyToClipboard(text);
 }
 
-// ============ 续费相关函数 ============
+// ============ Renew Functions ============
 
 function setRenewDays(days) {
     document.getElementById('renew-days').value = days;
@@ -594,13 +594,13 @@ function setRenewDays(days) {
 
 async function openRenewModal(keyId) {
     try {
-        // 获取密钥详情
+        // Get key details
         const res = await fetch('/api/keys/' + keyId, {
             headers: { 'Authorization': 'Bearer ' + authToken }
         });
         const result = await res.json();
         if (!result.success) {
-            showToast(result.error || '获取密钥信息失败', 'error');
+            showToast(result.error || 'Failed to get key info', 'error');
             return;
         }
 
@@ -609,7 +609,7 @@ async function openRenewModal(keyId) {
         document.getElementById('renew-key-name').textContent = key.name;
         document.getElementById('renew-days').value = 30;
 
-        // 获取当前状态
+        // Get current status
         const statusRes = await fetch('/api/keys/' + keyId + '/limits-status', {
             headers: { 'Authorization': 'Bearer ' + authToken }
         });
@@ -624,20 +624,20 @@ async function openRenewModal(keyId) {
                 const daysLeft = remaining.days;
 
                 document.getElementById('renew-current-status').innerHTML = isExpired
-                    ? '<span style="color: var(--danger-color);">已过期</span>'
-                    : '<span style="color: var(--success-color);">有效</span>';
+                    ? '<span style="color: var(--danger-color);">Expired</span>'
+                    : '<span style="color: var(--success-color);">Valid</span>';
                 document.getElementById('renew-remaining-days').innerHTML = isExpired
-                    ? '<span style="color: var(--danger-color);">已过期</span>'
-                    : '<span>' + daysLeft + ' 天</span>';
+                    ? '<span style="color: var(--danger-color);">Expired</span>'
+                    : '<span>' + daysLeft + ' days</span>';
             } else {
-                document.getElementById('renew-current-status').innerHTML = '<span style="color: var(--text-muted);">永久有效</span>';
-                document.getElementById('renew-remaining-days').innerHTML = '<span style="color: var(--text-muted);">无限制</span>';
+                document.getElementById('renew-current-status').innerHTML = '<span style="color: var(--text-muted);">Permanent</span>';
+                document.getElementById('renew-remaining-days').innerHTML = '<span style="color: var(--text-muted);">Unlimited</span>';
             }
         }
 
         renewModal.classList.add('active');
     } catch (err) {
-        showToast('获取密钥信息失败: ' + err.message, 'error');
+        showToast('Failed to get key info: ' + err.message, 'error');
     }
 }
 
@@ -650,7 +650,7 @@ async function submitRenew() {
     const days = parseInt(document.getElementById('renew-days').value) || 0;
 
     if (days <= 0) {
-        showToast('续费天数必须大于 0', 'error');
+        showToast('Renewal days must be greater than 0', 'error');
         return;
     }
 
@@ -666,13 +666,13 @@ async function submitRenew() {
 
         const result = await res.json();
         if (result.success) {
-            showToast('续费成功，新增 ' + result.data.addedDays + ' 天，剩余 ' + result.data.remainingDays + ' 天', 'success');
+            showToast('Renewal successful, added ' + result.data.addedDays + ' days, ' + result.data.remainingDays + ' days remaining', 'success');
             closeRenewModal();
             loadApiKeys();
         } else {
-            showToast(result.error || '续费失败', 'error');
+            showToast(result.error || 'Renewal failed', 'error');
         }
     } catch (err) {
-        showToast('续费失败: ' + err.message, 'error');
+        showToast('Renewal failed: ' + err.message, 'error');
     }
 }

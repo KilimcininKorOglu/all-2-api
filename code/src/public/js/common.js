@@ -1,23 +1,23 @@
-// ============ 公共状态 ============
+// ============ Common State ============
 let authToken = localStorage.getItem('authToken');
 
-// 站点设置（全局）- 先尝试从 localStorage 读取缓存
+// Site settings (global) - Try to read from localStorage cache first
 window.siteSettings = JSON.parse(localStorage.getItem('siteSettings')) || {
     siteName: 'Kiro',
     siteLogo: 'K',
     siteSubtitle: 'Account Manager'
 };
 
-// ============ 站点设置 ============
+// ============ Site Settings ============
 async function loadSiteSettings() {
     try {
         const res = await fetch('/api/site-settings');
         const data = await res.json();
         if (data.success && data.data) {
             window.siteSettings = data.data;
-            // 缓存到 localStorage
+            // Cache to localStorage
             localStorage.setItem('siteSettings', JSON.stringify(data.data));
-            // 更新页面上的站点信息
+            // Update site info on the page
             updateSiteSettingsUI();
         }
     } catch (e) {
@@ -26,21 +26,21 @@ async function loadSiteSettings() {
     return window.siteSettings;
 }
 
-// 更新页面上所有使用站点设置的元素
+// Update all elements using site settings on the page
 function updateSiteSettingsUI() {
     const settings = window.siteSettings;
 
-    // 更新页面 title（替换 Kiro 为配置的站点名称）
+    // Update page title (replace Kiro with configured site name)
     const currentTitle = document.title;
     if (currentTitle.includes('Kiro')) {
         document.title = currentTitle.replace(/Kiro/g, settings.siteName);
     } else if (!currentTitle.includes(settings.siteName)) {
-        // 如果 title 不包含站点名称，追加
+        // If title does not contain site name, append it
         const pageName = currentTitle.split(' - ')[0] || currentTitle;
         document.title = `${pageName} - ${settings.siteName} ${settings.siteSubtitle}`;
     }
 
-    // 更新侧边栏 logo
+    // Update sidebar logo
     const logoIcon = document.querySelector('.sidebar .logo-icon');
     const logoText = document.querySelector('.sidebar .logo-text');
     const logoSubtitle = document.querySelector('.sidebar .logo-subtitle');
@@ -49,28 +49,28 @@ function updateSiteSettingsUI() {
     if (logoText) logoText.textContent = settings.siteName.toUpperCase();
     if (logoSubtitle) logoSubtitle.textContent = settings.siteSubtitle;
 
-    // 更新版本信息
+    // Update version info
     const versionInfo = document.querySelector('.version-info');
     if (versionInfo) versionInfo.textContent = `${settings.siteName} Manager v1.0.0`;
 
-    // 更新导航中的账号文字
+    // Update account text in navigation
     const kiroNavItem = document.querySelector('.nav-item[data-page="accounts"]');
     if (kiroNavItem) {
         const badge = kiroNavItem.querySelector('.nav-badge');
         const badgeHTML = badge ? badge.outerHTML : '';
         const svgIcon = kiroNavItem.querySelector('svg');
         const svgHTML = svgIcon ? svgIcon.outerHTML : '';
-        kiroNavItem.innerHTML = `${svgHTML} ${settings.siteName} 账号 ${badgeHTML}`;
+        kiroNavItem.innerHTML = `${svgHTML} ${settings.siteName} Accounts ${badgeHTML}`;
     }
 
-    // 更新页面副标题中的 "Kiro"
+    // Update page subtitle containing "Kiro"
     const pageSubtitle = document.querySelector('.page-subtitle');
     if (pageSubtitle && pageSubtitle.textContent.includes('Kiro')) {
         pageSubtitle.textContent = pageSubtitle.textContent.replace(/Kiro/g, settings.siteName);
     }
 }
 
-// ============ 认证相关 ============
+// ============ Authentication ============
 async function checkAuth() {
     if (!authToken) {
         window.location.href = '/login.html';
@@ -101,7 +101,7 @@ function logout() {
     });
 }
 
-// ============ Toast 提示 ============
+// ============ Toast Notifications ============
 function showToast(message, type = 'success') {
     const container = document.getElementById('toast-container');
     if (!container) return;
@@ -128,10 +128,10 @@ function showToast(message, type = 'success') {
     setTimeout(() => toast.remove(), 5000);
 }
 
-// ============ 工具函数 ============
+// ============ Utility Functions ============
 function parseDateTime(dateStr) {
     if (!dateStr) return null;
-    // 如果是 MySQL 格式 (YYYY-MM-DD HH:MM:SS)，直接解析为本地时间，不做时区转换
+    // If in MySQL format (YYYY-MM-DD HH:MM:SS), parse as local time without timezone conversion
     if (typeof dateStr === 'string' && !dateStr.includes('T') && !dateStr.includes('Z') && !dateStr.includes('+')) {
         return new Date(dateStr.replace(' ', 'T'));
     }
@@ -141,7 +141,7 @@ function parseDateTime(dateStr) {
 function formatDateTime(dateStr) {
     if (!dateStr) return '-';
     const date = parseDateTime(dateStr);
-    // 直接格式化显示，不做时区转换
+    // Format display directly without timezone conversion
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
@@ -157,16 +157,16 @@ function formatDate(dateStr) {
 }
 
 function copyToClipboard(text) {
-    // 优先使用 navigator.clipboard API
+    // Prefer navigator.clipboard API
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text).then(() => {
-            showToast('已复制到剪贴板', 'success');
+            showToast('Copied to clipboard', 'success');
         }).catch(() => {
-            // 如果失败，使用备用方案
+            // If failed, use fallback method
             fallbackCopyToClipboard(text);
         });
     } else {
-        // 不支持 clipboard API，使用备用方案
+        // Clipboard API not supported, use fallback method
         fallbackCopyToClipboard(text);
     }
 }
@@ -183,19 +183,19 @@ function fallbackCopyToClipboard(text) {
     try {
         const successful = document.execCommand('copy');
         if (successful) {
-            showToast('已复制到剪贴板', 'success');
+            showToast('Copied to clipboard', 'success');
         } else {
-            showToast('复制失败', 'error');
+            showToast('Copy failed', 'error');
         }
     } catch (err) {
-        showToast('复制失败', 'error');
+        showToast('Copy failed', 'error');
     }
     document.body.removeChild(textArea);
 }
 
-// ============ 侧边栏导航 ============
+// ============ Sidebar Navigation ============
 function initSidebar(currentPage) {
-    // 设置当前页面高亮
+    // Set current page highlight
     document.querySelectorAll('.nav-item').forEach(item => {
         item.classList.remove('active');
         if (item.dataset.page === currentPage) {
@@ -203,7 +203,7 @@ function initSidebar(currentPage) {
         }
     });
 
-    // 导航点击事件
+    // Navigation click events
     document.querySelectorAll('.nav-item').forEach(item => {
         item.addEventListener('click', (e) => {
             const page = item.dataset.page;
@@ -211,11 +211,11 @@ function initSidebar(currentPage) {
                 e.preventDefault();
                 navigateTo(page);
             }
-            // 没有 data-page 的链接允许默认行为（如外部链接）
+            // Links without data-page allow default behavior (e.g., external links)
         });
     });
 
-    // 登出按钮
+    // Logout button
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
         logoutBtn.addEventListener('click', logout);
@@ -250,7 +250,7 @@ function navigateTo(page) {
     window.location.href = url;
 }
 
-// ============ 侧边栏 HTML 生成 ============
+// ============ Sidebar HTML Generation ============
 function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
     const settings = window.siteSettings || { siteName: 'Kiro', siteLogo: 'K', siteSubtitle: 'Account Manager' };
     return `
@@ -266,7 +266,7 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
         </div>
         <nav class="sidebar-nav">
             <div class="nav-section">
-                <div class="nav-section-title">账号管理</div>
+                <div class="nav-section-title">Account Management</div>
                 <a href="#" class="nav-item" data-page="accounts">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
@@ -274,14 +274,14 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    ${settings.siteName} 账号
+                    ${settings.siteName} Accounts
                     <span class="nav-badge" id="nav-accounts-count">${stats.total}</span>
                 </a>
                 <a href="#" class="nav-item" data-page="gemini">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
                     </svg>
-                    Gemini 账号
+                    Gemini Accounts
                     <span class="nav-badge" id="nav-gemini-count">${stats.gemini || 0}</span>
                 </a>
                 <a href="#" class="nav-item" data-page="orchids">
@@ -290,14 +290,14 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <path d="M2 17l10 5 10-5"/>
                         <path d="M2 12l10 5 10-5"/>
                     </svg>
-                    Orchids 账号
+                    Orchids Accounts
                     <span class="nav-badge" id="nav-orchids-count">${stats.orchids || 0}</span>
                 </a>
                 <a href="#" class="nav-item" data-page="warp">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                     </svg>
-                    Warp 账号
+                    Warp Accounts
                     <span class="nav-badge" id="nav-warp-count">${stats.warp || 0}</span>
                 </a>
                 <a href="#" class="nav-item" data-page="vertex">
@@ -315,13 +315,13 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <polyline points="10 17 15 12 10 7"/>
                         <line x1="15" y1="12" x2="3" y2="12"/>
                     </svg>
-                    OAuth 登录
+                    OAuth Login
                 </a>
                 <a href="#" class="nav-item" data-page="chat">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                     </svg>
-                    对话测试
+                    Chat Test
                 </a>
                 <a href="#" class="nav-item" data-page="error-accounts">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -329,17 +329,17 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <line x1="12" y1="8" x2="12" y2="12"/>
                         <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
-                    异常账号
+                    Error Accounts
                     <span class="nav-badge error" id="nav-error-count">${stats.error}</span>
                 </a>
             </div>
             <div class="nav-section">
-                <div class="nav-section-title">API 管理</div>
+                <div class="nav-section-title">API Management</div>
                 <a href="#" class="nav-item" data-page="api-keys">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
                     </svg>
-                    API 密钥
+                    API Keys
                 </a>
                 <a href="#" class="nav-item" data-page="trial-admin">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -347,17 +347,17 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <circle cx="8.5" cy="7" r="4"/>
                         <polyline points="17 11 19 13 23 9"/>
                     </svg>
-                    试用审批
+                    Trial Approval
                 </a>
                 <a href="#" class="nav-item" data-page="usage">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
-                    用量统计
+                    Usage Statistics
                 </a>
             </div>
             <div class="nav-section">
-                <div class="nav-section-title">日志</div>
+                <div class="nav-section-title">Logs</div>
                 <a href="#" class="nav-item" data-page="logs">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
@@ -365,7 +365,7 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <line x1="16" y1="13" x2="8" y2="13"/>
                         <line x1="16" y1="17" x2="8" y2="17"/>
                     </svg>
-                    请求日志
+                    Request Logs
                 </a>
                 <a href="#" class="nav-item" data-page="error-logs">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -373,39 +373,39 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <line x1="12" y1="9" x2="12" y2="13"/>
                         <line x1="12" y1="17" x2="12.01" y2="17"/>
                     </svg>
-                    错误日志
+                    Error Logs
                 </a>
             </div>
             <div class="nav-section">
-                <div class="nav-section-title">系统设置</div>
+                <div class="nav-section-title">System Settings</div>
                 <a href="#" class="nav-item" data-page="site-settings">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
                         <line x1="3" y1="9" x2="21" y2="9"/>
                         <line x1="9" y1="21" x2="9" y2="9"/>
                     </svg>
-                    站点设置
+                    Site Settings
                 </a>
                 <a href="#" class="nav-item" data-page="pricing">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.768 0-1.536-.22-2.121-.659-1.172-.879-1.172-2.303 0-3.182s3.07-.879 4.242 0L15 8.819"/>
                         <circle cx="12" cy="12" r="10"/>
                     </svg>
-                    模型定价
+                    Model Pricing
                 </a>
                 <a href="#" class="nav-item" data-page="proxy">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="12" cy="12" r="3"/>
                         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
                     </svg>
-                    代理设置
+                    Proxy Settings
                 </a>
                 <a href="#" class="nav-item" data-page="change-password">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
-                    修改密码
+                    Change Password
                 </a>
             </div>
         </nav>
@@ -413,11 +413,11 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
             <div class="sidebar-stats">
                 <div class="stat-item">
                     <div class="stat-value" id="stat-total">${stats.total}</div>
-                    <div class="stat-label">总账号</div>
+                    <div class="stat-label">Total</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-value" id="stat-active">${stats.active}</div>
-                    <div class="stat-label">活跃</div>
+                    <div class="stat-label">Active</div>
                 </div>
             </div>
             <div class="version-info">${settings.siteName} Manager v1.0.0</div>
@@ -426,7 +426,7 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
     `;
 }
 
-// ============ 更新侧边栏统计 ============
+// ============ Update Sidebar Stats ============
 async function updateSidebarStats() {
     try {
         const [credRes, errorRes, geminiRes, warpRes, vertexRes] = await Promise.all([
@@ -480,22 +480,22 @@ async function updateSidebarStats() {
     }
 }
 
-// ============ 自动初始化站点设置 ============
-// 页面加载时自动更新 title（使用缓存的设置）
+// ============ Auto-Initialize Site Settings ============
+// Auto-update title when page loads (using cached settings)
 (function() {
     const settings = window.siteSettings;
-    // 从当前 title 中提取页面名称部分
+    // Extract page name part from current title
     const currentTitle = document.title;
     const pageName = currentTitle.split(' - ')[0] || currentTitle;
-    // 如果 title 包含 "Kiro"，替换为配置的站点名称
+    // If title contains "Kiro", replace with configured site name
     if (currentTitle.includes('Kiro')) {
         document.title = currentTitle.replace(/Kiro/g, settings.siteName);
     }
 })();
 
-// 页面完全加载后，从服务器获取最新设置并更新
+// After page fully loads, get latest settings from server and update
 document.addEventListener('DOMContentLoaded', function() {
-    // 延迟加载站点设置，避免阻塞页面渲染
+    // Delay loading site settings to avoid blocking page rendering
     setTimeout(() => {
         loadSiteSettings();
     }, 100);
