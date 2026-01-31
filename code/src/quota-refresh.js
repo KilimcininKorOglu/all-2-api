@@ -30,7 +30,7 @@ async function refreshKiroQuotas(store) {
     const result = { success: 0, failed: 0 };
 
     try {
-        const credentials = await store.getAllActive();
+        const credentials = await store.getAll();
         if (credentials.length === 0) {
             return result;
         }
