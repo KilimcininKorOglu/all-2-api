@@ -166,6 +166,8 @@ CREATE TABLE `gemini_credentials` (
   `is_active` tinyint NULL DEFAULT 1,
   `usage_data` json NULL,
   `usage_updated_at` datetime NULL DEFAULT NULL,
+  `quota_data` json NULL COMMENT 'Model-based quota info: {modelId: {remainingFraction, resetTime}}',
+  `quota_updated_at` datetime NULL DEFAULT NULL COMMENT 'When quota was last fetched',
   `error_count` int NULL DEFAULT 0,
   `last_error_at` datetime NULL DEFAULT NULL,
   `last_error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,

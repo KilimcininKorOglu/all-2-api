@@ -154,6 +154,8 @@ export async function initDatabase() {
             is_active TINYINT DEFAULT 1,
             usage_data JSON,
             usage_updated_at DATETIME,
+            quota_data JSON COMMENT 'Model-based quota info: {modelId: {remainingFraction, resetTime}}',
+            quota_updated_at DATETIME COMMENT 'When quota was last fetched',
             error_count INT DEFAULT 0,
             last_error_at DATETIME,
             last_error_message TEXT,
@@ -161,6 +163,14 @@ export async function initDatabase() {
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Add quota columns to gemini_credentials if not exists (migration)
+    try {
+        await pool.execute(`ALTER TABLE gemini_credentials ADD COLUMN quota_data JSON COMMENT 'Model-based quota info' AFTER usage_updated_at`);
+    } catch (e) { /* Column may already exist */ }
+    try {
+        await pool.execute(`ALTER TABLE gemini_credentials ADD COLUMN quota_updated_at DATETIME COMMENT 'When quota was last fetched' AFTER quota_data`);
+    } catch (e) { /* Column may already exist */ }
 
     // Create Gemini error credentials table
     await pool.execute(`
@@ -1750,6 +1760,91 @@ export class GeminiCredentialStore {
         `, [id]);
     }
 
+    // ============ Quota Management ============
+
+    /**
+     * Update quota data for a credential
+     * @param {number} id - Credential ID
+     * @param {object} quotaData - Quota data { modelId: { remainingFraction, resetTime } }
+     */
+    async updateQuota(id, quotaData) {
+        const quotaJson = JSON.stringify(quotaData);
+        await this.db.execute(`
+            UPDATE gemini_credentials SET
+                quota_data = ?,
+                quota_updated_at = NOW()
+            WHERE id = ?
+        `, [quotaJson, id]);
+    }
+
+    /**
+     * Get credentials with quota info, sorted by quota (highest first)
+     * @param {string} modelId - Model ID to check quota for
+     * @returns {Promise<Array>} Credentials sorted by quota
+     */
+    async getActiveByQuota(modelId) {
+        const [rows] = await this.db.execute(`
+            SELECT *,
+                JSON_EXTRACT(quota_data, ?) as model_quota
+            FROM gemini_credentials
+            WHERE is_active = 1
+            ORDER BY
+                CASE
+                    WHEN JSON_EXTRACT(quota_data, ?) IS NULL THEN 0.5
+                    ELSE CAST(JSON_EXTRACT(quota_data, ?) AS DECIMAL(10,4))
+                END DESC,
+                error_count ASC
+        `, [
+            `$."${modelId}".remainingFraction`,
+            `$."${modelId}".remainingFraction`,
+            `$."${modelId}".remainingFraction`
+        ]);
+        return rows.map(row => this._mapRow(row));
+    }
+
+    /**
+     * Get quota remaining fraction for a credential and model
+     * @param {number} id - Credential ID
+     * @param {string} modelId - Model ID
+     * @returns {Promise<number|null>} Remaining fraction (0-1) or null if unknown
+     */
+    async getQuotaFraction(id, modelId) {
+        const credential = await this.getById(id);
+        if (!credential || !credential.quotaData) return null;
+        const modelQuota = credential.quotaData[modelId];
+        return modelQuota?.remainingFraction ?? null;
+    }
+
+    /**
+     * Check if quota data is fresh (less than 5 minutes old)
+     * @param {number} id - Credential ID
+     * @returns {Promise<boolean>}
+     */
+    async isQuotaFresh(id) {
+        const [rows] = await this.db.execute(`
+            SELECT quota_updated_at FROM gemini_credentials WHERE id = ?
+        `, [id]);
+        if (rows.length === 0 || !rows[0].quota_updated_at) return false;
+        const updatedAt = new Date(rows[0].quota_updated_at).getTime();
+        const staleMs = 5 * 60 * 1000; // 5 minutes
+        return (Date.now() - updatedAt) < staleMs;
+    }
+
+    /**
+     * Get all credentials that need quota refresh
+     * @returns {Promise<Array>} Credentials with stale or missing quota data
+     */
+    async getCredentialsNeedingQuotaRefresh() {
+        const staleTime = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
+        const [rows] = await this.db.execute(`
+            SELECT * FROM gemini_credentials
+            WHERE is_active = 1
+            AND (quota_updated_at IS NULL OR quota_updated_at < ?)
+            ORDER BY quota_updated_at ASC
+        `, [staleTime]);
+        return rows.map(row => this._mapRow(row));
+    }
+
     _mapRow(row) {
         return {
             id: row.id,
@@ -1762,6 +1857,8 @@ export class GeminiCredentialStore {
             isActive: row.is_active === 1,
             usageData: row.usage_data ? (typeof row.usage_data === 'string' ? JSON.parse(row.usage_data) : row.usage_data) : null,
             usageUpdatedAt: row.usage_updated_at,
+            quotaData: row.quota_data ? (typeof row.quota_data === 'string' ? JSON.parse(row.quota_data) : row.quota_data) : null,
+            quotaUpdatedAt: row.quota_updated_at,
             errorCount: row.error_count || 0,
             lastErrorAt: row.last_error_at,
             lastErrorMessage: row.last_error_message,

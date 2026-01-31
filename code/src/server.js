@@ -4118,6 +4118,208 @@ app.get('/api/anthropic/models', authMiddleware, async (req, res) => {
     }
 });
 
+// ============ Gemini Quota Management ============
+
+// Get all Gemini credentials with quota info
+app.get('/api/gemini/quotas', authMiddleware, async (req, res) => {
+    try {
+        const credentials = await geminiStore.getAll();
+        const quotaData = credentials.map(cred => ({
+            id: cred.id,
+            name: cred.name,
+            email: cred.email,
+            isActive: cred.isActive,
+            quotaData: cred.quotaData,
+            quotaUpdatedAt: cred.quotaUpdatedAt,
+            errorCount: cred.errorCount
+        }));
+        res.json({ success: true, data: quotaData });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get quota for a specific credential
+app.get('/api/gemini/credentials/:id/quota', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const credential = await geminiStore.getById(id);
+
+        if (!credential) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+
+        res.json({
+            success: true,
+            data: {
+                id: credential.id,
+                name: credential.name,
+                quotaData: credential.quotaData,
+                quotaUpdatedAt: credential.quotaUpdatedAt
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Refresh quota for a specific credential
+app.post('/api/gemini/credentials/:id/refresh-quota', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const credential = await geminiStore.getById(id);
+
+        if (!credential) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+
+        // Create Antigravity service instance
+        const service = new AntigravityApiService({
+            oauthCredsFilePath: null,
+            projectId: credential.projectId
+        });
+
+        // Load credentials
+        service.authClient.setCredentials({
+            access_token: credential.accessToken,
+            refresh_token: credential.refreshToken,
+            expiry_date: credential.expiresAt ? new Date(credential.expiresAt).getTime() : null
+        });
+
+        service.projectId = credential.projectId;
+        service.isInitialized = true;
+
+        // Fetch quotas
+        const quotaResult = await service.getModelsWithQuotas();
+
+        // Transform to quota data format
+        const quotaData = {};
+        for (const [modelId, modelInfo] of Object.entries(quotaResult.models)) {
+            quotaData[modelId] = {
+                remainingFraction: modelInfo.remaining,
+                resetTime: modelInfo.resetTime
+            };
+        }
+
+        // Update in database
+        await geminiStore.updateQuota(id, quotaData);
+
+        res.json({
+            success: true,
+            data: {
+                quotaData,
+                lastUpdated: new Date().toISOString()
+            }
+        });
+    } catch (error) {
+        console.error(`[Quota] Failed to refresh quota for credential ${req.params.id}:`, error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Refresh quotas for all active credentials
+app.post('/api/gemini/refresh-all-quotas', authMiddleware, async (req, res) => {
+    try {
+        const credentials = await geminiStore.getAllActive();
+        const results = [];
+
+        for (const credential of credentials) {
+            try {
+                const service = new AntigravityApiService({
+                    oauthCredsFilePath: null,
+                    projectId: credential.projectId
+                });
+
+                service.authClient.setCredentials({
+                    access_token: credential.accessToken,
+                    refresh_token: credential.refreshToken,
+                    expiry_date: credential.expiresAt ? new Date(credential.expiresAt).getTime() : null
+                });
+
+                service.projectId = credential.projectId;
+                service.isInitialized = true;
+
+                const quotaResult = await service.getModelsWithQuotas();
+
+                const quotaData = {};
+                for (const [modelId, modelInfo] of Object.entries(quotaResult.models)) {
+                    quotaData[modelId] = {
+                        remainingFraction: modelInfo.remaining,
+                        resetTime: modelInfo.resetTime
+                    };
+                }
+
+                await geminiStore.updateQuota(credential.id, quotaData);
+
+                results.push({
+                    id: credential.id,
+                    name: credential.name,
+                    success: true,
+                    models: Object.keys(quotaData).length
+                });
+            } catch (error) {
+                results.push({
+                    id: credential.id,
+                    name: credential.name,
+                    success: false,
+                    error: error.message
+                });
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                total: credentials.length,
+                successful: results.filter(r => r.success).length,
+                failed: results.filter(r => !r.success).length,
+                results
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get account limits summary (quota overview)
+app.get('/api/gemini/account-limits', authMiddleware, async (req, res) => {
+    try {
+        const { modelId } = req.query;
+        const credentials = await geminiStore.getAllActive();
+
+        const limits = credentials.map(cred => {
+            const quotaInfo = cred.quotaData || {};
+            let modelQuota = null;
+
+            if (modelId && quotaInfo[modelId]) {
+                modelQuota = quotaInfo[modelId];
+            }
+
+            return {
+                id: cred.id,
+                name: cred.name,
+                email: cred.email,
+                isActive: cred.isActive,
+                errorCount: cred.errorCount,
+                quotaUpdatedAt: cred.quotaUpdatedAt,
+                models: Object.keys(quotaInfo).map(model => ({
+                    model,
+                    remainingFraction: quotaInfo[model]?.remainingFraction,
+                    remainingPercent: quotaInfo[model]?.remainingFraction != null
+                        ? Math.round(quotaInfo[model].remainingFraction * 100)
+                        : null,
+                    resetTime: quotaInfo[model]?.resetTime
+                })),
+                selectedModelQuota: modelQuota
+            };
+        });
+
+        res.json({ success: true, data: limits });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ API Log Management ============
 
 // Get error log list (status code >= 400)
@@ -4867,6 +5069,7 @@ async function start() {
     // Start scheduled refresh tasks
     startCredentialsRefreshTask();
     startErrorCredentialsRefreshTask();
+    startGeminiQuotaRefreshTask();
 
     // Start log cleanup task (clean logs older than 30 days daily)
     startLogCleanupTask();
@@ -4884,6 +5087,92 @@ async function start() {
         console.log('[API]   Bedrock format: /api/bedrock/chat');
         console.log('[API]   Model list:     /v1/models');
     });
+}
+
+/**
+ * Start Gemini quota refresh task
+ */
+const QUOTA_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
+
+function startGeminiQuotaRefreshTask() {
+    console.log(`[${getTimestamp()}] [Quota Refresh] Gemini quota refresh task started, interval: ${QUOTA_REFRESH_INTERVAL / 60000} minutes`);
+
+    // Execute initial refresh after 1 minute
+    setTimeout(async () => {
+        await refreshAllGeminiQuotas();
+    }, 60000);
+
+    // Execute on schedule
+    setInterval(async () => {
+        await refreshAllGeminiQuotas();
+    }, QUOTA_REFRESH_INTERVAL);
+}
+
+/**
+ * Refresh quotas for all active Gemini credentials
+ */
+async function refreshAllGeminiQuotas() {
+    try {
+        const credentials = await geminiStore.getAllActive();
+        if (credentials.length === 0) {
+            return;
+        }
+
+        let successCount = 0;
+        let failCount = 0;
+
+        for (const credential of credentials) {
+            try {
+                const service = new AntigravityApiService({
+                    oauthCredsFilePath: null,
+                    projectId: credential.projectId
+                });
+
+                service.authClient.setCredentials({
+                    access_token: credential.accessToken,
+                    refresh_token: credential.refreshToken,
+                    expiry_date: credential.expiresAt ? new Date(credential.expiresAt).getTime() : null
+                });
+
+                service.projectId = credential.projectId;
+                service.isInitialized = true;
+
+                const quotaResult = await service.getModelsWithQuotas();
+
+                const quotaData = {};
+                for (const [modelId, modelInfo] of Object.entries(quotaResult.models)) {
+                    quotaData[modelId] = {
+                        remainingFraction: modelInfo.remaining,
+                        resetTime: modelInfo.resetTime
+                    };
+                }
+
+                await geminiStore.updateQuota(credential.id, quotaData);
+                successCount++;
+
+                // Log low quota warnings
+                for (const [modelId, quota] of Object.entries(quotaData)) {
+                    if (quota.remainingFraction !== null && quota.remainingFraction <= 0.05) {
+                        console.warn(`[${getTimestamp()}] [Quota] CRITICAL: ${credential.name} - ${modelId}: ${Math.round(quota.remainingFraction * 100)}% remaining`);
+                    } else if (quota.remainingFraction !== null && quota.remainingFraction <= 0.20) {
+                        console.log(`[${getTimestamp()}] [Quota] LOW: ${credential.name} - ${modelId}: ${Math.round(quota.remainingFraction * 100)}% remaining`);
+                    }
+                }
+            } catch (error) {
+                failCount++;
+                console.error(`[${getTimestamp()}] [Quota Refresh] Failed for ${credential.name}: ${error.message}`);
+            }
+
+            // Wait 2 seconds between credentials to avoid rate limiting
+            await new Promise(resolve => setTimeout(resolve, 2000));
+        }
+
+        if (successCount > 0 || failCount > 0) {
+            console.log(`[${getTimestamp()}] [Quota Refresh] Completed: ${successCount} success, ${failCount} failed`);
+        }
+    } catch (error) {
+        console.error(`[${getTimestamp()}] [Quota Refresh] Task failed: ${error.message}`);
+    }
 }
 
 /**

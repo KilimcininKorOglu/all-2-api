@@ -583,3 +583,66 @@ export async function getPricingInfo() {
 export function getRemotePricing() {
     return remotePricingCache;
 }
+
+// ============ Quota Configuration ============
+
+/**
+ * Quota threshold configuration
+ */
+export const QUOTA_CONFIG = {
+    // Quota remaining thresholds (fraction 0-1)
+    LOW_THRESHOLD: 0.20,        // 20% - reserve account when others available
+    CRITICAL_THRESHOLD: 0.05,   // 5% - exclude from selection
+
+    // Cache freshness
+    STALE_MS: 5 * 60 * 1000,    // 5 minutes - max age to trust quota data
+
+    // Refresh interval
+    REFRESH_INTERVAL_MS: 30 * 60 * 1000,  // 30 minutes - periodic quota refresh
+
+    // Backoff tiers for quota exhausted errors (ms)
+    EXHAUSTED_BACKOFF_TIERS: [60000, 300000, 1800000, 7200000]  // 1min, 5min, 30min, 2hr
+};
+
+/**
+ * Check if quota is critically low
+ * @param {number} remainingFraction - Remaining quota fraction (0-1)
+ * @returns {boolean}
+ */
+export function isQuotaCritical(remainingFraction) {
+    if (remainingFraction === null || remainingFraction === undefined) return false;
+    return remainingFraction <= QUOTA_CONFIG.CRITICAL_THRESHOLD;
+}
+
+/**
+ * Check if quota is low (but not critical)
+ * @param {number} remainingFraction - Remaining quota fraction (0-1)
+ * @returns {boolean}
+ */
+export function isQuotaLow(remainingFraction) {
+    if (remainingFraction === null || remainingFraction === undefined) return false;
+    return remainingFraction <= QUOTA_CONFIG.LOW_THRESHOLD && remainingFraction > QUOTA_CONFIG.CRITICAL_THRESHOLD;
+}
+
+/**
+ * Calculate quota score for account selection (0-100)
+ * @param {number|null} remainingFraction - Remaining quota fraction (0-1)
+ * @param {boolean} isFresh - Whether quota data is fresh
+ * @returns {number}
+ */
+export function calculateQuotaScore(remainingFraction, isFresh = true) {
+    // Unknown quota gets middle score
+    if (remainingFraction === null || remainingFraction === undefined) {
+        return 50;
+    }
+
+    // Calculate base score
+    let score = remainingFraction * 100;
+
+    // Apply penalty for stale data
+    if (!isFresh) {
+        score *= 0.9;  // 10% penalty
+    }
+
+    return Math.round(score);
+}
