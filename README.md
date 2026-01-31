@@ -228,9 +228,32 @@ node src/kiro/auth-cli.js
 
 Uses Device Code Flow with OIDC polling for authentication.
 
+**Web interface authentication flow:**
+1. Access web management interface at http://localhost:13003
+2. Go to "OAuth Login" page
+3. Click "Builder ID Login"
+4. A verification URL and user code will be displayed
+5. Open the verification URL in your browser and enter the code
+6. Credentials are automatically saved after successful authorization
+
 ### 3. IAM Identity Center (IdC)
 
-Uses `client_id` and `client_secret` for authentication.
+Uses Device Code Flow with custom start URL for enterprise SSO authentication.
+
+**Web interface authentication flow:**
+1. Access web management interface at http://localhost:13003
+2. Go to "OAuth Login" page
+3. Click "IAM Identity Center"
+4. Enter your organization's start URL (e.g., `https://d-xxxxxxxx.awsapps.com/start`)
+5. Click "Start IAM Identity Center Login"
+6. A verification URL and user code will be displayed
+7. Complete authorization in your browser
+8. Credentials are automatically saved with `authMethod: 'IdC'`
+
+**Start URL Format:**
+```
+https://d-xxxxxxxx.awsapps.com/start
+```
 
 ### 4. Gemini Antigravity OAuth
 
@@ -272,6 +295,11 @@ Pass API key via `X-API-Key` or `Authorization: Bearer <key>` request header.
 
 **Model-Provider Routing:** Specify provider via `Model-Provider` request header:
 - `gemini` or `gemini-antigravity`: Route to Gemini Antigravity
+- `anthropic`: Route to direct Anthropic API
+- `vertex`: Route to Google Vertex AI
+- `bedrock`: Route to Amazon Bedrock
+- `orchids`: Route to Orchids API
+- `warp`: Route to Warp API
 - Default: Use Kiro/Claude Provider
 
 ### API Call Examples
@@ -494,19 +522,28 @@ code/src/
 ├── db.js                   # Database connection and management
 ├── logger.js               # Logging module
 ├── proxy.js                # Proxy configuration
+├── quota-refresh.js        # Background quota monitoring
 ├── kiro/                   # Kiro (Claude via AWS) module
 │   ├── client.js           # KiroClient class
 │   ├── api.js              # KiroAPI stateless service
-│   ├── auth.js             # OAuth authentication
+│   ├── auth.js             # OAuth authentication (Social, Builder ID, IdC)
 │   ├── auth-cli.js         # CLI login tool
 │   └── kiro-service.js     # Service wrapper
 ├── gemini/                 # Gemini Antigravity module
 │   ├── antigravity-core.js # Core API implementation
 │   └── gemini-routes.js    # API routes
+├── anthropic/              # Direct Anthropic API module
 ├── orchids/                # Orchids API module
 ├── warp/                   # Warp API module
 ├── vertex/                 # Vertex AI module
 ├── bedrock/                # Amazon Bedrock module
+├── selection/              # Credential selection strategies
+│   ├── round-robin-strategy.js
+│   ├── sticky-strategy.js
+│   ├── hybrid-strategy.js
+│   ├── health-tracker.js
+│   ├── quota-tracker.js
+│   └── token-bucket.js
 ├── cluster/                # Clustering and load balancing
 │   ├── cluster.js          # Cluster startup script
 │   └── balancer.js         # Load balancer
