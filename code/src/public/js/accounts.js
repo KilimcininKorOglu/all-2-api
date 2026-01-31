@@ -40,9 +40,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadCredentials();
     setupEventListeners();
     updateSidebarStats();
-
-    // Auto-load usage for all credentials (like Gemini page)
-    batchRefreshUsage();
 });
 
 // Event Listeners

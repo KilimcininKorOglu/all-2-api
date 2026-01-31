@@ -23,9 +23,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Bind events
     bindEvents();
-
-    // Auto-load usage for all credentials (like Anthropic page)
-    loadAllUsage();
 });
 
 // ============ Data Loading ============
