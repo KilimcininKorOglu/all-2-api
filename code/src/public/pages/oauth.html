@@ -442,6 +442,26 @@
                             </button>
                         </div>
 
+                        <!-- IAM Identity Center Card -->
+                        <div class="oauth-card">
+                            <div class="oauth-icon" style="background: linear-gradient(135deg, #ff9900, #232f3e);">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+                                    <path d="M9 12l2 2 4-4"/>
+                                </svg>
+                            </div>
+                            <h3>IAM Identity Center</h3>
+                            <p>Login with AWS IAM Identity Center (SSO) using custom start URL</p>
+                            <button class="btn btn-primary" onclick="showIdCOptions()">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                    <polyline points="10 17 15 12 10 7"/>
+                                    <line x1="15" y1="12" x2="3" y2="12"/>
+                                </svg>
+                                IAM Identity Center
+                            </button>
+                        </div>
+
                         <!-- Gemini Antigravity Card -->
                         <div class="oauth-card">
                             <div class="oauth-icon" style="background: linear-gradient(135deg, #4285F4, #EA4335);">
@@ -479,6 +499,32 @@
                                     <option value="eu-west-1">eu-west-1</option>
                                 </select>
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- IAM Identity Center Options -->
+                    <div class="oauth-options" id="idc-options" style="display: none;">
+                        <h4>IAM Identity Center Settings</h4>
+                        <div class="option-group">
+                            <div class="option-item" style="flex: 1;">
+                                <label for="idc-start-url">Start URL:</label>
+                                <input type="url" id="idc-start-url"
+                                       placeholder="https://d-xxxxxxxx.awsapps.com/start"
+                                       style="width: 350px;">
+                            </div>
+                        </div>
+                        <div class="option-group" style="margin-top: 16px;">
+                            <button class="btn btn-primary" onclick="startIAMIdentityCenter()">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/>
+                                    <polyline points="10 17 15 12 10 7"/>
+                                    <line x1="15" y1="12" x2="3" y2="12"/>
+                                </svg>
+                                Start IAM Identity Center Login
+                            </button>
+                            <button class="btn btn-secondary" onclick="hideIdCOptions()">
+                                Cancel
+                            </button>
                         </div>
                     </div>
 

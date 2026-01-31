@@ -3271,6 +3271,177 @@ app.post('/api/oauth/builder-id/start', async (req, res) => {
     }
 });
 
+// Start OAuth login (IAM Identity Center)
+app.post('/api/oauth/idc/start', async (req, res) => {
+    try {
+        const {
+            name,
+            startUrl,
+            region = 'us-east-1'
+        } = req.body;
+
+        // Validate startUrl
+        if (!startUrl) {
+            return res.status(400).json({ success: false, error: 'Start URL is required' });
+        }
+
+        // Validate URL format (must be AWS Apps URL)
+        if (!startUrl.match(/^https:\/\/[a-zA-Z0-9-]+\.awsapps\.com\/start\/?$/)) {
+            return res.status(400).json({
+                success: false,
+                error: 'Invalid IAM Identity Center URL format. Expected: https://d-xxxxxxxx.awsapps.com/start'
+            });
+        }
+
+        const sessionId = crypto.randomBytes(16).toString('hex');
+        let credentialId = null;
+
+        const auth = new KiroAuth({ region });
+
+        // Start IdC device code flow
+        const authData = await auth.startIdCAuth(startUrl, region);
+
+        // Store session for polling
+        activeOAuthSessions.set(sessionId, {
+            auth,
+            provider: 'IdC',
+            type: 'idc',
+            name: name || generateCredentialName('IdC'),
+            startUrl,
+            region,
+            clientId: authData.clientId,
+            clientSecret: authData.clientSecret,
+            deviceCode: authData.deviceCode,
+            getCredentialId: () => credentialId,
+            startTime: Date.now()
+        });
+
+        // Start background polling for token
+        pollIdCToken(sessionId, authData, startUrl, region, name).then(result => {
+            if (result && result.credentialId) {
+                const session = activeOAuthSessions.get(sessionId);
+                if (session) {
+                    credentialId = result.credentialId;
+                }
+            }
+        }).catch(err => {
+            console.error(`[IdC OAuth] Polling error:`, err.message);
+        });
+
+        // Auto cleanup session after 10 minutes
+        setTimeout(() => {
+            activeOAuthSessions.delete(sessionId);
+        }, 10 * 60 * 1000);
+
+        res.json({
+            success: true,
+            data: {
+                sessionId,
+                verificationUri: authData.verificationUri,
+                verificationUriComplete: authData.verificationUriComplete,
+                userCode: authData.userCode,
+                expiresIn: authData.expiresIn
+            }
+        });
+    } catch (error) {
+        console.error(`[IdC OAuth] Start error:`, error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+/**
+ * Poll for IAM Identity Center token
+ */
+async function pollIdCToken(sessionId, authData, startUrl, region, name) {
+    const interval = authData.interval || 5;
+    const maxAttempts = 60; // 5 minutes max
+    let attempts = 0;
+
+    const ssoEndpoint = `https://oidc.${region}.amazonaws.com`;
+
+    while (attempts < maxAttempts) {
+        attempts++;
+        await new Promise(resolve => setTimeout(resolve, interval * 1000));
+
+        // Check if session still exists
+        const session = activeOAuthSessions.get(sessionId);
+        if (!session) {
+            console.log(`[IdC OAuth] Session ${sessionId} no longer exists, stopping poll`);
+            return null;
+        }
+
+        try {
+            const response = await fetch(`${ssoEndpoint}/token`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'User-Agent': 'Kiro-API/1.0'
+                },
+                body: JSON.stringify({
+                    clientId: authData.clientId,
+                    clientSecret: authData.clientSecret,
+                    deviceCode: authData.deviceCode,
+                    grantType: 'urn:ietf:params:oauth:grant-type:device_code'
+                })
+            });
+
+            const data = await response.json();
+
+            if (response.ok && data.accessToken) {
+                console.log(`[IdC OAuth] Successfully obtained token for session ${sessionId}`);
+
+                // Save credential to database
+                const credName = name || generateCredentialName('IdC');
+                const credentials = {
+                    name: credName,
+                    accessToken: data.accessToken,
+                    refreshToken: data.refreshToken,
+                    expiresAt: new Date(Date.now() + data.expiresIn * 1000).toISOString(),
+                    authMethod: 'IdC',
+                    clientId: authData.clientId,
+                    clientSecret: authData.clientSecret,
+                    region: region,
+                    ssoStartUrl: startUrl
+                };
+
+                const credentialId = await store.add(credentials);
+                console.log(`[IdC OAuth] Credential saved to database, ID: ${credentialId}, Name: ${credName}`);
+
+                // Mark session as completed
+                session.completed = true;
+                session.credentialId = credentialId;
+
+                return { credentialId, credentials };
+            }
+
+            if (data.error === 'authorization_pending') {
+                console.log(`[IdC OAuth] Waiting for authorization... (${attempts}/${maxAttempts})`);
+                continue;
+            } else if (data.error === 'slow_down') {
+                await new Promise(resolve => setTimeout(resolve, 5000)); // Extra delay
+                continue;
+            } else if (data.error === 'expired_token') {
+                console.log(`[IdC OAuth] Device code expired`);
+                session.error = 'Device code expired';
+                return null;
+            } else if (data.error) {
+                console.error(`[IdC OAuth] Error: ${data.error}`);
+                session.error = data.error;
+                return null;
+            }
+        } catch (error) {
+            console.error(`[IdC OAuth] Poll error:`, error.message);
+        }
+    }
+
+    console.log(`[IdC OAuth] Timeout waiting for authorization`);
+    const session = activeOAuthSessions.get(sessionId);
+    if (session) {
+        session.error = 'Authorization timeout';
+    }
+    return null;
+}
+
 // Start OAuth login (Social Auth - Google/GitHub)
 app.post('/api/oauth/social/start', async (req, res) => {
     try {

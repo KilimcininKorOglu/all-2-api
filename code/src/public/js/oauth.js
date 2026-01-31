@@ -410,6 +410,83 @@ async function testAccount(id) {
     }
 }
 
+// Show IAM Identity Center options
+function showIdCOptions() {
+    const idcOptions = document.getElementById('idc-options');
+    idcOptions.style.display = 'block';
+    document.getElementById('idc-start-url').focus();
+}
+
+// Hide IAM Identity Center options
+function hideIdCOptions() {
+    const idcOptions = document.getElementById('idc-options');
+    idcOptions.style.display = 'none';
+    document.getElementById('idc-start-url').value = '';
+}
+
+// Start IAM Identity Center OAuth
+async function startIAMIdentityCenter() {
+    if (currentSessionId) {
+        showToast('A login is already in progress, please cancel first', 'warning');
+        return;
+    }
+
+    const startUrl = document.getElementById('idc-start-url').value.trim();
+    const options = getOAuthOptions();
+
+    if (!startUrl) {
+        showToast('Start URL is required', 'error');
+        document.getElementById('idc-start-url').focus();
+        return;
+    }
+
+    // Validate URL format
+    if (!startUrl.match(/^https:\/\/[a-zA-Z0-9-]+\.awsapps\.com\/start\/?$/)) {
+        showToast('Invalid IAM Identity Center URL format. Expected: https://d-xxxxxxxx.awsapps.com/start', 'error');
+        return;
+    }
+
+    try {
+        const res = await fetch('/api/oauth/idc/start', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${authToken}`
+            },
+            body: JSON.stringify({
+                startUrl: startUrl,
+                ...options
+            })
+        });
+
+        const result = await res.json();
+
+        if (!result.success) {
+            showToast(result.error || 'Failed to start IAM Identity Center login', 'error');
+            return;
+        }
+
+        currentSessionId = result.data.sessionId;
+
+        // Hide IdC options
+        hideIdCOptions();
+
+        // Show status area (reuse Builder ID status)
+        showBuilderIDStatus(result.data);
+
+        // Automatically open authorization link
+        window.open(result.data.verificationUriComplete, '_blank');
+
+        // Start polling status
+        startPolling();
+
+        showToast('Started IAM Identity Center login, please complete authorization in the new window', 'info');
+
+    } catch (error) {
+        showToast('Failed to start IAM Identity Center login: ' + error.message, 'error');
+    }
+}
+
 // HTML escape
 function escapeHtml(text) {
     const div = document.createElement('div');

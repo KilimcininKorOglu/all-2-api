@@ -55,6 +55,13 @@ export async function initDatabase() {
         // Column already exists, ignore error
     }
 
+    // Add sso_start_url column for IAM Identity Center (if not exists)
+    try {
+        await pool.execute(`ALTER TABLE credentials ADD COLUMN sso_start_url VARCHAR(512) COMMENT 'IAM Identity Center start URL' AFTER region`);
+    } catch (e) {
+        // Column already exists, ignore error
+    }
+
     // Create error credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS error_credentials (
@@ -75,6 +82,13 @@ export async function initDatabase() {
             created_at DATETIME DEFAULT CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
+
+    // Add sso_start_url column to error_credentials for IAM Identity Center (if not exists)
+    try {
+        await pool.execute(`ALTER TABLE error_credentials ADD COLUMN sso_start_url VARCHAR(512) COMMENT 'IAM Identity Center start URL' AFTER region`);
+    } catch (e) {
+        // Column already exists, ignore error
+    }
 
     // Create users table
     await pool.execute(`
@@ -592,8 +606,8 @@ export class CredentialStore {
 
     async add(credential) {
         const [result] = await this.db.execute(`
-            INSERT INTO credentials (name, access_token, refresh_token, profile_arn, client_id, client_secret, auth_method, provider, region, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO credentials (name, access_token, refresh_token, profile_arn, client_id, client_secret, auth_method, provider, region, sso_start_url, expires_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             credential.name,
             credential.accessToken,
@@ -604,6 +618,7 @@ export class CredentialStore {
             credential.authMethod || 'social',
             credential.provider || 'Google',
             credential.region || 'us-east-1',
+            credential.ssoStartUrl || null,
             credential.expiresAt || null
         ]);
         return result.insertId;
@@ -622,6 +637,7 @@ export class CredentialStore {
                 auth_method = COALESCE(?, auth_method),
                 provider = COALESCE(?, provider),
                 region = COALESCE(?, region),
+                sso_start_url = COALESCE(?, sso_start_url),
                 expires_at = COALESCE(?, expires_at)
             WHERE id = ?
         `, [
@@ -634,6 +650,7 @@ export class CredentialStore {
             toNull(credential.authMethod),
             toNull(credential.provider),
             toNull(credential.region),
+            toNull(credential.ssoStartUrl),
             toNull(credential.expiresAt),
             id
         ]);
@@ -788,6 +805,7 @@ export class CredentialStore {
             authMethod: row.auth_method,
             provider: row.provider || 'Google',
             region: row.region,
+            ssoStartUrl: row.sso_start_url,
             expiresAt: row.expires_at,
             isActive: row.is_active === 1,
             usageData: row.usage_data ? (typeof row.usage_data === 'string' ? JSON.parse(row.usage_data) : row.usage_data) : null,
@@ -819,6 +837,7 @@ export class CredentialStore {
             clientSecret: row.client_secret,
             authMethod: row.auth_method,
             region: row.region,
+            ssoStartUrl: row.sso_start_url,
             expiresAt: row.expires_at,
             errorMessage: row.error_message,
             errorCount: row.error_count,
@@ -850,9 +869,9 @@ export class CredentialStore {
             await this.db.execute(`
                 INSERT INTO error_credentials (
                     original_id, name, access_token, refresh_token, profile_arn,
-                    client_id, client_secret, auth_method, region, expires_at,
+                    client_id, client_secret, auth_method, region, sso_start_url, expires_at,
                     error_message, created_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             `, [
                 credential.id,
                 credential.name,
@@ -863,6 +882,7 @@ export class CredentialStore {
                 credential.clientSecret,
                 credential.authMethod,
                 credential.region,
+                credential.ssoStartUrl,
                 credential.expiresAt,
                 errorMessage,
                 credential.createdAt
@@ -882,8 +902,8 @@ export class CredentialStore {
         const [result] = await this.db.execute(`
             INSERT INTO credentials (
                 name, access_token, refresh_token, profile_arn,
-                client_id, client_secret, auth_method, region, expires_at, created_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                client_id, client_secret, auth_method, region, sso_start_url, expires_at, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             errorCred.name,
             newAccessToken || errorCred.accessToken,
@@ -893,6 +913,7 @@ export class CredentialStore {
             errorCred.clientSecret,
             errorCred.authMethod,
             errorCred.region,
+            errorCred.ssoStartUrl,
             newExpiresAt || errorCred.expiresAt,
             errorCred.createdAt
         ]);

@@ -328,6 +328,73 @@ export class KiroAuth {
     }
 
     /**
+     * Start IAM Identity Center Device Code Flow
+     * @param {string} startUrl - Custom start URL (e.g., https://d-xxxxxxxx.awsapps.com/start)
+     * @param {string} region - AWS region (default: us-east-1)
+     * @returns {Promise<object>} Device authorization data with client credentials
+     */
+    async startIdCAuth(startUrl, region = 'us-east-1') {
+        // 1. Register OIDC client
+        const ssoEndpoint = KIRO_OAUTH_CONFIG.ssoOIDCEndpoint.replace('{{region}}', region);
+        const regResponse = await fetch(`${ssoEndpoint}/client/register`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': KIRO_CONSTANTS.USER_AGENT
+            },
+            body: JSON.stringify({
+                clientName: 'Kiro IDE',
+                clientType: 'public',
+                scopes: KIRO_OAUTH_CONFIG.scopes,
+                grantTypes: ['urn:ietf:params:oauth:grant-type:device_code', 'refresh_token']
+            })
+        });
+
+        if (!regResponse.ok) {
+            const errorText = await regResponse.text();
+            throw new Error(`Client registration failed: ${regResponse.status} - ${errorText}`);
+        }
+
+        const regData = await regResponse.json();
+
+        // 2. Start device authorization with custom startUrl
+        const authResponse = await fetch(`${ssoEndpoint}/device_authorization`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'User-Agent': KIRO_CONSTANTS.USER_AGENT
+            },
+            body: JSON.stringify({
+                clientId: regData.clientId,
+                clientSecret: regData.clientSecret,
+                startUrl: startUrl  // Custom URL for IAM Identity Center
+            })
+        });
+
+        if (!authResponse.ok) {
+            const errorText = await authResponse.text();
+            throw new Error(`Device authorization failed: ${authResponse.status} - ${errorText}`);
+        }
+
+        const deviceAuth = await authResponse.json();
+
+        console.log(`[Kiro Auth] IAM Identity Center - Please open the following link in your browser:`);
+        console.log(deviceAuth.verificationUriComplete);
+        console.log(`[Kiro Auth] Or visit ${deviceAuth.verificationUri} and enter code: ${deviceAuth.userCode}`);
+
+        return {
+            clientId: regData.clientId,
+            clientSecret: regData.clientSecret,
+            deviceCode: deviceAuth.deviceCode,
+            verificationUri: deviceAuth.verificationUri,
+            verificationUriComplete: deviceAuth.verificationUriComplete,
+            userCode: deviceAuth.userCode,
+            expiresIn: deviceAuth.expiresIn,
+            interval: deviceAuth.interval || 5
+        };
+    }
+
+    /**
      * Start local callback server
      */
     async _startCallbackServer(codeVerifier, expectedState) {
