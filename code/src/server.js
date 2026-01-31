@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, initDatabase } from './db.js';
 import { StrategyFactory, getStrategyManager, ThinkingBlocksParser } from './selection/index.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
@@ -91,7 +91,6 @@ let orchidsStore = null;
 let orchidsLoadBalancer = null;
 let warpStore = null;
 let warpService = null;
-let trialStore = null;
 let siteSettingsStore = null;
 let pricingStore = null;
 let anthropicStore = null;
@@ -1097,177 +1096,6 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
         });
 
         res.json({ success: true, data: settings });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// ============ Trial Application API ============
-
-// Submit trial application (public interface, no login required)
-app.post('/api/trial/apply', async (req, res) => {
-    try {
-        const { xianyuName, email, source, orderScreenshot } = req.body;
-
-        if (!xianyuName || !email) {
-            return res.status(400).json({ success: false, error: 'Xianyu name and email are required' });
-        }
-
-        // Validate email format
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            return res.status(400).json({ success: false, error: 'Invalid email format' });
-        }
-
-        const id = await trialStore.add({
-            xianyuName,
-            email,
-            source: source || null,
-            orderScreenshot: orderScreenshot || null
-        });
-
-        res.json({ success: true, data: { id, message: 'Application submitted successfully, please wait for review' } });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Query application status (public interface, query by email)
-app.get('/api/trial/query', async (req, res) => {
-    try {
-        const { email } = req.query;
-
-        if (!email) {
-            return res.status(400).json({ success: false, error: 'Please provide email address' });
-        }
-
-        const application = await trialStore.getLatestByEmail(email);
-
-        if (!application) {
-            return res.status(404).json({ success: false, error: 'Application record not found' });
-        }
-
-        // Return application info (hide screenshot data to reduce transmission)
-        const result = {
-            id: application.id,
-            xianyuName: application.xianyuName,
-            email: application.email,
-            source: application.source,
-            status: application.status,
-            rejectReason: application.rejectReason,
-            createdAt: application.createdAt
-        };
-
-        // If approved, return API Key info
-        if (application.status === 'approved') {
-            result.apiKey = application.apiKey;
-            result.apiKeyExpiresAt = application.apiKeyExpiresAt;
-            result.costLimit = application.costLimit;
-        }
-
-        res.json({ success: true, data: result });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Get application list (admin interface)
-app.get('/api/trial/admin/list', authMiddleware, async (req, res) => {
-    try {
-        const { status, page, pageSize } = req.query;
-        const result = await trialStore.getAll({ status, page, pageSize });
-        res.json({ success: true, data: result });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Get application statistics (admin interface)
-app.get('/api/trial/admin/stats', authMiddleware, async (req, res) => {
-    try {
-        const stats = await trialStore.getStats();
-        res.json({ success: true, data: stats });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Approve application (admin interface)
-app.post('/api/trial/admin/:id/approve', authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { costLimit = 50, expireHours = 24 } = req.body;
-
-        const application = await trialStore.getById(id);
-        if (!application) {
-            return res.status(404).json({ success: false, error: 'Application does not exist' });
-        }
-
-        if (application.status !== 'pending') {
-            return res.status(400).json({ success: false, error: 'This application has already been processed' });
-        }
-
-        // Generate API Key
-        const { key, hash, prefix } = generateApiKey();
-
-        // Calculate expiration time
-        const expiresAt = new Date(Date.now() + expireHours * 60 * 60 * 1000);
-
-        // Create API Key record (associated with admin user)
-        const keyId = await apiKeyStore.create(req.userId, `Trial-${application.xianyuName}`, key, hash, prefix);
-
-        // Set API Key limits
-        await apiKeyStore.updateLimits(keyId, {
-            totalCostLimit: costLimit,
-            expiresInDays: Math.ceil(expireHours / 24)
-        });
-
-        // Update application status
-        await trialStore.approve(id, req.userId, key, expiresAt, costLimit);
-
-        res.json({
-            success: true,
-            data: {
-                apiKey: key,
-                expiresAt,
-                costLimit,
-                message: 'Approved, API Key generated'
-            }
-        });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Reject application (admin interface)
-app.post('/api/trial/admin/:id/reject', authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { reason } = req.body;
-
-        const application = await trialStore.getById(id);
-        if (!application) {
-            return res.status(404).json({ success: false, error: 'Application does not exist' });
-        }
-
-        if (application.status !== 'pending') {
-            return res.status(400).json({ success: false, error: 'This application has already been processed' });
-        }
-
-        await trialStore.reject(id, req.userId, reason);
-
-        res.json({ success: true, data: { message: 'Application rejected' } });
-    } catch (error) {
-        res.status(500).json({ success: false, error: error.message });
-    }
-});
-
-// Delete application record (admin interface)
-app.delete('/api/trial/admin/:id', authMiddleware, async (req, res) => {
-    try {
-        const { id } = req.params;
-        await trialStore.delete(id);
-        res.json({ success: true, data: { message: 'Deleted successfully' } });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
@@ -5194,7 +5022,6 @@ async function start() {
     orchidsLoadBalancer = await getOrchidsLoadBalancer(orchidsStore);
     warpStore = await WarpCredentialStore.create();
     warpService = new WarpService(warpStore);
-    trialStore = await TrialApplicationStore.create();
     siteSettingsStore = await SiteSettingsStore.create();
     pricingStore = await ModelPricingStore.create();
     anthropicStore = await AnthropicCredentialStore.create();

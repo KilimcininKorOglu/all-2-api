@@ -237,7 +237,6 @@ function navigateTo(page) {
         'error-logs': '/pages/error-logs.html',
         'oauth': '/pages/oauth.html',
         'change-password': '/pages/change-password.html',
-        'trial-admin': '/pages/trial-admin.html',
         'site-settings': '/pages/site-settings.html',
         'pricing': '/pages/pricing.html',
         'dashboard': '/pages/accounts.html',
@@ -339,14 +338,6 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/>
                     </svg>
                     API Keys
-                </a>
-                <a href="#" class="nav-item" data-page="trial-admin">
-                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                        <circle cx="8.5" cy="7" r="4"/>
-                        <polyline points="17 11 19 13 23 9"/>
-                    </svg>
-                    Trial Approval
                 </a>
                 <a href="#" class="nav-item" data-page="usage">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
