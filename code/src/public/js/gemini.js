@@ -24,8 +24,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Bind events
     bindEvents();
 
-    // Don't auto-load usage, switch to manual refresh
-    // loadAllUsage();
+    // Auto-load usage for all credentials (like Anthropic page)
+    loadAllUsage();
 });
 
 // ============ Data Loading ============
@@ -455,6 +455,11 @@ async function submitAddForm() {
             closeAddModal();
             await loadCredentials();
             updateSidebarStats();
+
+            // Auto-fetch quota for the new credential
+            if (result.data?.id) {
+                refreshSingleUsage(result.data.id, false);
+            }
         } else {
             showToast('Add failed: ' + result.error, 'error');
         }
@@ -588,6 +593,9 @@ async function testCredential(id) {
             const modelCount = result.data?.models?.length || 0;
             showToast(`Test successful${modelCount > 0 ? `, supports ${modelCount} models` : ''}`, 'success');
             await loadCredentials();
+
+            // Auto-refresh quota after successful test
+            refreshSingleUsage(id, false);
         } else {
             showToast('Test failed: ' + result.error, 'error');
         }
