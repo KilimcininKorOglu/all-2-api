@@ -4,206 +4,157 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Orchids Account Management - All-2-API</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/common.css">
-    <link rel="stylesheet" href="/css/orchids.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/styles.css">
 </head>
 <body>
     <div class="app-container">
-        <!-- Sidebar - Dynamically loaded -->
         <div id="sidebar-container"></div>
 
-        <!-- Main Content -->
         <main class="main-content">
-            <header class="page-header">
+            <header class="header">
                 <div class="header-left">
-                    <div class="page-icon orchids-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M12 8a4 4 0 0 1 4 4 4 4 0 0 1-4 4 4 4 0 0 1-4-4 4 4 0 0 1 4-4z"/>
-                        </svg>
+                    <div class="page-title-section">
+                        <div class="page-icon orchids">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                                <circle cx="12" cy="12" r="3"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="page-title">Orchids Account Management</h1>
+                            <p class="page-subtitle">Manage your Orchids AI account pool</p>
+                        </div>
                     </div>
-                    <div>
-                        <h1 class="page-title">Orchids Account Management</h1>
-                        <p class="page-subtitle">Manage your Orchids AI account pool</p>
+                </div>
+                <div class="header-center">
+                    <div class="search-box">
+                        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="M21 21l-4.35-4.35"/>
+                        </svg>
+                        <input type="text" id="search-input" placeholder="Search accounts...">
                     </div>
                 </div>
                 <div class="header-right">
-                    <button class="btn btn-warning" id="auto-register-btn" title="Auto Register New Account">
+                    <button class="btn btn-primary" id="add-account-btn">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Account
+                    </button>
+                    <button class="btn btn-secondary" id="batch-import-btn">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        Batch Import
+                    </button>
+                    <button class="btn btn-warning" id="auto-register-btn">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <circle cx="12" cy="12" r="10"/>
                             <path d="M12 6v6l4 2"/>
                         </svg>
                         Auto Register
                     </button>
-                    <button class="btn btn-success" id="refresh-all-btn" title="Refresh All">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                        </svg>
-                        Refresh
-                    </button>
-                    <button class="btn btn-secondary" id="batch-import-btn" title="Batch Import">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                        Import
-                    </button>
-                    <button class="btn btn-secondary" id="export-btn" title="Export Data">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="7 10 12 15 17 10"/>
-                            <line x1="12" y1="15" x2="12" y2="3"/>
-                        </svg>
-                        Export
-                    </button>
-                    <button class="btn btn-primary" id="add-account-btn" title="Add Account">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add
-                    </button>
                 </div>
             </header>
 
-            <!-- Usage Stats Cards (Platform Quota) -->
-            <div class="usage-stats-section" id="usage-stats-section">
-                <div class="section-header">
-                    <h3 class="section-title">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="20" height="20">
-                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+            <!-- Statistics Cards -->
+            <div class="stats-cards" id="stats-cards">
+                <div class="stat-card">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #9c27b0, #e91e63);">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                         </svg>
-                        Platform Quota
-                    </h3>
-                    <button class="btn btn-sm btn-secondary" id="refresh-usage-btn" title="Refresh Usage">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
-                        </svg>
-                        Refresh Usage
-                    </button>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-total-accounts">0</div>
+                        <div class="stat-label">Total Accounts</div>
+                    </div>
                 </div>
-                <div class="usage-cards">
-                    <div class="usage-card usage-card-total">
-                        <div class="usage-card-header">
-                            <div class="usage-icon credits">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <circle cx="12" cy="12" r="10"/>
-                                    <path d="M12 6v12M8 10h8M8 14h8"/>
-                                </svg>
-                            </div>
-                            <div class="usage-info">
-                                <div class="usage-label">Total Quota</div>
-                                <div class="usage-value" id="usage-total-limit">--</div>
-                            </div>
-                        </div>
-                        <div class="usage-progress-wrapper">
-                            <div class="usage-progress">
-                                <div class="usage-progress-bar" id="usage-total-bar" style="width: 0%"></div>
-                            </div>
-                            <div class="usage-progress-text">
-                                <span>Used: <strong id="usage-total-used">--</strong></span>
-                                <span>Remaining: <strong id="usage-total-remaining">--</strong></span>
-                            </div>
-                        </div>
+                <div class="stat-card">
+                    <div class="stat-icon success">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                            <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
                     </div>
-                    <div class="usage-card">
-                        <div class="usage-card-header">
-                            <div class="usage-icon used">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                                </svg>
-                            </div>
-                            <div class="usage-info">
-                                <div class="usage-label">Used</div>
-                                <div class="usage-value" id="usage-used-display">--</div>
-                            </div>
-                        </div>
-                        <div class="usage-percentage" id="usage-percentage">0%</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-active-accounts">0</div>
+                        <div class="stat-label">Active Accounts</div>
                     </div>
-                    <div class="usage-card">
-                        <div class="usage-card-header">
-                            <div class="usage-icon remaining">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                                    <polyline points="22 4 12 14.01 9 11.01"/>
-                                </svg>
-                            </div>
-                            <div class="usage-info">
-                                <div class="usage-label">Remaining Quota</div>
-                                <div class="usage-value" id="usage-remaining-display">--</div>
-                            </div>
-                        </div>
-                        <div class="usage-accounts-info">
-                            <span id="usage-accounts-count">0</span> active accounts
-                        </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon info">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M12 6v12M8 10h8M8 14h8"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-total-quota">-</div>
+                        <div class="stat-label">Total Quota</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon warning">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-used-quota">-</div>
+                        <div class="stat-label">Used Quota</div>
                     </div>
                 </div>
             </div>
 
-
-            <!-- Content Area -->
             <div class="content-area" id="orchids-page">
-                <!-- Toolbar -->
-                <div class="content-toolbar">
-                    <div class="toolbar-left">
-                        <div class="search-box">
-                            <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="11" cy="11" r="8"/>
-                                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+                <div class="content-header">
+                    <div class="content-header-left">
+                        <div class="select-all-wrapper">
+                            <input type="checkbox" class="checkbox-custom" id="select-all">
+                            <label class="select-label" for="select-all">Select All</label>
+                        </div>
+                        <span class="account-count"><strong id="displayed-count">0</strong> accounts</span>
+                    </div>
+                    <div class="content-header-right">
+                        <button class="btn btn-secondary btn-sm" id="refresh-all-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                             </svg>
-                            <input type="text" id="search-input" placeholder="Search accounts...">
-                        </div>
-                    </div>
-                    <div class="toolbar-right">
-                        <div class="view-toggle">
-                            <button class="view-btn active" data-view="grid" title="Grid View">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <rect x="3" y="3" width="7" height="7"/>
-                                    <rect x="14" y="3" width="7" height="7"/>
-                                    <rect x="14" y="14" width="7" height="7"/>
-                                    <rect x="3" y="14" width="7" height="7"/>
-                                </svg>
-                            </button>
-                            <button class="view-btn" data-view="list" title="List View">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <line x1="8" y1="6" x2="21" y2="6"/>
-                                    <line x1="8" y1="12" x2="21" y2="12"/>
-                                    <line x1="8" y1="18" x2="21" y2="18"/>
-                                    <line x1="3" y1="6" x2="3.01" y2="6"/>
-                                    <line x1="3" y1="12" x2="3.01" y2="12"/>
-                                    <line x1="3" y1="18" x2="3.01" y2="18"/>
-                                </svg>
-                            </button>
-                        </div>
+                            Refresh Usage
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="batch-delete-btn" style="display: none;">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Batch Delete
+                        </button>
                     </div>
                 </div>
 
-                <!-- Cards Grid -->
-                <div class="orchids-grid" id="cards-grid">
-                    <!-- Items will be rendered here via JS -->
-                </div>
+                <div class="cards-grid" id="cards-grid"></div>
 
-                <!-- List View -->
-                <div class="orchids-list" id="list-view" style="display: none;">
-                    <!-- Items will be rendered here via JS -->
-                </div>
-
-                <!-- Empty State -->
                 <div class="empty-state" id="empty-state" style="display: none;">
-                    <div class="empty-illustration">
-                        <svg viewBox="0 0 120 120" fill="none">
-                            <circle cx="60" cy="60" r="50" stroke="currentColor" stroke-width="2" opacity="0.2"/>
-                            <circle cx="60" cy="60" r="35" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-                            <circle cx="60" cy="60" r="20" stroke="currentColor" stroke-width="2" opacity="0.4"/>
-                            <path d="M60 40v40M40 60h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </div>
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
+                        <circle cx="12" cy="12" r="3"/>
+                    </svg>
                     <h3 class="empty-title">No Orchids Accounts</h3>
-                    <p class="empty-description">Add your first Orchids account to start using the API service</p>
-                    <button class="btn btn-primary btn-lg" id="empty-add-btn">
+                    <p class="empty-description">Click the button below to add your first Orchids account</p>
+                    <button class="btn btn-primary" id="empty-add-btn">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
@@ -211,36 +162,17 @@
                         Add Account
                     </button>
                 </div>
-
-                <!-- Loading State -->
-                <div class="loading-state" id="loading-state" style="display: none;">
-                    <div class="loading-spinner large"></div>
-                    <p class="loading-text">Loading...</p>
-                </div>
             </div>
         </main>
     </div>
 
     <!-- Add Account Modal -->
     <div class="modal-overlay" id="add-modal">
-        <div class="modal orchids-modal">
+        <div class="modal">
             <div class="modal-header">
-                <div class="modal-header-content">
-                    <div class="modal-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                            <circle cx="8.5" cy="7" r="4"/>
-                            <line x1="20" y1="8" x2="20" y2="14"/>
-                            <line x1="23" y1="11" x2="17" y2="11"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="modal-title">Add Orchids Account</h2>
-                        <p class="modal-subtitle">Enter account information to add new credentials</p>
-                    </div>
-                </div>
+                <h2 class="modal-title">Add Orchids Account</h2>
                 <button class="modal-close" id="modal-close">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
@@ -249,78 +181,43 @@
             <div class="modal-body">
                 <form id="add-account-form">
                     <div class="form-group">
-                        <label class="form-label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-                            </svg>
-                            Client Cookie (__client) <span class="required">*</span>
-                        </label>
-                        <div class="textarea-wrapper">
-                            <textarea class="form-textarea" id="client-jwt" rows="5" placeholder="Just paste the __client cookie value, other information will be fetched automatically..." required></textarea>
-                            <button type="button" class="paste-btn" id="paste-jwt-btn" title="Paste">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/>
-                                    <rect x="8" y="2" width="8" height="4" rx="1" ry="1"/>
-                                </svg>
-                            </button>
+                        <label class="form-label">Client Cookie (__client) <span class="required">*</span></label>
+                        <div class="input-with-button">
+                            <textarea class="form-input" id="client-jwt" rows="4" placeholder="Paste the __client cookie value..." required></textarea>
+                            <button type="button" class="btn btn-secondary btn-sm" id="paste-jwt-btn">Paste</button>
                         </div>
-                        <p class="form-hint">Get the __client value from browser cookies. The system will automatically fetch email, user ID, and other information.</p>
+                        <p class="form-hint">Get the __client value from browser cookies</p>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                                <circle cx="12" cy="7" r="4"/>
-                            </svg>
-                            Account Name <span class="optional">(Optional)</span>
-                        </label>
+                        <label class="form-label">Account Name <span class="optional">(Optional)</span></label>
                         <input type="text" class="form-input" id="account-name" placeholder="Leave empty to use email as name">
-                        <p class="form-hint">Optional. If left empty, the fetched email address will be used.</p>
                     </div>
                     <div class="form-group">
-                        <label class="form-label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                            </svg>
-                            Load Balancing Weight <span class="optional">(Optional)</span>
-                        </label>
-                        <input type="number" class="form-input" id="account-weight" value="1" min="1" placeholder="Used for load balancing, default 1">
-                        <p class="form-hint">Used for load balancing. Higher values increase the selection probability.</p>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="20 6 9 17 4 12"/>
-                            </svg>
-                            Add Account
-                        </button>
+                        <label class="form-label">Weight <span class="optional">(Optional)</span></label>
+                        <input type="number" class="form-input" id="account-weight" value="1" min="1">
+                        <p class="form-hint">Higher values increase the selection probability</p>
                     </div>
                 </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="modal-submit">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Add Account
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Batch Import Modal -->
     <div class="modal-overlay" id="batch-import-modal">
-        <div class="modal orchids-modal modal-lg">
+        <div class="modal modal-lg">
             <div class="modal-header">
-                <div class="modal-header-content">
-                    <div class="modal-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                            <polyline points="17 8 12 3 7 8"/>
-                            <line x1="12" y1="3" x2="12" y2="15"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="modal-title">Batch Import Accounts</h2>
-                        <p class="modal-subtitle">Supports JSON format or text format batch import</p>
-                    </div>
-                </div>
+                <h2 class="modal-title">Batch Import Accounts</h2>
                 <button class="modal-close" id="batch-modal-close">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
@@ -336,7 +233,7 @@
                         <div class="import-panel active" id="json-panel">
                             <div class="form-group">
                                 <label class="form-label">JSON Data</label>
-                                <textarea class="form-textarea code-textarea" id="batch-import-json" rows="10" placeholder='[
+                                <textarea class="form-input" id="batch-import-json" rows="10" placeholder='[
   {"email": "user1@example.com", "clientJwt": "eyJhbGc..."},
   {"email": "user2@example.com", "refreshToken": "eyJhbGc..."}
 ]'></textarea>
@@ -345,115 +242,42 @@
                         <div class="import-panel" id="text-panel">
                             <div class="form-group">
                                 <label class="form-label">Text Data (one account per line)</label>
-                                <textarea class="form-textarea code-textarea" id="batch-import-text" rows="10" placeholder="user1@example.com eyJhbGc...
+                                <textarea class="form-input" id="batch-import-text" rows="10" placeholder="user1@example.com eyJhbGc...
 user2@example.com eyJhbGc..."></textarea>
                             </div>
                         </div>
                     </div>
-                    <div class="import-help">
-                        <div class="help-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            Supported Fields
-                        </div>
-                        <div class="help-tags">
-                            <span class="help-tag">email (optional)</span>
-                            <span class="help-tag">clientJwt (required)</span>
-                            <span class="help-tag">refreshToken (optional)</span>
-                            <span class="help-tag">name (optional)</span>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" id="batch-cancel">Cancel</button>
-                        <button type="submit" class="btn btn-primary">
-                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
-                                <polyline points="17 8 12 3 7 8"/>
-                                <line x1="12" y1="3" x2="12" y2="15"/>
-                            </svg>
-                            Start Import
-                        </button>
-                    </div>
                 </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="batch-cancel">Cancel</button>
+                <button class="btn btn-primary" id="batch-import-submit">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Import
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Detail Modal -->
     <div class="modal-overlay" id="detail-modal">
-        <div class="modal orchids-modal">
+        <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <div class="modal-header-content">
-                    <div class="modal-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-                            <circle cx="12" cy="7" r="4"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="modal-title">Account Details</h2>
-                        <p class="modal-subtitle" id="detail-name">Loading...</p>
-                    </div>
-                </div>
+                <h2 class="modal-title">Account Details</h2>
                 <button class="modal-close" id="detail-modal-close">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
             </div>
-            <div class="modal-body">
-                <div class="detail-grid">
-                    <div class="detail-row">
-                        <span class="detail-label">ID</span>
-                        <span class="detail-value" id="detail-id"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Email</span>
-                        <span class="detail-value" id="detail-email"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Status</span>
-                        <span class="detail-value" id="detail-status"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Weight</span>
-                        <span class="detail-value" id="detail-weight"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Total Requests</span>
-                        <span class="detail-value" id="detail-request-count"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Successful Requests</span>
-                        <span class="detail-value success" id="detail-success-count"></span>
-                    </div>
-                    <div class="detail-row">
-                        <span class="detail-label">Failed Requests</span>
-                        <span class="detail-value error" id="detail-failure-count"></span>
-                    </div>
-                </div>
-                <div class="detail-actions">
-                    <button class="btn btn-secondary" id="detail-edit-weight-btn">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 20h9"/>
-                            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/>
-                        </svg>
-                        Edit Weight
-                    </button>
-                    <button class="btn btn-secondary" id="detail-reset-stats-btn">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.5-4.5M22 12.5a10 10 0 0 1-18.5 4.5"/>
-                        </svg>
-                        Reset Stats
-                    </button>
-                </div>
+            <div class="modal-body" id="detail-modal-body">
+                <!-- Content will be populated by JS -->
             </div>
             <div class="modal-footer">
-                <button class="btn btn-danger" id="detail-delete-btn">Delete Account</button>
+                <button class="btn btn-danger" id="detail-delete-btn">Delete</button>
                 <button class="btn btn-secondary" onclick="closeDetailModal()">Close</button>
                 <button class="btn btn-primary" id="detail-edit-btn">
                     <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -466,112 +290,9 @@ user2@example.com eyJhbGc..."></textarea>
         </div>
     </div>
 
-    <!-- Auto Register Modal -->
-    <div class="modal-overlay" id="register-modal">
-        <div class="modal orchids-modal modal-lg">
-            <div class="modal-header">
-                <div class="modal-header-content">
-                    <div class="modal-icon register-icon">
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2z"/>
-                            <path d="M12 6v6l4 2"/>
-                        </svg>
-                    </div>
-                    <div>
-                        <h2 class="modal-title">Auto Register Account</h2>
-                        <p class="modal-subtitle">Use Selenium to automatically register Orchids accounts</p>
-                    </div>
-                </div>
-                <button class="modal-close" id="register-modal-close">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
-            </div>
-            <div class="modal-body">
-                <!-- Configuration Area -->
-                <div class="register-config" id="register-config">
-                    <div class="form-group">
-                        <label class="form-label">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
-                                <circle cx="9" cy="7" r="4"/>
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                            </svg>
-                            Registration Count
-                        </label>
-                        <input type="number" class="form-input" id="register-count" value="1" min="1" max="50">
-                        <p class="form-hint">Each account registration takes approximately 1-2 minutes</p>
-                    </div>
-                    <div class="register-requirements">
-                        <div class="requirement-title">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"/>
-                                <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/>
-                                <line x1="12" y1="17" x2="12.01" y2="17"/>
-                            </svg>
-                            Prerequisites
-                        </div>
-                        <ul class="requirement-list">
-                            <li>Install Python 3.8+</li>
-                            <li>Install Chrome browser</li>
-                            <li>Install dependencies: <code>pip install undetected-chromedriver selenium requests</code></li>
-                        </ul>
-                    </div>
-                </div>
-                
-                <!-- Progress Area -->
-                <div class="register-progress" id="register-progress" style="display: none;">
-                    <div class="progress-header">
-                        <div class="progress-stats">
-                            <span class="progress-stat">
-                                <span class="stat-label">Progress</span>
-                                <span class="stat-value" id="progress-current">0</span>/<span id="progress-total">0</span>
-                            </span>
-                            <span class="progress-stat success">
-                                <span class="stat-label">Success</span>
-                                <span class="stat-value" id="progress-success">0</span>
-                            </span>
-                            <span class="progress-stat error">
-                                <span class="stat-label">Failed</span>
-                                <span class="stat-value" id="progress-failed">0</span>
-                            </span>
-                        </div>
-                        <div class="progress-status" id="progress-status">Running...</div>
-                    </div>
-                    <div class="progress-bar-container">
-                        <div class="progress-bar" id="progress-bar" style="width: 0%"></div>
-                    </div>
-                    <div class="register-logs" id="register-logs">
-                        <!-- Logs will be dynamically added -->
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" id="register-modal-cancel">Close</button>
-                <button class="btn btn-danger" id="register-cancel-btn" style="display: none;">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <circle cx="12" cy="12" r="10"/>
-                        <line x1="15" y1="9" x2="9" y2="15"/>
-                        <line x1="9" y1="9" x2="15" y2="15"/>
-                    </svg>
-                    Cancel Task
-                </button>
-                <button class="btn btn-primary" id="register-start-btn">
-                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="5 3 19 12 5 21 5 3"/>
-                    </svg>
-                    Start Registration
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- Edit Modal -->
     <div class="modal-overlay" id="edit-modal">
-        <div class="modal orchids-modal">
+        <div class="modal">
             <div class="modal-header">
                 <h2 class="modal-title">Edit Orchids Account</h2>
                 <button class="modal-close" id="edit-modal-close">
@@ -612,7 +333,88 @@ user2@example.com eyJhbGc..."></textarea>
         </div>
     </div>
 
-    <!-- Toast Container -->
+    <!-- Auto Register Modal -->
+    <div class="modal-overlay" id="register-modal">
+        <div class="modal modal-lg">
+            <div class="modal-header">
+                <h2 class="modal-title">Auto Register Account</h2>
+                <button class="modal-close" id="register-modal-close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="register-config" id="register-config">
+                    <div class="form-group">
+                        <label class="form-label">Registration Count</label>
+                        <input type="number" class="form-input" id="register-count" value="1" min="1" max="50">
+                        <p class="form-hint">Each account registration takes approximately 1-2 minutes</p>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Prerequisites</label>
+                        <ul style="margin: 0; padding-left: 20px; color: var(--text-secondary);">
+                            <li>Install Python 3.8+</li>
+                            <li>Install Chrome browser</li>
+                            <li>Install dependencies: <code>pip install undetected-chromedriver selenium requests</code></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="register-progress" id="register-progress" style="display: none;">
+                    <div class="form-group">
+                        <label class="form-label">Progress: <span id="progress-current">0</span>/<span id="progress-total">0</span></label>
+                        <div style="display: flex; gap: 16px; margin-bottom: 8px;">
+                            <span style="color: var(--success-color);">Success: <span id="progress-success">0</span></span>
+                            <span style="color: var(--error-color);">Failed: <span id="progress-failed">0</span></span>
+                        </div>
+                        <div class="progress-bar-container" style="height: 8px; background: var(--bg-tertiary); border-radius: 4px;">
+                            <div class="progress-bar" id="progress-bar" style="width: 0%; height: 100%; background: var(--primary-color); border-radius: 4px; transition: width 0.3s;"></div>
+                        </div>
+                    </div>
+                    <div class="register-logs" id="register-logs" style="max-height: 200px; overflow-y: auto; background: var(--bg-tertiary); padding: 12px; border-radius: 8px; font-family: monospace; font-size: 12px;"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="register-modal-cancel">Close</button>
+                <button class="btn btn-danger" id="register-cancel-btn" style="display: none;">Cancel Task</button>
+                <button class="btn btn-primary" id="register-start-btn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="5 3 19 12 5 21 5 3"/>
+                    </svg>
+                    Start Registration
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="details">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            View Details
+        </div>
+        <div class="context-menu-item" data-action="toggle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            Toggle Active
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" data-action="delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Delete
+        </div>
+    </div>
+
     <div class="toast-container" id="toast-container"></div>
 
     <script src="/js/common.js"></script>

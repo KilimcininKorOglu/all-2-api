@@ -57,9 +57,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function initDOMReferences() {
     DOM.cardsGrid = document.getElementById('cards-grid');
-    DOM.listView = document.getElementById('list-view');
     DOM.emptyState = document.getElementById('empty-state');
-    DOM.loadingState = document.getElementById('loading-state');
 
     DOM.addModal = document.getElementById('add-modal');
     DOM.batchImportModal = document.getElementById('batch-import-modal');
@@ -84,33 +82,13 @@ function setupEventListeners() {
     document.getElementById('add-account-btn')?.addEventListener('click', openAddModal);
     document.getElementById('batch-import-btn')?.addEventListener('click', openBatchImportModal);
     document.getElementById('empty-add-btn')?.addEventListener('click', openAddModal);
-    document.getElementById('refresh-all-btn')?.addEventListener('click', handleRefreshAll);
-    document.getElementById('export-btn')?.addEventListener('click', handleExport);
+    document.getElementById('refresh-all-btn')?.addEventListener('click', handleRefreshUsage);
     document.getElementById('auto-register-btn')?.addEventListener('click', openRegisterModal);
-    document.getElementById('refresh-usage-btn')?.addEventListener('click', handleRefreshUsage);
 
     // Search
     DOM.searchInput?.addEventListener('input', (e) => {
         OrchidsState.searchQuery = e.target.value.trim().toLowerCase();
         renderCredentials();
-    });
-
-    // View Toggle
-    document.querySelectorAll('.view-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            document.querySelectorAll('.view-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            const view = btn.dataset.view;
-            OrchidsState.currentView = view;
-            
-            if (view === 'grid') {
-                DOM.cardsGrid.style.display = 'grid';
-                DOM.listView.style.display = 'none';
-            } else {
-                DOM.cardsGrid.style.display = 'none';
-                DOM.listView.style.display = 'block';
-            }
-        });
     });
 
     // Modals
@@ -202,32 +180,26 @@ function renderCredentials() {
     const query = OrchidsState.searchQuery;
     const filtered = OrchidsState.credentials.filter(cred => {
         if (!query) return true;
-        return (cred.name && cred.name.toLowerCase().includes(query)) || 
+        return (cred.name && cred.name.toLowerCase().includes(query)) ||
                (cred.email && cred.email.toLowerCase().includes(query));
     });
+
+    // Update stats
+    const total = OrchidsState.credentials.length;
+    const active = OrchidsState.credentials.filter(c => c.isActive).length;
+    document.getElementById('stat-total-accounts').textContent = total;
+    document.getElementById('stat-active-accounts').textContent = active;
+    document.getElementById('displayed-count').textContent = filtered.length;
 
     if (filtered.length === 0) {
         DOM.emptyState.style.display = 'block';
         DOM.cardsGrid.style.display = 'none';
-        DOM.listView.style.display = 'none';
         return;
     }
 
     DOM.emptyState.style.display = 'none';
-    
-    // Grid View
+    DOM.cardsGrid.style.display = 'grid';
     DOM.cardsGrid.innerHTML = filtered.map(createCardHTML).join('');
-    
-    // List View
-    DOM.listView.innerHTML = filtered.map(createListItemHTML).join('');
-
-    if (OrchidsState.currentView === 'grid') {
-        DOM.cardsGrid.style.display = 'grid';
-        DOM.listView.style.display = 'none';
-    } else {
-        DOM.cardsGrid.style.display = 'none';
-        DOM.listView.style.display = 'block';
-    }
 }
 
 function createCardHTML(cred) {
@@ -315,10 +287,6 @@ function createCardHTML(cred) {
     `;
 }
 
-function createListItemHTML(cred) {
-    return createCardHTML(cred); 
-}
-
 // Helper function: open chat
 function openChat(id) {
     window.location.href = `/pages/chat.html?type=orchids&id=${id}`;
@@ -404,21 +372,57 @@ function openDetailModal(id) {
 
     OrchidsState.detailTarget = cred;
 
-    document.getElementById('detail-id').textContent = cred.id;
-    document.getElementById('detail-name').textContent = cred.name;
-    document.getElementById('detail-email').textContent = cred.email || '-';
-    document.getElementById('detail-weight').textContent = cred.weight || 1;
-    document.getElementById('detail-request-count').textContent = cred.requestCount || 0;
-    document.getElementById('detail-success-count').textContent = cred.successCount || 0;
-    document.getElementById('detail-failure-count').textContent = cred.failureCount || 0;
-    
     const isHealthy = OrchidsState.healthStatus[cred.id] !== false;
     const statusText = !cred.isActive ? 'Disabled' : (isHealthy ? 'Normal' : 'Error');
-    const statusClass = !cred.isActive ? 'disabled' : (isHealthy ? 'success' : 'error');
-    
-    const statusEl = document.getElementById('detail-status');
-    statusEl.textContent = statusText;
-    statusEl.className = `detail-value ${statusClass}`;
+    const statusClass = !cred.isActive ? 'warning' : (isHealthy ? 'success' : 'error');
+
+    const usageInfo = OrchidsState.usageData?.accounts?.find(a => a.id === cred.id);
+    const usage = usageInfo?.usage || { used: 0, limit: 150000, percentage: 0 };
+
+    document.getElementById('detail-modal-body').innerHTML = `
+        <div class="detail-grid">
+            <div class="detail-row">
+                <span class="detail-label">ID</span>
+                <span class="detail-value">${cred.id}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value">${cred.name || '-'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">${cred.email || '-'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value ${statusClass}">${statusText}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Weight</span>
+                <span class="detail-value">${cred.weight || 1}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Usage</span>
+                <span class="detail-value">${formatCredits(usage.used)} / ${formatCredits(usage.limit)} (${usage.percentage}%)</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Total Requests</span>
+                <span class="detail-value">${cred.requestCount || 0}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Success</span>
+                <span class="detail-value success">${cred.successCount || 0}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Failed</span>
+                <span class="detail-value error">${cred.failureCount || 0}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Created At</span>
+                <span class="detail-value">${cred.createdAt ? new Date(cred.createdAt).toLocaleString() : '-'}</span>
+            </div>
+        </div>
+    `;
 
     DOM.detailModal.classList.add('active');
 }
@@ -670,32 +674,12 @@ function updateUsageDisplay() {
 
     const { totalUsed, totalLimit, totalRemaining, totalPercentage, activeAccounts } = data.summary;
 
-    // Update display
-    const totalLimitEl = document.getElementById('usage-total-limit');
-    const totalUsedEl = document.getElementById('usage-total-used');
-    const totalRemainingEl = document.getElementById('usage-total-remaining');
-    const usedDisplayEl = document.getElementById('usage-used-display');
-    const remainingDisplayEl = document.getElementById('usage-remaining-display');
-    const percentageEl = document.getElementById('usage-percentage');
-    const progressBarEl = document.getElementById('usage-total-bar');
-    const accountsCountEl = document.getElementById('usage-accounts-count');
+    // Update stat cards
+    const totalQuotaEl = document.getElementById('stat-total-quota');
+    const usedQuotaEl = document.getElementById('stat-used-quota');
 
-    if (totalLimitEl) totalLimitEl.textContent = formatCredits(totalLimit);
-    if (totalUsedEl) totalUsedEl.textContent = formatCredits(totalUsed);
-    if (totalRemainingEl) totalRemainingEl.textContent = formatCredits(totalRemaining);
-    if (usedDisplayEl) usedDisplayEl.textContent = formatCredits(totalUsed);
-    if (remainingDisplayEl) remainingDisplayEl.textContent = formatCredits(totalRemaining);
-    if (percentageEl) {
-        percentageEl.textContent = `${totalPercentage}%`;
-        percentageEl.className = 'usage-percentage' + 
-            (totalPercentage >= 90 ? ' danger' : (totalPercentage >= 70 ? ' warning' : ''));
-    }
-    if (progressBarEl) {
-        progressBarEl.style.width = `${Math.min(totalPercentage, 100)}%`;
-        progressBarEl.className = 'usage-progress-bar' + 
-            (totalPercentage >= 90 ? ' danger' : (totalPercentage >= 70 ? ' warning' : ''));
-    }
-    if (accountsCountEl) accountsCountEl.textContent = activeAccounts || 0;
+    if (totalQuotaEl) totalQuotaEl.textContent = formatCredits(totalLimit);
+    if (usedQuotaEl) usedQuotaEl.textContent = formatCredits(totalUsed);
 }
 
 function formatCredits(num) {
@@ -709,7 +693,7 @@ function formatCredits(num) {
 }
 
 async function handleRefreshUsage() {
-    const btn = document.getElementById('refresh-usage-btn');
+    const btn = document.getElementById('refresh-all-btn');
     if (btn) {
         btn.disabled = true;
         btn.innerHTML = `
@@ -767,7 +751,8 @@ async function handleRefreshUsage() {
             btn.disabled = false;
             btn.innerHTML = `
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
+                    <polyline points="23 4 23 10 17 10"/>
+                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                 </svg>
                 Refresh Usage
             `;
