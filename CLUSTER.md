@@ -22,10 +22,10 @@ Create a `.env` file:
 BALANCER_PORT=13003
 
 # MySQL Database Configuration
-MYSQL_HOST=127.0.0.1
-MYSQL_PORT=13306
+MYSQL_HOST=your-mysql-host
+MYSQL_PORT=3306
 MYSQL_USER=root
-MYSQL_PASSWORD=
+MYSQL_PASSWORD=your-password
 MYSQL_DATABASE=kiro_api
 ```
 
@@ -110,12 +110,12 @@ curl http://localhost:13003/api/client-ip
 
 | File                         | Description              |
 |------------------------------|--------------------------|
-| `docker-compose.cluster.yml` | Fixed 5 instances config |
-| `docker-compose.scale.yml`   | Dynamic scaling config   |
-| `src/balancer.js`            | Load balancer service    |
-| `src/cluster.js`             | Cluster startup script   |
-| `src/public/status.html`     | Status monitoring page   |
-| `.env`                       | Environment variables    |
+| `code/docker-compose.cluster.yml` | Fixed 5 instances config |
+| `code/docker-compose.scale.yml`   | Dynamic scaling config   |
+| `code/src/cluster/balancer.js`    | Load balancer service    |
+| `code/src/cluster/cluster.js`     | Cluster startup script   |
+| `code/src/public/status.html`     | Status monitoring page   |
+| `code/.env`                       | Environment variables    |
 
 ## Environment Variables
 
