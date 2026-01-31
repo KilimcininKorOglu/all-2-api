@@ -5,7 +5,6 @@ A powerful API proxy service that provides free access to Claude/Gemini top-tier
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Node.js](https://img.shields.io/badge/Node.js-18+-green.svg)](https://nodejs.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-blue.svg)](https://www.docker.com/)
-[![GitHub stars](https://img.shields.io/github/stars/CaiGaoQing/kiro-api-client?style=social)](https://github.com/CaiGaoQing/kiro-api-client)
 
 ---
 
