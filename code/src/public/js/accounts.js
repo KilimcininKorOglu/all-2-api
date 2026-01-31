@@ -446,8 +446,8 @@ async function handleContextAction(action) {
             window.location.href = '/pages/chat.html?account=' + id;
             break;
         case 'details':
-            window.location.href = '/pages/account-detail.html?id=' + id;
-            break;
+            showCredentialDetail(id);
+            return; // Don't reload credentials for modal
     }
     await loadCredentials();
     hideContextMenu();
@@ -747,6 +747,77 @@ function openBatchImportModal() {
 
 function closeBatchImportModal() {
     batchImportModal.classList.remove('active');
+}
+
+// Detail Modal
+let currentDetailId = null;
+
+function showCredentialDetail(id) {
+    const cred = credentials.find(function(c) { return c.id === id; });
+    if (!cred) return;
+
+    currentDetailId = id;
+    const body = document.getElementById('detail-modal-body');
+    const usage = cred.usageData;
+
+    // Format usage info
+    let usageHtml = '<span class="detail-value">No data</span>';
+    if (usage && usage.usageBreakdownList && usage.usageBreakdownList.length > 0) {
+        const breakdown = usage.usageBreakdownList[0];
+        let usedCount = 0;
+        let totalCount = 0;
+
+        if (breakdown.freeTrialInfo && breakdown.freeTrialInfo.freeTrialStatus === 'ACTIVE') {
+            usedCount = breakdown.freeTrialInfo.currentUsageWithPrecision || breakdown.freeTrialInfo.currentUsage || 0;
+            totalCount = breakdown.freeTrialInfo.usageLimitWithPrecision || breakdown.freeTrialInfo.usageLimit || 500;
+        } else {
+            usedCount = breakdown.currentUsageWithPrecision || breakdown.currentUsage || 0;
+            totalCount = breakdown.usageLimitWithPrecision || breakdown.usageLimit || 50;
+        }
+
+        const percent = totalCount > 0 ? Math.round((usedCount / totalCount) * 100) : 0;
+        const statusClass = percent > 80 ? 'danger' : percent > 50 ? 'warning' : 'success';
+        usageHtml = '<span class="detail-value ' + statusClass + '">' + usedCount.toFixed(2) + ' / ' + totalCount + ' (' + percent + '%)</span>';
+    }
+
+    // Format subscription info
+    let subscriptionHtml = '<span class="detail-value">-</span>';
+    if (usage && usage.subscriptionInfo) {
+        subscriptionHtml = '<span class="detail-value">' + (usage.subscriptionInfo.subscriptionTitle || '-') + '</span>';
+    }
+
+    body.innerHTML = '<div class="detail-grid">' +
+        '<div class="detail-row"><span class="detail-label">ID</span><span class="detail-value">' + cred.id + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Name</span><span class="detail-value">' + (cred.name || cred.email || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Email</span><span class="detail-value">' + (usage && usage.userInfo ? usage.userInfo.email || '-' : '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Auth Method</span><span class="detail-value">' + (cred.authMethod || 'social') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Region</span><span class="detail-value">' + (cred.region || 'us-east-1') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Provider</span><span class="detail-value">' + (cred.provider || '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Status</span><span class="detail-value">' + (cred.isActive ? '<span class="status-badge success">Active</span>' : '<span class="status-badge">Inactive</span>') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Subscription</span>' + subscriptionHtml + '</div>' +
+        '<div class="detail-row"><span class="detail-label">Usage</span>' + usageHtml + '</div>' +
+        '<div class="detail-row"><span class="detail-label">Token Expires</span><span class="detail-value">' + formatExpireDate(cred.expiresAt) + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Access Token</span><span class="detail-value monospace">' + (cred.accessToken ? '***' + cred.accessToken.slice(-8) : '-') + '</span></div>' +
+        '<div class="detail-row"><span class="detail-label">Created At</span><span class="detail-value">' + formatDateTime(cred.createdAt) + '</span></div>' +
+        '</div>';
+
+    // Setup refresh button
+    document.getElementById('detail-refresh-btn').onclick = function() {
+        refreshSingleToken(currentDetailId);
+        closeDetailModal();
+    };
+
+    document.getElementById('detail-modal').classList.add('active');
+}
+
+function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('active');
+    currentDetailId = null;
+}
+
+function formatDateTime(dateStr) {
+    if (!dateStr) return '-';
+    return new Date(dateStr).toLocaleString();
 }
 
 async function handleBatchImport() {
