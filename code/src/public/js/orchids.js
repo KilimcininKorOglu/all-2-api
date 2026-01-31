@@ -128,6 +128,11 @@ function setupEventListeners() {
     document.getElementById('detail-edit-weight-btn')?.addEventListener('click', handleEditWeight);
     document.getElementById('detail-reset-stats-btn')?.addEventListener('click', handleResetStats);
 
+    // Edit Modal
+    document.getElementById('edit-modal-close')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-cancel')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-submit')?.addEventListener('click', submitEditForm);
+
     // Register Modal
     document.getElementById('register-modal-close')?.addEventListener('click', closeRegisterModal);
     document.getElementById('register-modal-cancel')?.addEventListener('click', closeRegisterModal);
@@ -140,6 +145,7 @@ function setupEventListeners() {
             if (e.target.id === 'add-modal') closeAddModal();
             if (e.target.id === 'batch-import-modal') closeBatchImportModal();
             if (e.target.id === 'detail-modal') closeDetailModal();
+            if (e.target.id === 'edit-modal') closeEditModal();
             if (e.target.id === 'register-modal' && !OrchidsState.registerTaskId) closeRegisterModal();
         }
     });
@@ -472,33 +478,56 @@ async function handleDeleteAccount() {
     }
 }
 
-async function handleEditAccount() {
+function handleEditAccount() {
     if (!OrchidsState.detailTarget) return;
-    const cred = OrchidsState.detailTarget;
+    closeDetailModal();
+    openEditModal(OrchidsState.detailTarget);
+}
 
-    const newName = prompt(`Enter new name:`, cred.name || '');
-    if (newName === null) return;
+function openEditModal(cred) {
+    document.getElementById('edit-account-id').value = cred.id;
+    document.getElementById('edit-account-name').value = cred.name || '';
+    document.getElementById('edit-account-weight').value = cred.weight || 1;
+    document.getElementById('edit-is-active').checked = cred.isActive;
 
-    const newWeight = prompt(`Enter new weight:`, cred.weight || 1);
-    if (newWeight === null) return;
+    document.getElementById('edit-modal').classList.add('active');
+}
 
-    const weight = parseInt(newWeight);
-    if (isNaN(weight) || weight < 1) return showToast('Invalid weight', 'error');
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('active');
+}
+
+async function submitEditForm() {
+    const id = parseInt(document.getElementById('edit-account-id').value);
+    const name = document.getElementById('edit-account-name').value.trim();
+    const weight = parseInt(document.getElementById('edit-account-weight').value) || 1;
+    const isActive = document.getElementById('edit-is-active').checked;
+
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
 
     try {
-        await fetch(`/api/orchids/credentials/${cred.id}`, {
+        const response = await fetch(`/api/orchids/credentials/${id}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${localStorage.getItem('authToken')}`
             },
-            body: JSON.stringify({ name: newName, weight })
+            body: JSON.stringify({ name, weight, isActive })
         });
-        showToast('Account updated successfully', 'success');
-        closeDetailModal();
-        await loadCredentials();
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('Account updated successfully', 'success');
+            closeEditModal();
+            await loadCredentials();
+        } else {
+            showToast('Update failed: ' + result.error, 'error');
+        }
     } catch (error) {
-        showToast(error.message, 'error');
+        showToast('Update failed: ' + error.message, 'error');
     }
 }
 

@@ -265,6 +265,14 @@ function setupEventListeners() {
     document.getElementById('import-modal-cancel')?.addEventListener('click', hideImportModal);
     document.getElementById('import-modal-submit')?.addEventListener('click', submitImportForm);
 
+    // Edit modal
+    document.getElementById('edit-modal-close')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-cancel')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-submit')?.addEventListener('click', submitEditForm);
+    document.getElementById('edit-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'edit-modal') closeEditModal();
+    });
+
     // Select all
     document.getElementById('select-all')?.addEventListener('change', (e) => {
         const checkboxes = document.querySelectorAll('.card-checkbox');
@@ -753,31 +761,64 @@ function closeDetailModal() {
     currentDetailId = null;
 }
 
-// Show edit modal
-function showEditModal(id) {
+// Open edit modal
+function openEditModal(id) {
     const credential = credentials.find(c => c.id === id);
     if (!credential) return;
 
-    currentEditId = id;
-    document.getElementById('add-modal').classList.add('active');
-    document.getElementById('account-name').value = credential.name;
-    document.getElementById('project-id').value = credential.projectId || '';
-    document.getElementById('client-email').value = credential.clientEmail || '';
-    document.getElementById('private-key').value = '';
-    document.getElementById('private-key').placeholder = 'Leave empty to keep unchanged';
-    document.getElementById('region').value = credential.region || 'global';
+    document.getElementById('edit-account-id').value = credential.id;
+    document.getElementById('edit-account-name').value = credential.name || '';
+    document.getElementById('edit-project-id').value = credential.projectId || '';
+    document.getElementById('edit-account-region').value = credential.region || 'us-central1';
+    document.getElementById('edit-is-active').checked = credential.isActive;
 
-    // Modify modal title and button
-    const modalTitle = document.querySelector('#add-modal .modal-title');
-    if (modalTitle) modalTitle.textContent = 'Edit Vertex AI Account';
+    document.getElementById('edit-modal').classList.add('active');
+}
 
-    const submitBtn = document.getElementById('modal-submit');
-    submitBtn.innerHTML = `
-        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <polyline points="20 6 9 17 4 12"/>
-        </svg>
-        Save Changes
-    `;
+// Close edit modal
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('active');
+}
+
+// Submit edit form
+async function submitEditForm() {
+    const id = parseInt(document.getElementById('edit-account-id').value);
+    const name = document.getElementById('edit-account-name').value.trim();
+    const projectId = document.getElementById('edit-project-id').value.trim();
+    const region = document.getElementById('edit-account-region').value;
+    const isActive = document.getElementById('edit-is-active').checked;
+
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/vertex/credentials/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + authToken
+            },
+            body: JSON.stringify({ name, projectId, region, isActive })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('Account updated successfully', 'success');
+            closeEditModal();
+            await loadCredentials();
+        } else {
+            showToast('Update failed: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Update failed: ' + error.message, 'error');
+    }
+}
+
+// Show edit modal (legacy - redirects to new edit modal)
+function showEditModal(id) {
+    openEditModal(id);
 }
 
 // Reset add modal

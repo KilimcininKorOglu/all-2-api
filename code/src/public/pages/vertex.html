@@ -808,6 +808,60 @@
         </div>
     </div>
 
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Vertex Account</h2>
+                <button class="modal-close" id="edit-modal-close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <form id="edit-account-form">
+                    <input type="hidden" id="edit-account-id">
+                    <div class="form-group">
+                        <label class="form-label">Name <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="edit-account-name" placeholder="Account name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Project ID</label>
+                        <input type="text" class="form-input" id="edit-project-id" placeholder="my-gcp-project">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Region</label>
+                        <select class="form-input" id="edit-account-region">
+                            <option value="us-central1">US Central (Iowa)</option>
+                            <option value="us-east4">US East (Virginia)</option>
+                            <option value="us-west1">US West (Oregon)</option>
+                            <option value="europe-west1">Europe West (Belgium)</option>
+                            <option value="europe-west4">Europe West (Netherlands)</option>
+                            <option value="asia-northeast1">Asia (Tokyo)</option>
+                            <option value="asia-southeast1">Asia (Singapore)</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="edit-is-active"> Active
+                        </label>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="edit-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="edit-modal-submit">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Save Changes
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="toast-container" id="toast-container"></div>
 
     <script src="/js/common.js"></script>

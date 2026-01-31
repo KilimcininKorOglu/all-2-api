@@ -365,6 +365,61 @@ function closeDetailModal() {
     currentDetailId = null;
 }
 
+// Open edit modal
+function openEditModal(id) {
+    const cred = credentials.find(c => c.id === id);
+    if (!cred) return;
+
+    document.getElementById('edit-account-id').value = cred.id;
+    document.getElementById('edit-account-name').value = cred.name || '';
+    document.getElementById('edit-account-email').value = cred.email || '';
+    document.getElementById('edit-account-weight').value = cred.weight || 1;
+    document.getElementById('edit-is-active').checked = cred.isActive;
+
+    document.getElementById('edit-modal').classList.add('active');
+}
+
+// Close edit modal
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('active');
+}
+
+// Submit edit form
+async function submitEditForm() {
+    const id = parseInt(document.getElementById('edit-account-id').value);
+    const name = document.getElementById('edit-account-name').value.trim();
+    const email = document.getElementById('edit-account-email').value.trim();
+    const weight = parseInt(document.getElementById('edit-account-weight').value) || 1;
+    const isActive = document.getElementById('edit-is-active').checked;
+
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/api/gemini/credentials/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + authToken
+            },
+            body: JSON.stringify({ name, email, weight, isActive })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('Account updated successfully', 'success');
+            closeEditModal();
+            await loadCredentials();
+        } else {
+            showToast('Update failed: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Update failed: ' + error.message, 'error');
+    }
+}
+
 // Format date (short format)
 function formatDateShort(dateStr) {
     if (!dateStr) return '-';
@@ -401,6 +456,14 @@ function bindEvents() {
     document.getElementById('detail-modal-close')?.addEventListener('click', closeDetailModal);
     document.getElementById('detail-modal-close-btn')?.addEventListener('click', closeDetailModal);
 
+    // Edit modal
+    document.getElementById('edit-modal-close')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-cancel')?.addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-submit')?.addEventListener('click', submitEditForm);
+    document.getElementById('edit-modal')?.addEventListener('click', (e) => {
+        if (e.target.id === 'edit-modal') closeEditModal();
+    });
+
     // Batch refresh
     document.getElementById('refresh-all-btn').addEventListener('click', refreshAllTokens);
 
@@ -428,6 +491,7 @@ function bindEvents() {
             closeAddModal();
             closeBatchImportModal();
             closeDetailModal();
+            closeEditModal();
         }
     });
 }
