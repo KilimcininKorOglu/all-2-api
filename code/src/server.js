@@ -3219,12 +3219,28 @@ app.post('/api/oauth/builder-id/start', async (req, res) => {
 
         // Create success callback to save to database
         const onSuccess = saveToDatabase ? async (credentials) => {
-            const credName = name || generateCredentialName('BuilderID');
+            // Try to fetch user info to get email for credential name
+            let finalName = name || generateCredentialName('BuilderID');
+            let usageData = null;
+            try {
+                const usageResult = await KiroAPI.getUsageLimits(credentials);
+                if (usageResult.success && usageResult.data) {
+                    usageData = usageResult.data;
+                    // Use email as credential name if not provided by user
+                    if (!name && usageData.userInfo?.email) {
+                        finalName = usageData.userInfo.email;
+                    }
+                }
+            } catch (usageError) {
+                console.warn(`[Builder ID OAuth] Failed to fetch user info: ${usageError.message}`);
+            }
+
             credentialId = await store.add({
-                name: credName,
-                ...credentials
+                name: finalName,
+                ...credentials,
+                usageData
             });
-            // console.log(`[OAuth] Credential saved to database, ID: ${credentialId}, Name: ${credName}`);
+            console.log(`[Builder ID OAuth] Credential saved to database, ID: ${credentialId}, Name: ${finalName}`);
         } : null;
 
         const auth = new KiroAuth({
@@ -3353,13 +3369,30 @@ async function pollIdCToken(sessionId, auth, authData, credName) {
     try {
         const credentials = await auth.pollIdCToken(authData);
 
+        // Try to fetch user info to get email for credential name
+        let finalName = credName;
+        let usageData = null;
+        try {
+            const usageResult = await KiroAPI.getUsageLimits(credentials);
+            if (usageResult.success && usageResult.data) {
+                usageData = usageResult.data;
+                // Use email as credential name if available
+                if (usageData.userInfo?.email) {
+                    finalName = usageData.userInfo.email;
+                }
+            }
+        } catch (usageError) {
+            console.warn(`[IdC OAuth] Failed to fetch user info: ${usageError.message}`);
+        }
+
         // Save credential to database
         const credentialId = await store.add({
-            name: credName,
-            ...credentials
+            name: finalName,
+            ...credentials,
+            usageData  // Include usage data if fetched
         });
 
-        console.log(`[IdC OAuth] Credential saved to database, ID: ${credentialId}, Name: ${credName}`);
+        console.log(`[IdC OAuth] Credential saved to database, ID: ${credentialId}, Name: ${finalName}`);
 
         // Update session
         const session = activeOAuthSessions.get(sessionId);

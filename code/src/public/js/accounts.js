@@ -593,6 +593,9 @@ function createCardHTML(cred) {
     const statusClass = cred.status === 'error' ? 'error' : cred.status === 'warning' ? 'warning' : 'normal';
     const statusText = statusClass === 'normal' ? 'Normal' : statusClass === 'warning' ? 'Warning' : 'Error';
 
+    // Get subscription title from usage data
+    const subscriptionTitle = cred.usageData?.subscriptionInfo?.subscriptionTitle || '';
+
     // Truncate email display (keep prefix and domain)
     const truncateEmail = function(email, maxLen) {
         if (email.length <= maxLen) return email;
@@ -612,6 +615,9 @@ function createCardHTML(cred) {
     let html = '<div class="account-card' + (isSelected ? ' selected' : '') + '" data-id="' + cred.id + '">';
     html += '<div class="card-status">';
     html += '<span class="status-badge ' + statusClass + '">' + statusText + '</span>';
+    if (subscriptionTitle) {
+        html += '<span class="subscription-badge">' + subscriptionTitle + '</span>';
+    }
     html += '</div>';
 
     html += '<div class="card-header">';

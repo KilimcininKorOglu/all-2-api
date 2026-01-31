@@ -660,6 +660,18 @@ body {
 .status-badge.warning { background: var(--accent-warning-bg); color: var(--accent-warning); }
 .status-badge.error { background: var(--accent-danger-bg); color: var(--accent-danger); }
 
+.subscription-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: linear-gradient(135deg, var(--accent-purple), var(--accent-primary));
+    color: var(--text-primary);
+    margin-left: 6px;
+}
+
 .active-indicator {
     display: flex;
     align-items: center;

@@ -606,8 +606,8 @@ export class CredentialStore {
 
     async add(credential) {
         const [result] = await this.db.execute(`
-            INSERT INTO credentials (name, access_token, refresh_token, profile_arn, client_id, client_secret, auth_method, provider, region, sso_start_url, expires_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO credentials (name, access_token, refresh_token, profile_arn, client_id, client_secret, auth_method, provider, region, sso_start_url, expires_at, usage_data, usage_updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             credential.name,
             credential.accessToken,
@@ -619,7 +619,9 @@ export class CredentialStore {
             credential.provider || 'Google',
             credential.region || 'us-east-1',
             credential.ssoStartUrl || null,
-            credential.expiresAt || null
+            credential.expiresAt || null,
+            credential.usageData ? JSON.stringify(credential.usageData) : null,
+            credential.usageData ? new Date() : null
         ]);
         return result.insertId;
     }
