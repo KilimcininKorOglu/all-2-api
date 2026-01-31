@@ -3335,6 +3335,7 @@ app.post('/api/oauth/idc/start', async (req, res) => {
                 sessionId,
                 verificationUri: authData.verificationUri,
                 verificationUriComplete: authData.verificationUriComplete,
+                authUrl: authData.verificationUriComplete,  // Alias for backwards compatibility
                 userCode: authData.userCode,
                 expiresIn: authData.expiresIn
             }
@@ -3617,9 +3618,11 @@ app.get('/api/oauth/session/:sessionId', (req, res) => {
         return res.status(404).json({ success: false, error: 'Session does not exist or has expired' });
     }
 
-    const credPath = session.auth.getLastCredentialsPath();
-    const credentials = session.auth.getLastCredentials();
-    const credentialId = session.getCredentialId ? session.getCredentialId() : null;
+    const credPath = session.auth?.getLastCredentialsPath?.() || null;
+    const credentials = session.auth?.getLastCredentials?.() || null;
+    // Check both session.completed flag and credentials for completion status
+    const isCompleted = session.completed || !!credentials;
+    const credentialId = session.credentialId || (session.getCredentialId ? session.getCredentialId() : null);
 
     res.json({
         success: true,
@@ -3628,7 +3631,7 @@ app.get('/api/oauth/session/:sessionId', (req, res) => {
             saveToConfigs: session.saveToConfigs,
             saveToDatabase: session.saveToDatabase,
             startTime: session.startTime,
-            completed: !!credentials,
+            completed: isCompleted,
             credentialsPath: credPath,
             credentialId: credentialId
         }
