@@ -1,59 +1,59 @@
 /**
- * Kiro API 测试脚本
+ * Kiro API Test Script
  */
 import { KiroClient } from './kiro/client.js';
 import { CredentialStore, initDatabase } from './db.js';
 
 async function main() {
-    console.log('=== Kiro Client 测试 ===\n');
+    console.log('=== Kiro Client Test ===\n');
 
-    // 初始化数据库
+    // Initialize database
     await initDatabase();
     const store = await CredentialStore.create();
 
-    // 检查是否有凭据
+    // Check if credentials exist
     const credentials = store.getAll();
-    console.log(`数据库中有 ${credentials.length} 个凭据\n`);
+    console.log(`Database has ${credentials.length} credentials\n`);
 
     if (credentials.length === 0) {
-        console.log('没有凭据，请先通过以下方式添加:');
-        console.log('1. 启动管理界面: node src/server.js');
-        console.log('2. 访问 http://localhost:3000');
-        console.log('3. 点击"导入文件"或"添加凭据"\n');
+        console.log('No credentials found. Please add them using:');
+        console.log('1. Start management interface: node src/server.js');
+        console.log('2. Visit http://localhost:3000');
+        console.log('3. Click "Import File" or "Add Credential"\n');
         return;
     }
 
-    // 获取活跃凭据
+    // Get active credential
     const active = store.getActive();
     if (!active) {
-        console.log('没有活跃凭据，请先激活一个凭据');
+        console.log('No active credential. Please activate one first');
         return;
     }
 
-    console.log(`使用凭据: ${active.name}`);
-    console.log(`区域: ${active.region}`);
-    console.log(`认证方式: ${active.authMethod}\n`);
+    console.log(`Using credential: ${active.name}`);
+    console.log(`Region: ${active.region}`);
+    console.log(`Auth method: ${active.authMethod}\n`);
 
     try {
-        // 从数据库创建客户端
+        // Create client from database
         const client = await KiroClient.fromDatabase();
 
-        console.log('=== 支持的模型 ===');
+        console.log('=== Supported Models ===');
         console.log(client.getModels());
 
-        console.log('\n=== 发送测试消息 ===');
+        console.log('\n=== Sending Test Message ===');
         const messages = [
-            { role: 'user', content: '你好，请用一句话介绍你自己。' }
+            { role: 'user', content: 'Hello, please introduce yourself in one sentence.' }
         ];
 
-        // 非流式请求
-        console.log('\n--- 非流式响应 ---');
+        // Non-streaming request
+        console.log('\n--- Non-streaming Response ---');
         const response = await client.chat(messages);
-        console.log('响应:', response);
+        console.log('Response:', response);
 
-        // 流式请求
-        console.log('\n--- 流式响应 ---');
-        process.stdout.write('响应: ');
+        // Streaming request
+        console.log('\n--- Streaming Response ---');
+        process.stdout.write('Response: ');
         for await (const event of client.chatStream(messages)) {
             if (event.type === 'content') {
                 process.stdout.write(event.content);
@@ -61,12 +61,12 @@ async function main() {
         }
         console.log('\n');
 
-        console.log('=== 测试完成 ===');
+        console.log('=== Test Complete ===');
 
     } catch (error) {
-        console.error('错误:', error.message);
+        console.error('Error:', error.message);
         if (error.response) {
-            console.error('状态码:', error.response.status);
+            console.error('Status code:', error.response.status);
         }
     }
 }

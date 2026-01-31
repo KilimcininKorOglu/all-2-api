@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # Kiro API 服务
+  # Kiro API Service
   kiro-api:
     build: .
     container_name: kiro-api
@@ -22,7 +22,7 @@ services:
     networks:
       - kiro-network
 
-  # MySQL 数据库（可选，如果使用外部数据库可以注释掉）
+  # MySQL Database (optional, can be commented out if using external database)
   mysql:
     image: mysql:8.0
     container_name: kiro-mysql

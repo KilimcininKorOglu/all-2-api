@@ -1,4 +1,4 @@
-// ============ 用量统计页面 JS ============
+// ============ Usage Statistics Page JS ============
 
 let apiKeys = [];
 let currentKeyId = null;
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!await checkAuth()) return;
 
-    // 检查 URL 参数
+    // Check URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const keyId = urlParams.get('keyId');
     if (keyId) {
@@ -57,7 +57,7 @@ async function loadApiKeys() {
 
 function renderKeyOptions() {
     const select = document.getElementById('usage-filter-key');
-    select.innerHTML = '<option value="">全部密钥</option>';
+    select.innerHTML = '<option value="">All Keys</option>';
 
     apiKeys.forEach(function(key) {
         const option = document.createElement('option');
@@ -78,7 +78,7 @@ async function loadUsageStats() {
     if (startDate) url += 'startDate=' + startDate + '&';
     if (endDate) url += 'endDate=' + endDate + '&';
 
-    // 如果选择了特定 Key，使用单独的 API
+    // If a specific key is selected, use the dedicated API
     if (currentKeyId) {
         url = '/api/keys/' + currentKeyId + '/cost?';
         if (startDate) url += 'startDate=' + startDate + '&';
@@ -94,11 +94,11 @@ async function loadUsageStats() {
         if (result.success && result.data) {
             renderStats(result.data);
         } else {
-            showToast(result.error || '加载统计失败', 'error');
+            showToast(result.error || 'Failed to load statistics', 'error');
         }
     } catch (err) {
         console.error('Load usage stats error:', err);
-        showToast('加载统计失败', 'error');
+        showToast('Failed to load statistics', 'error');
     }
 }
 
@@ -107,16 +107,16 @@ function renderStats(data) {
     const modelStats = data.byModel || data.models || [];
     const keyStats = data.byApiKey || [];
 
-    // 更新汇总卡片
+    // Update summary cards
     document.getElementById('summary-requests').textContent = formatNumber(summary.totalRequests || 0);
     document.getElementById('summary-input-tokens').textContent = formatNumber(summary.totalInputTokens || 0);
     document.getElementById('summary-output-tokens').textContent = formatNumber(summary.totalOutputTokens || 0);
     document.getElementById('summary-cost').textContent = '$' + (summary.totalCost || 0).toFixed(4);
 
-    // 渲染图表
+    // Render charts
     renderCharts(modelStats);
 
-    // 渲染 API Key 统计表格（仅在查看全部时显示）
+    // Render API Key statistics table (only shown when viewing all)
     if (!currentKeyId) {
         renderKeyStats(keyStats);
         document.querySelector('.usage-section:last-child').style.display = 'block';
@@ -126,7 +126,7 @@ function renderStats(data) {
 }
 
 function renderCharts(stats) {
-    // 销毁旧图表
+    // Destroy old charts
     if (costChart) {
         costChart.destroy();
         costChart = null;
@@ -140,14 +140,14 @@ function renderCharts(stats) {
         return;
     }
 
-    // 按总费用从高到低排序
+    // Sort by total cost from high to low
     const sortedStats = [...stats].sort((a, b) => (b.totalCost || 0) - (a.totalCost || 0));
 
     const labels = sortedStats.map(s => formatModelName(s.model));
     const costs = sortedStats.map(s => s.totalCost || 0);
     const requests = sortedStats.map(s => s.requestCount || 0);
 
-    // 颜色配置
+    // Color configuration
     const colors = [
         '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
         '#ec4899', '#f43f5e', '#f97316', '#eab308',
@@ -156,7 +156,7 @@ function renderCharts(stats) {
 
     const backgroundColors = sortedStats.map((_, i) => colors[i % colors.length]);
 
-    // 费用饼图
+    // Cost pie chart
     const costCtx = document.getElementById('cost-chart').getContext('2d');
     costChart = new Chart(costCtx, {
         type: 'doughnut',
@@ -195,14 +195,14 @@ function renderCharts(stats) {
         }
     });
 
-    // 请求数柱状图
+    // Requests bar chart
     const requestsCtx = document.getElementById('requests-chart').getContext('2d');
     requestsChart = new Chart(requestsCtx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
-                label: '请求数',
+                label: 'Requests',
                 data: requests,
                 backgroundColor: backgroundColors,
                 borderRadius: 4
@@ -243,11 +243,11 @@ function renderKeyStats(stats) {
     const list = document.getElementById('key-stats-list');
 
     if (!stats || stats.length === 0) {
-        list.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">暂无数据</td></tr>';
+        list.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">No data</td></tr>';
         return;
     }
 
-    // 按总费用从高到低排序
+    // Sort by total cost from high to low
     const sortedStats = [...stats].sort((a, b) => (b.totalCost || 0) - (a.totalCost || 0));
 
     list.innerHTML = sortedStats.map(function(stat) {
@@ -259,8 +259,8 @@ function renderKeyStats(stats) {
             '<td>' + formatNumber(stat.outputTokens) + '</td>' +
             '<td class="cost-cell total">$' + (stat.totalCost || 0).toFixed(4) + '</td>' +
             '<td>' +
-            '<button class="btn btn-secondary btn-sm" onclick="viewKeyUsage(' + stat.apiKeyId + ')">查看详情</button> ' +
-            '<button class="btn btn-secondary btn-sm" onclick="viewKeyLogs(' + stat.apiKeyId + ')">查看日志</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="viewKeyUsage(' + stat.apiKeyId + ')">View Details</button> ' +
+            '<button class="btn btn-secondary btn-sm" onclick="viewKeyLogs(' + stat.apiKeyId + ')">View Logs</button>' +
             '</td>' +
             '</tr>';
     }).join('');
@@ -273,7 +273,7 @@ function viewKeyUsage(keyId) {
 }
 
 function viewKeyLogs(keyId) {
-    // 跳转到日志页面并带上 API Key 筛选参数
+    // Navigate to logs page with API Key filter parameter
     const key = apiKeys.find(k => k.id === keyId);
     if (key) {
         window.location.href = '/pages/logs.html?apiKey=' + encodeURIComponent(key.keyPrefix);
@@ -286,7 +286,7 @@ function resetFilters() {
     document.getElementById('usage-filter-end').value = '';
     currentKeyId = null;
 
-    // 清除 URL 参数
+    // Clear URL parameters
     window.history.replaceState({}, '', window.location.pathname);
 
     loadUsageStats();
@@ -317,7 +317,7 @@ async function loadTokensTimeline() {
 }
 
 function renderTokensTimelineChart(stats) {
-    // 销毁旧图表
+    // Destroy old chart
     if (tokensTimelineChart) {
         tokensTimelineChart.destroy();
         tokensTimelineChart = null;
@@ -346,7 +346,7 @@ function renderTokensTimelineChart(stats) {
             labels: labels,
             datasets: [
                 {
-                    label: '输入 Tokens',
+                    label: 'Input Tokens',
                     data: inputTokens,
                     borderColor: '#22c55e',
                     backgroundColor: 'rgba(34, 197, 94, 0.1)',
@@ -356,7 +356,7 @@ function renderTokensTimelineChart(stats) {
                     pointHoverRadius: 5
                 },
                 {
-                    label: '输出 Tokens',
+                    label: 'Output Tokens',
                     data: outputTokens,
                     borderColor: '#6366f1',
                     backgroundColor: 'rgba(99, 102, 241, 0.1)',

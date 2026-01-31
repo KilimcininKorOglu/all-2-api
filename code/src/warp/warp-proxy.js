@@ -1,17 +1,17 @@
 /**
- * Warp Multi-Agent API 完整转发代理
- * 
- * 功能：
- * 1. 一比一转发 Warp 的 /ai/multi-agent 请求
- * 2. 支持多轮对话（通过会话历史累积）
- * 3. 支持工具调用循环（自动提交工具结果）
- * 4. 支持 MCP 协议
- * 
- * 协议说明：
- * - 请求: POST /ai/multi-agent, Content-Type: application/x-protobuf
- * - 响应: text/event-stream (SSE + Base64 编码的 Protobuf)
- * - 多轮对话: 每次请求包含完整的会话历史 (field 1.1.5 数组)
- * - 工具调用: AI 响应中包含 tool_call (field 4), 客户端执行后通过 field 5 返回结果
+ * Warp Multi-Agent API Full Forward Proxy
+ *
+ * Features:
+ * 1. One-to-one forwarding of Warp's /ai/multi-agent requests
+ * 2. Support for multi-turn conversations (via session history accumulation)
+ * 3. Support for tool call loops (automatic submission of tool results)
+ * 4. Support for MCP protocol
+ *
+ * Protocol Notes:
+ * - Request: POST /ai/multi-agent, Content-Type: application/x-protobuf
+ * - Response: text/event-stream (SSE + Base64 encoded Protobuf)
+ * - Multi-turn conversations: Each request contains complete session history (field 1.1.5 array)
+ * - Tool calls: AI response contains tool_call (field 4), client executes and returns result via field 5
  */
 
 import https from 'https';
@@ -23,7 +23,7 @@ import { EventEmitter } from 'events';
 
 const execAsync = promisify(exec);
 
-// ==================== Protobuf 编码工具 ====================
+// ==================== Protobuf Encoding Utilities ====================
 
 function encodeVarint(value) {
     const bytes = [];
@@ -71,23 +71,23 @@ function encodeFixed64(fieldNum, value) {
     return encodeField(fieldNum, 1, buf);
 }
 
-// ==================== 消息结构定义 ====================
+// ==================== Message Structure Definitions ====================
 
 /**
- * 消息类型枚举
+ * Message type enum
  */
 const MessageType = {
-    SYSTEM_INIT: 'system_init',           // field 4 - 系统初始化消息
-    STATUS: 'status',                      // field 6 - 状态消息
-    USER_QUERY: 'user_query',              // field 2 - 用户查询
-    ASSISTANT_TEXT: 'assistant_text',      // field 3 - 助手文本响应
-    TOOL_CALL: 'tool_call',                // field 4 - 工具调用请求
-    TOOL_RESULT: 'tool_result',            // field 5 - 工具执行结果
-    REASONING: 'reasoning',                // field 15 - 推理/思考
+    SYSTEM_INIT: 'system_init',           // field 4 - System initialization message
+    STATUS: 'status',                      // field 6 - Status message
+    USER_QUERY: 'user_query',              // field 2 - User query
+    ASSISTANT_TEXT: 'assistant_text',      // field 3 - Assistant text response
+    TOOL_CALL: 'tool_call',                // field 4 - Tool call request
+    TOOL_RESULT: 'tool_result',            // field 5 - Tool execution result
+    REASONING: 'reasoning',                // field 15 - Reasoning/thinking
 };
 
 /**
- * 会话消息
+ * Session message
  */
 class Message {
     constructor(type, id = uuidv4()) {
@@ -100,20 +100,20 @@ class Message {
 }
 
 /**
- * 用户查询消息
+ * User query message
  */
 class UserQueryMessage extends Message {
     constructor(content, context = {}, id = uuidv4()) {
         super(MessageType.USER_QUERY, id);
         this.content = content;
-        this.context = context;  // 包含 workingDir, homeDir, shell 等
+        this.context = context;  // Contains workingDir, homeDir, shell, etc.
     }
     
     encode(cascadeId, turnId) {
         const timestamp = Math.floor(this.timestamp / 1000);
         const nanos = (this.timestamp % 1000) * 1000000;
         
-        // 构建环境上下文 (field 2)
+        // Build environment context (field 2)
         const envContext = Buffer.concat([
             encodeMessage(1, Buffer.concat([
                 encodeString(1, this.context.workingDir || '/tmp'),
@@ -136,7 +136,7 @@ class UserQueryMessage extends Message {
             ...(this.context.gitBranch ? [encodeMessage(11, encodeString(1, this.context.gitBranch))] : [])
         ]);
         
-        // 构建查询内容 (field 1)
+        // Build query content (field 1)
         const queryContent = Buffer.concat([
             encodeString(1, this.content),
             encodeMessage(2, envContext),
@@ -144,7 +144,7 @@ class UserQueryMessage extends Message {
             encodeVarintField(5, 1)
         ]);
         
-        // 构建完整消息 (field 5 中的 field 2)
+        // Build complete message (field 2 in field 5)
         return encodeMessage(5, Buffer.concat([
             encodeString(1, this.id),
             encodeMessage(2, queryContent),
@@ -170,7 +170,7 @@ class UserQueryMessage extends Message {
 }
 
 /**
- * 助手文本响应消息
+ * Assistant text response message
  */
 class AssistantTextMessage extends Message {
     constructor(content, id = uuidv4()) {
@@ -208,21 +208,21 @@ class AssistantTextMessage extends Message {
 }
 
 /**
- * 工具调用请求消息
+ * Tool call request message
  */
 class ToolCallMessage extends Message {
     constructor(callId, toolName, params = {}, id = uuidv4()) {
         super(MessageType.TOOL_CALL, id);
-        this.callId = callId;      // 如 "call_eUhKl67rXZNARIHAiux5wcNl"
-        this.toolName = toolName;  // 如 "ls", "cat", "grep"
-        this.params = params;      // 工具参数
+        this.callId = callId;      // e.g., "call_eUhKl67rXZNARIHAiux5wcNl"
+        this.toolName = toolName;  // e.g., "ls", "cat", "grep"
+        this.params = params;      // Tool parameters
     }
     
     encode(cascadeId, turnId) {
         const timestamp = Math.floor(this.timestamp / 1000);
         const nanos = (this.timestamp % 1000) * 1000000;
         
-        // 工具调用内容 (field 4 中的 field 2)
+        // Tool call content (field 2 in field 4)
         const toolContent = Buffer.concat([
             encodeString(1, this.toolName),
             encodeVarintField(2, 1),  // mode = wait
@@ -246,13 +246,13 @@ class ToolCallMessage extends Message {
     }
     
     _encodeServerData(cascadeId, turnId) {
-        // 这里可以添加更多服务器数据
+        // Additional server data can be added here
         return encodeBytes(7, Buffer.from(''));
     }
 }
 
 /**
- * 工具执行结果消息
+ * Tool execution result message
  */
 class ToolResultMessage extends Message {
     constructor(callId, command, output, context = {}, id = uuidv4()) {
@@ -268,7 +268,7 @@ class ToolResultMessage extends Message {
         const timestamp = Math.floor(this.timestamp / 1000);
         const nanos = (this.timestamp % 1000) * 1000000;
         
-        // 工具结果内容 (field 5 中的 field 2)
+        // Tool result content (field 2 in field 5)
         const resultContent = Buffer.concat([
             encodeString(3, this.command),
             encodeMessage(5, Buffer.concat([
@@ -277,7 +277,7 @@ class ToolResultMessage extends Message {
             ]))
         ]);
         
-        // 环境上下文
+        // Environment context
         const envContext = Buffer.concat([
             encodeMessage(1, Buffer.concat([
                 encodeString(1, this.context.workingDir || '/tmp'),
@@ -329,7 +329,7 @@ class ToolResultMessage extends Message {
 }
 
 /**
- * 推理/思考消息
+ * Reasoning/thinking message
  */
 class ReasoningMessage extends Message {
     constructor(content, usage = { inputTokens: 0, outputTokens: 0 }, id = uuidv4()) {
@@ -366,10 +366,10 @@ class ReasoningMessage extends Message {
     }
 }
 
-// ==================== 会话管理 ====================
+// ==================== Session Management ====================
 
 /**
- * 会话状态
+ * Session state
  */
 class Session {
     constructor(id = uuidv4()) {
@@ -399,14 +399,14 @@ class Session {
     }
     
     /**
-     * 开始新的轮次（用户发送新消息时）
+     * Start a new turn (when user sends new message)
      */
     newTurn() {
         this.turnId = uuidv4();
     }
     
     /**
-     * 编码所有消息为 Protobuf
+     * Encode all messages to Protobuf
      */
     encodeMessages() {
         return Buffer.concat(
@@ -415,26 +415,26 @@ class Session {
     }
 }
 
-// ==================== Warp 请求构建 ====================
+// ==================== Warp Request Building ====================
 
 /**
- * 构建完整的 Warp 请求体
+ * Build complete Warp request body
  */
 function buildWarpRequest(session, userQuery = null, model = 'claude-4.1-opus') {
     const timestamp = Math.floor(Date.now() / 1000);
     const nanos = (Date.now() % 1000) * 1000000;
     
-    // Field 1: Cascade 信息
+    // Field 1: Cascade information
     const cascadeInfo = Buffer.concat([
         encodeString(1, session.cascadeId),
         encodeString(2, session.title || 'Chat'),
-        // Field 5: 消息数组
+        // Field 5: Messages array
         session.encodeMessages(),
-        // Field 8: 模型信息（base64 编码）
+        // Field 8: Model info (base64 encoded)
         encodeBytes(8, Buffer.from(`\x0a\x15${model}`))
     ]);
     
-    // Field 2: 当前环境和用户查询
+    // Field 2: Current environment and user query
     const envInfo = Buffer.concat([
         encodeMessage(1, Buffer.concat([
             encodeString(1, session.context.workingDir),
@@ -457,7 +457,7 @@ function buildWarpRequest(session, userQuery = null, model = 'claude-4.1-opus') 
         ...(session.context.gitBranch ? [encodeMessage(11, encodeString(1, session.context.gitBranch))] : [])
     ]);
     
-    // Field 2.6: 用户查询（如果是新查询）
+    // Field 2.6: User query (if new query)
     let field2Content;
     if (userQuery) {
         const queryContent = Buffer.concat([
@@ -473,7 +473,7 @@ function buildWarpRequest(session, userQuery = null, model = 'claude-4.1-opus') 
         field2Content = encodeMessage(1, envInfo);
     }
     
-    // Field 3: 模型配置
+    // Field 3: Model configuration
     const modelConfig = Buffer.concat([
         encodeMessage(1, Buffer.concat([
             encodeString(1, model),
@@ -499,7 +499,7 @@ function buildWarpRequest(session, userQuery = null, model = 'claude-4.1-opus') 
         encodeVarintField(23, 1)
     ]);
     
-    // Field 4: 元数据
+    // Field 4: Metadata
     const metadata = Buffer.concat([
         encodeString(1, session.id),
         encodeMessage(2, Buffer.concat([
@@ -519,7 +519,7 @@ function buildWarpRequest(session, userQuery = null, model = 'claude-4.1-opus') 
         ]))
     ]);
     
-    // 组合完整请求
+    // Combine complete request
     return Buffer.concat([
         encodeMessage(1, cascadeInfo),
         encodeMessage(2, field2Content),
@@ -528,10 +528,10 @@ function buildWarpRequest(session, userQuery = null, model = 'claude-4.1-opus') 
     ]);
 }
 
-// ==================== 响应解析 ====================
+// ==================== Response Parsing ====================
 
 /**
- * 解析 SSE 响应中的事件
+ * Parse events in SSE response
  */
 function parseSSEEvent(line) {
     if (!line.startsWith('data:')) return null;
@@ -546,18 +546,18 @@ function parseSSEEvent(line) {
 }
 
 /**
- * 从 Protobuf 响应中提取文本内容
+ * Extract text content from Protobuf response
  */
 function extractAgentText(buffer) {
     const texts = [];
     
-    // 查找 agent_output.text 标记
+    // Find agent_output.text marker
     const bufferStr = buffer.toString('utf8');
     if (!bufferStr.includes('agent_output')) {
         return null;
     }
     
-    // 使用嵌套解析提取文本
+    // Use nested parsing to extract text
     for (let i = 0; i < buffer.length - 4; i++) {
         if (buffer[i] === 0x1a) {  // Length-delimited field
             const outerLen = buffer[i + 1];
@@ -566,14 +566,14 @@ function extractAgentText(buffer) {
                 if (innerLen > 0 && innerLen <= outerLen - 2 && i + 4 + innerLen <= buffer.length) {
                     const text = buffer.slice(i + 4, i + 4 + innerLen).toString('utf8');
                     
-                    // 过滤
+                    // Filter
                     if (text.length === 0) continue;
                     if (text.length === 36 && /^[0-9a-f-]{36}$/.test(text)) continue;
                     if (text.includes('agent_') || text.includes('server_') ||
                         text.includes('USER_') || text.includes('primary_') ||
                         text.includes('call_') || text.includes('precmd-')) continue;
                     
-                    // 检查是否有可见内容
+                    // Check if has visible content
                     const hasChinese = /[\u4e00-\u9fff]/.test(text);
                     const hasAlpha = /[a-zA-Z0-9]/.test(text);
                     
@@ -591,21 +591,21 @@ function extractAgentText(buffer) {
 }
 
 /**
- * 从响应中提取工具调用
+ * Extract tool calls from response
  */
 function extractToolCall(buffer) {
     const bufferStr = buffer.toString('utf8');
     
-    // 检查是否包含工具调用标识
+    // Check if contains tool call identifier
     if (!bufferStr.includes('call_')) return null;
     
-    // 提取 call_id
+    // Extract call_id
     const callIdMatch = bufferStr.match(/call_[A-Za-z0-9]+/);
     if (!callIdMatch) return null;
     
     const callId = callIdMatch[0];
     
-    // 提取命令
+    // Extract command
     const cmdMatch = bufferStr.match(/\x0a\x02ls|\x0a\x03cat|\x0a\x04grep|\x0a\x04find/);
     let command = 'ls';
     if (cmdMatch) {
@@ -616,14 +616,14 @@ function extractToolCall(buffer) {
 }
 
 /**
- * 从响应中提取推理内容
+ * Extract reasoning content from response
  */
 function extractReasoning(buffer) {
     const bufferStr = buffer.toString('utf8');
     
     if (!bufferStr.includes('agent_reasoning')) return null;
     
-    // 提取推理文本
+    // Extract reasoning text
     const texts = [];
     for (let i = 0; i < buffer.length - 4; i++) {
         if (buffer[i] === 0x1a) {
@@ -643,10 +643,10 @@ function extractReasoning(buffer) {
     return texts.length > 0 ? texts.join('') : null;
 }
 
-// ==================== Warp 代理服务 ====================
+// ==================== Warp Proxy Service ====================
 
 /**
- * Warp 代理服务
+ * Warp Proxy Service
  */
 export class WarpProxy extends EventEmitter {
     constructor(options = {}) {
@@ -656,7 +656,7 @@ export class WarpProxy extends EventEmitter {
         this.maxIterations = options.maxIterations || 20;
         this.autoExecuteTools = options.autoExecuteTools !== false;
         
-        // 工具处理器
+        // Tool handlers
         this.toolHandlers = {
             ls: this._handleLs.bind(this),
             cat: this._handleCat.bind(this),
@@ -667,7 +667,7 @@ export class WarpProxy extends EventEmitter {
     }
     
     /**
-     * 创建新会话
+     * Create new session
      */
     createSession(context = {}) {
         const session = new Session();
@@ -677,14 +677,14 @@ export class WarpProxy extends EventEmitter {
     }
     
     /**
-     * 获取会话
+     * Get session
      */
     getSession(sessionId) {
         return this.sessions.get(sessionId);
     }
     
     /**
-     * 发送请求到 Warp
+     * Send request to Warp
      */
     async sendRequest(session, userQuery = null, model = 'claude-4.1-opus') {
         const body = buildWarpRequest(session, userQuery, model);
@@ -733,21 +733,21 @@ export class WarpProxy extends EventEmitter {
                         const decoded = parseSSEEvent(line);
                         if (!decoded) continue;
                         
-                        // 提取文本
+                        // Extract text
                         const text = extractAgentText(decoded);
                         if (text) {
                             fullText += text;
                             this.emit('text', text);
                         }
                         
-                        // 提取工具调用
+                        // Extract tool calls
                         const toolCall = extractToolCall(decoded);
                         if (toolCall && !toolCalls.find(t => t.callId === toolCall.callId)) {
                             toolCalls.push(toolCall);
                             this.emit('tool_call', toolCall);
                         }
                         
-                        // 提取推理
+                        // Extract reasoning
                         const reasoningText = extractReasoning(decoded);
                         if (reasoningText) {
                             reasoning += reasoningText;
@@ -774,7 +774,7 @@ export class WarpProxy extends EventEmitter {
     }
     
     /**
-     * 执行工具
+     * Execute tool
      */
     async executeTool(toolName, params, context) {
         const handler = this.toolHandlers[toolName] || this.toolHandlers.run_shell_command;
@@ -782,15 +782,15 @@ export class WarpProxy extends EventEmitter {
             const result = await handler(params, context);
             return { success: true, output: result };
         } catch (error) {
-            return { success: false, output: `错误: ${error.message}` };
+            return { success: false, output: `Error: ${error.message}` };
         }
     }
     
     /**
-     * 核心：多轮对话处理
+     * Core: Multi-turn conversation processing
      */
     async chat(sessionOrId, userQuery, options = {}) {
-        // 获取或创建会话
+        // Get or create session
         let session;
         if (typeof sessionOrId === 'string') {
             session = this.getSession(sessionOrId);
@@ -807,7 +807,7 @@ export class WarpProxy extends EventEmitter {
         
         const model = options.model || session.model || 'claude-4.1-opus';
         
-        // 添加用户消息
+        // Add user message
         const userMsg = new UserQueryMessage(userQuery, session.context);
         session.addMessage(userMsg);
         session.newTurn();
@@ -821,33 +821,33 @@ export class WarpProxy extends EventEmitter {
             
             this.emit('iteration_start', { iteration, sessionId: session.id });
             
-            // 发送请求
+            // Send request
             const response = await this.sendRequest(
                 session,
                 iteration === 1 ? userQuery : null,
                 model
             );
             
-            // 添加助手响应
+            // Add assistant response
             if (response.text) {
                 const assistantMsg = new AssistantTextMessage(response.text);
                 session.addMessage(assistantMsg);
                 finalResponse = response.text;
             }
             
-            // 检查是否有工具调用
+            // Check if there are tool calls
             if (response.toolCalls.length > 0 && this.autoExecuteTools) {
                 for (const toolCall of response.toolCalls) {
                     this.emit('tool_executing', toolCall);
                     
-                    // 执行工具
+                    // Execute tool
                     const result = await this.executeTool(
                         toolCall.command,
                         { command: toolCall.command },
                         session.context
                     );
                     
-                    // 添加工具结果到会话
+                    // Add tool result to session
                     const toolResultMsg = new ToolResultMessage(
                         toolCall.callId,
                         toolCall.command,
@@ -864,11 +864,11 @@ export class WarpProxy extends EventEmitter {
                     this.emit('tool_result', { toolCall, result });
                 }
                 
-                // 继续循环，让 AI 处理工具结果
+                // Continue loop to let AI process tool result
                 continue;
             }
             
-            // 没有工具调用，完成
+            // No tool calls, complete
             this.emit('complete', {
                 sessionId: session.id,
                 response: finalResponse,
@@ -884,7 +884,7 @@ export class WarpProxy extends EventEmitter {
             };
         }
         
-        // 达到最大迭代次数
+        // Reached maximum iterations
         this.emit('max_iterations', { sessionId: session.id, iterations: iteration });
         
         return {
@@ -897,10 +897,10 @@ export class WarpProxy extends EventEmitter {
     }
     
     /**
-     * 流式对话
+     * Streaming conversation
      */
     async *chatStream(sessionOrId, userQuery, options = {}) {
-        // 获取或创建会话
+        // Get or create session
         let session;
         if (typeof sessionOrId === 'string') {
             session = this.getSession(sessionOrId) || this.createSession(options.context);
@@ -912,7 +912,7 @@ export class WarpProxy extends EventEmitter {
         
         const model = options.model || session.model || 'claude-4.1-opus';
         
-        // 添加用户消息
+        // Add user message
         const userMsg = new UserQueryMessage(userQuery, session.context);
         session.addMessage(userMsg);
         session.newTurn();
@@ -930,13 +930,13 @@ export class WarpProxy extends EventEmitter {
                 model
             );
             
-            // 流式请求
+            // Streaming request
             const response = await this._streamRequest(body);
             
             for await (const event of response) {
                 yield event;
                 
-                // 处理工具调用
+                // Process tool call
                 if (event.type === 'tool_call' && this.autoExecuteTools) {
                     yield { type: 'tool_executing', ...event };
                     
@@ -946,7 +946,7 @@ export class WarpProxy extends EventEmitter {
                         session.context
                     );
                     
-                    // 添加工具结果
+                    // Add tool result
                     const toolResultMsg = new ToolResultMessage(
                         event.callId,
                         event.command,
@@ -959,7 +959,7 @@ export class WarpProxy extends EventEmitter {
                 }
             }
             
-            // 检查是否需要继续
+            // Check if need to continue
             if (!response.hasToolCalls) {
                 yield { type: 'complete', sessionId: session.id, iterations: iteration };
                 return;
@@ -970,10 +970,10 @@ export class WarpProxy extends EventEmitter {
     }
     
     /**
-     * 内部流式请求
+     * Internal streaming request
      */
     async *_streamRequest(body) {
-        // 简化版本，返回 async generator
+        // Simplified version, returns async generator
         const response = await new Promise((resolve, reject) => {
             const options = {
                 hostname: 'app.warp.dev',
@@ -1032,11 +1032,11 @@ export class WarpProxy extends EventEmitter {
             }
         }
         
-        // 标记是否有工具调用
+        // Mark if has tool calls
         response.hasToolCalls = hasToolCalls;
     }
     
-    // ==================== 工具处理器 ====================
+    // ==================== Tool Handlers ====================
     
     async _handleLs(params, context) {
         const cwd = context?.workingDir || process.cwd();
@@ -1056,7 +1056,7 @@ export class WarpProxy extends EventEmitter {
         const { stdout } = await execAsync(`grep -rn "${pattern}" "${path}" | head -50`, {
             cwd: context?.workingDir || process.cwd()
         });
-        return stdout || '未找到匹配';
+        return stdout || 'No matches found';
     }
     
     async _handleFind(params, context) {
@@ -1065,7 +1065,7 @@ export class WarpProxy extends EventEmitter {
         const { stdout } = await execAsync(`find "${path}" -name "${pattern}" | head -50`, {
             cwd: context?.workingDir || process.cwd()
         });
-        return stdout || '未找到文件';
+        return stdout || 'No files found';
     }
     
     async _handleShell(params, context) {
@@ -1076,17 +1076,17 @@ export class WarpProxy extends EventEmitter {
             timeout: 30000,
             env: { ...process.env, PAGER: 'cat' }
         });
-        return stdout || stderr || '(无输出)';
+        return stdout || stderr || '(no output)';
     }
 }
 
-// ==================== Express 路由 ====================
+// ==================== Express Routes ====================
 
 export function setupWarpProxyRoutes(app, warpStore) {
     const proxies = new Map();
     
     /**
-     * 获取代理实例
+     * Get proxy instance
      */
     async function getProxy(credentialId) {
         if (proxies.has(credentialId)) {
@@ -1098,10 +1098,10 @@ export function setupWarpProxyRoutes(app, warpStore) {
             : await warpStore.getRandomActive();
             
         if (!credential) {
-            throw new Error('没有可用的凭证');
+            throw new Error('No available credentials');
         }
         
-        // 检查 token 是否需要刷新
+        // Check if token needs refresh
         const { refreshAccessToken, isTokenExpired } = await import('./warp-service.js');
         let accessToken = credential.accessToken;
         
@@ -1117,7 +1117,7 @@ export function setupWarpProxyRoutes(app, warpStore) {
     }
     
     /**
-     * 非流式对话
+     * Non-streaming conversation
      */
     app.post('/api/warp/proxy/chat', async (req, res) => {
         try {
@@ -1139,7 +1139,7 @@ export function setupWarpProxyRoutes(app, warpStore) {
     });
     
     /**
-     * 流式对话
+     * Streaming conversation
      */
     app.post('/api/warp/proxy/stream', async (req, res) => {
         const { query, sessionId, model, context, credentialId } = req.body;
@@ -1168,7 +1168,7 @@ export function setupWarpProxyRoutes(app, warpStore) {
     });
     
     /**
-     * 会话管理
+     * Session management
      */
     app.get('/api/warp/proxy/sessions', async (req, res) => {
         const { credentialId } = req.query;
@@ -1193,11 +1193,11 @@ export function setupWarpProxyRoutes(app, warpStore) {
         res.json({ success: true });
     });
     
-    console.log('[WarpProxy] 路由已设置');
-    console.log('[WarpProxy] 端点:');
-    console.log('[WarpProxy]   POST /api/warp/proxy/chat - 非流式对话');
-    console.log('[WarpProxy]   POST /api/warp/proxy/stream - 流式对话');
-    console.log('[WarpProxy]   GET /api/warp/proxy/sessions - 获取会话列表');
+    console.log('[WarpProxy] Routes configured');
+    console.log('[WarpProxy] Endpoints:');
+    console.log('[WarpProxy]   POST /api/warp/proxy/chat - Non-streaming conversation');
+    console.log('[WarpProxy]   POST /api/warp/proxy/stream - Streaming conversation');
+    console.log('[WarpProxy]   GET /api/warp/proxy/sessions - Get session list');
 }
 
 export default WarpProxy;

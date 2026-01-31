@@ -106,15 +106,15 @@ docker-compose -f docker-compose.external-db.yml up -d
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `13003` | API service port |
-| `MYSQL_HOST` | `mysql` | Database address |
-| `MYSQL_PORT` | `3306` | Database port |
-| `MYSQL_USER` | `root` | Database user |
-| `MYSQL_PASSWORD` | `kiro123456` | Database password |
-| `MYSQL_DATABASE` | `kiro_api` | Database name |
-| `MYSQL_EXTERNAL_PORT` | `13306` | MySQL external access port |
+| Variable              | Default      | Description                |
+|-----------------------|--------------|----------------------------|
+| `PORT`                | `13003`      | API service port           |
+| `MYSQL_HOST`          | `mysql`      | Database address           |
+| `MYSQL_PORT`          | `3306`       | Database port              |
+| `MYSQL_USER`          | `root`       | Database user              |
+| `MYSQL_PASSWORD`      | `kiro123456` | Database password          |
+| `MYSQL_DATABASE`      | `kiro_api`   | Database name              |
+| `MYSQL_EXTERNAL_PORT` | `13306`      | MySQL external access port |
 
 ---
 
@@ -172,47 +172,47 @@ Seamlessly supports the following latest large models:
 
 ### Kiro (Claude) Models
 
-| Model Name | Internal Mapping | Description |
-|------------|------------------|-------------|
-| `claude-opus-4-5-20251101` | `claude-opus-4.5` | Anthropic's most powerful model |
-| `claude-sonnet-4-20250514` | `CLAUDE_SONNET_4_20250514_V1_0` | Cost-effective choice |
-| `claude-sonnet-4-5-20250929` | `CLAUDE_SONNET_4_5_20250929_V1_0` | Latest Sonnet version |
-| `claude-3-7-sonnet-20250219` | `CLAUDE_3_7_SONNET_20250219_V1_0` | Claude 3.7 Sonnet |
-| `claude-haiku-4-5` | `claude-haiku-4.5` | Fast response model |
+| Model Name                   | Internal Mapping                  | Description                     |
+|------------------------------|-----------------------------------|---------------------------------|
+| `claude-opus-4-5-20251101`   | `claude-opus-4.5`                 | Anthropic's most powerful model |
+| `claude-sonnet-4-20250514`   | `CLAUDE_SONNET_4_20250514_V1_0`   | Cost-effective choice           |
+| `claude-sonnet-4-5-20250929` | `CLAUDE_SONNET_4_5_20250929_V1_0` | Latest Sonnet version           |
+| `claude-3-7-sonnet-20250219` | `CLAUDE_3_7_SONNET_20250219_V1_0` | Claude 3.7 Sonnet               |
+| `claude-haiku-4-5`           | `claude-haiku-4.5`                | Fast response model             |
 
 ### Gemini Models (Antigravity)
 
-| Model Name | Internal Mapping | Description |
-|------------|------------------|-------------|
-| `gemini-3-pro-preview` | `gemini-3-pro-high` | Google's latest flagship |
-| `gemini-3-pro-image-preview` | `gemini-3-pro-image` | Image generation version |
-| `gemini-3-flash-preview` | `gemini-3-flash` | Fast response version |
-| `gemini-2.5-flash-preview` | `gemini-2.5-flash` | 2.5 Flash version |
-| `gemini-2.5-computer-use-preview-10-2025` | `rev19-uic3-1p` | Computer use preview |
-| `gemini-claude-sonnet-4-5` | `claude-sonnet-4-5` | Claude via Gemini |
-| `gemini-claude-sonnet-4-5-thinking` | `claude-sonnet-4-5-thinking` | Thinking mode |
-| `gemini-claude-opus-4-5-thinking` | `claude-opus-4-5-thinking` | Opus thinking mode |
+| Model Name                                | Internal Mapping             | Description              |
+|-------------------------------------------|------------------------------|--------------------------|
+| `gemini-3-pro-preview`                    | `gemini-3-pro-high`          | Google's latest flagship |
+| `gemini-3-pro-image-preview`              | `gemini-3-pro-image`         | Image generation version |
+| `gemini-3-flash-preview`                  | `gemini-3-flash`             | Fast response version    |
+| `gemini-2.5-flash-preview`                | `gemini-2.5-flash`           | 2.5 Flash version        |
+| `gemini-2.5-computer-use-preview-10-2025` | `rev19-uic3-1p`              | Computer use preview     |
+| `gemini-claude-sonnet-4-5`                | `claude-sonnet-4-5`          | Claude via Gemini        |
+| `gemini-claude-sonnet-4-5-thinking`       | `claude-sonnet-4-5-thinking` | Thinking mode            |
+| `gemini-claude-opus-4-5-thinking`         | `claude-opus-4-5-thinking`   | Opus thinking mode       |
 
 ### Model Pricing Reference
 
 #### Kiro (Claude) Models
 
-| Model | Input Price ($/M tokens) | Output Price ($/M tokens) |
-|-------|--------------------------|---------------------------|
-| Claude Opus 4.5 | $15 | $75 |
-| Claude Sonnet 4/4.5 | $3 | $15 |
-| Claude 3.7 Sonnet | $3 | $15 |
-| Claude Haiku 4.5 | $0.80 | $4 |
+| Model               | Input Price ($/M tokens) | Output Price ($/M tokens) |
+|---------------------|--------------------------|---------------------------|
+| Claude Opus 4.5     | $15                      | $75                       |
+| Claude Sonnet 4/4.5 | $3                       | $15                       |
+| Claude 3.7 Sonnet   | $3                       | $15                       |
+| Claude Haiku 4.5    | $0.80                    | $4                        |
 
 #### Gemini Models
 
-| Model | Input Price ($/M tokens) | Output Price ($/M tokens) |
-|-------|--------------------------|---------------------------|
-| Gemini 3 Pro | $1.25 | $5 |
-| Gemini 3 Flash | $0.075 | $0.30 |
-| Gemini 2.5 Flash | $0.075 | $0.30 |
-| Gemini Claude Sonnet 4.5 | $3 | $15 |
-| Gemini Claude Opus 4.5 Thinking | $15 | $75 |
+| Model                           | Input Price ($/M tokens) | Output Price ($/M tokens) |
+|---------------------------------|--------------------------|---------------------------|
+| Gemini 3 Pro                    | $1.25                    | $5                        |
+| Gemini 3 Flash                  | $0.075                   | $0.30                     |
+| Gemini 2.5 Flash                | $0.075                   | $0.30                     |
+| Gemini Claude Sonnet 4.5        | $3                       | $15                       |
+| Gemini Claude Opus 4.5 Thinking | $15                      | $75                       |
 
 ---
 
@@ -258,12 +258,12 @@ Access Gemini Antigravity API through Google OAuth 2.0 authentication.
 
 **OAuth configuration:**
 
-| Configuration | Value |
-|---------------|-------|
-| Client ID | `1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com` |
-| Scope | `https://www.googleapis.com/auth/cloud-platform` |
-| Callback Port | `8086` |
-| Token Endpoint | `https://oauth2.googleapis.com/token` |
+| Configuration  | Value                                                                       |
+|----------------|-----------------------------------------------------------------------------|
+| Client ID      | `1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com` |
+| Scope          | `https://www.googleapis.com/auth/cloud-platform`                            |
+| Callback Port  | `8086`                                                                      |
+| Token Endpoint | `https://oauth2.googleapis.com/token`                                       |
 
 </details>
 
@@ -275,13 +275,13 @@ Access Gemini Antigravity API through Google OAuth 2.0 authentication.
 
 Pass API key via `X-API-Key` or `Authorization: Bearer <key>` request header.
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/health` | Health check |
-| GET | `/v1/models` | Get model list (OpenAI format) |
-| POST | `/v1/messages` | Claude API compatible interface (supports streaming) |
-| POST | `/v1/chat/completions` | OpenAI API compatible interface (supports streaming) |
-| POST | `/gemini-antigravity/v1/messages` | Gemini Antigravity API (Claude format) |
+| Method | Path                              | Description                                          |
+|--------|-----------------------------------|------------------------------------------------------|
+| GET    | `/health`                         | Health check                                         |
+| GET    | `/v1/models`                      | Get model list (OpenAI format)                       |
+| POST   | `/v1/messages`                    | Claude API compatible interface (supports streaming) |
+| POST   | `/v1/chat/completions`            | OpenAI API compatible interface (supports streaming) |
+| POST   | `/gemini-antigravity/v1/messages` | Gemini Antigravity API (Claude format)               |
 
 **Model-Provider Routing:** Specify provider via `Model-Provider` request header:
 - `gemini` or `gemini-antigravity`: Route to Gemini Antigravity
@@ -333,87 +333,87 @@ curl -X POST 'http://localhost:13003/gemini-antigravity/v1/messages' \
 
 ### Authentication API
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/auth/status` | Check if system needs initialization |
-| POST | `/api/auth/setup` | Initialize admin account |
-| POST | `/api/auth/login` | User login |
-| POST | `/api/auth/logout` | User logout |
-| GET | `/api/auth/me` | Get current user info |
+| Method | Path               | Description                          |
+|--------|--------------------|--------------------------------------|
+| GET    | `/api/auth/status` | Check if system needs initialization |
+| POST   | `/api/auth/setup`  | Initialize admin account             |
+| POST   | `/api/auth/login`  | User login                           |
+| POST   | `/api/auth/logout` | User logout                          |
+| GET    | `/api/auth/me`     | Get current user info                |
 
 ### API Key Management (Requires Login)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/keys` | Get API key list |
-| POST | `/api/keys` | Create API key |
-| GET | `/api/keys/:id` | Get single key details |
-| DELETE | `/api/keys/:id` | Delete API key |
-| POST | `/api/keys/:id/toggle` | Enable/disable key |
-| PUT | `/api/keys/:id/limits` | Update key limit configuration |
-| GET | `/api/keys/:id/limits-status` | Get key usage status |
-| GET | `/api/keys/:id/usage` | Get key usage statistics |
-| GET | `/api/keys/:id/cost` | Get key cost statistics |
+| Method | Path                          | Description                    |
+|--------|-------------------------------|--------------------------------|
+| GET    | `/api/keys`                   | Get API key list               |
+| POST   | `/api/keys`                   | Create API key                 |
+| GET    | `/api/keys/:id`               | Get single key details         |
+| DELETE | `/api/keys/:id`               | Delete API key                 |
+| POST   | `/api/keys/:id/toggle`        | Enable/disable key             |
+| PUT    | `/api/keys/:id/limits`        | Update key limit configuration |
+| GET    | `/api/keys/:id/limits-status` | Get key usage status           |
+| GET    | `/api/keys/:id/usage`         | Get key usage statistics       |
+| GET    | `/api/keys/:id/cost`          | Get key cost statistics        |
 
 ### Kiro Credential Management
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/credentials` | Get all credentials |
-| GET | `/api/credentials/:id` | Get single credential |
-| DELETE | `/api/credentials/:id` | Delete credential |
-| POST | `/api/credentials/:id/activate` | Set as active credential |
-| POST | `/api/credentials/:id/refresh` | Manually refresh token |
-| POST | `/api/credentials/:id/test` | Test credential validity |
-| GET | `/api/credentials/:id/models` | Get available models |
-| GET | `/api/credentials/:id/usage` | Get usage |
-| POST | `/api/credentials/import` | Import credentials from file |
-| POST | `/api/credentials/batch-import` | Batch import Social accounts |
+| Method | Path                            | Description                  |
+|--------|---------------------------------|------------------------------|
+| GET    | `/api/credentials`              | Get all credentials          |
+| GET    | `/api/credentials/:id`          | Get single credential        |
+| DELETE | `/api/credentials/:id`          | Delete credential            |
+| POST   | `/api/credentials/:id/activate` | Set as active credential     |
+| POST   | `/api/credentials/:id/refresh`  | Manually refresh token       |
+| POST   | `/api/credentials/:id/test`     | Test credential validity     |
+| GET    | `/api/credentials/:id/models`   | Get available models         |
+| GET    | `/api/credentials/:id/usage`    | Get usage                    |
+| POST   | `/api/credentials/import`       | Import credentials from file |
+| POST   | `/api/credentials/batch-import` | Batch import Social accounts |
 
 ### Gemini Credential Management
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/gemini/credentials` | Get all Gemini credentials |
-| GET | `/api/gemini/credentials/:id` | Get single credential |
-| POST | `/api/gemini/credentials` | Add credential |
-| PUT | `/api/gemini/credentials/:id` | Update credential |
-| DELETE | `/api/gemini/credentials/:id` | Delete credential |
-| POST | `/api/gemini/credentials/:id/activate` | Activate credential |
-| POST | `/api/gemini/credentials/:id/refresh` | Refresh token |
-| POST | `/api/gemini/credentials/:id/test` | Test credential |
-| GET | `/api/gemini/credentials/:id/usage` | Get usage |
-| POST | `/api/gemini/credentials/batch-import` | Batch import credentials |
-| POST | `/api/gemini/oauth/start` | Start Gemini OAuth login |
-| GET | `/api/gemini/models` | Get Gemini model list |
+| Method | Path                                   | Description                |
+|--------|----------------------------------------|----------------------------|
+| GET    | `/api/gemini/credentials`              | Get all Gemini credentials |
+| GET    | `/api/gemini/credentials/:id`          | Get single credential      |
+| POST   | `/api/gemini/credentials`              | Add credential             |
+| PUT    | `/api/gemini/credentials/:id`          | Update credential          |
+| DELETE | `/api/gemini/credentials/:id`          | Delete credential          |
+| POST   | `/api/gemini/credentials/:id/activate` | Activate credential        |
+| POST   | `/api/gemini/credentials/:id/refresh`  | Refresh token              |
+| POST   | `/api/gemini/credentials/:id/test`     | Test credential            |
+| GET    | `/api/gemini/credentials/:id/usage`    | Get usage                  |
+| POST   | `/api/gemini/credentials/batch-import` | Batch import credentials   |
+| POST   | `/api/gemini/oauth/start`              | Start Gemini OAuth login   |
+| GET    | `/api/gemini/models`                   | Get Gemini model list      |
 
 ### API Log Management (Requires Admin Permission)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/logs` | Get log list (paginated) |
-| GET | `/api/logs/:requestId` | Get single log details |
-| DELETE | `/api/logs/:id` | Delete single log |
-| POST | `/api/logs/cleanup` | Clean up old logs |
-| GET | `/api/error-logs` | Get error log list |
-| GET | `/api/logs-stats` | Get log statistics |
-| GET | `/api/logs-stats/cost` | Get cost statistics summary |
+| Method | Path                   | Description                 |
+|--------|------------------------|-----------------------------|
+| GET    | `/api/logs`            | Get log list (paginated)    |
+| GET    | `/api/logs/:requestId` | Get single log details      |
+| DELETE | `/api/logs/:id`        | Delete single log           |
+| POST   | `/api/logs/cleanup`    | Clean up old logs           |
+| GET    | `/api/error-logs`      | Get error log list          |
+| GET    | `/api/logs-stats`      | Get log statistics          |
+| GET    | `/api/logs-stats/cost` | Get cost statistics summary |
 
 ### Proxy Configuration (Requires Login)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/proxy/config` | Get proxy configuration |
-| POST | `/api/proxy/config` | Save proxy configuration |
-| POST | `/api/proxy/test` | Test proxy connection |
+| Method | Path                | Description              |
+|--------|---------------------|--------------------------|
+| GET    | `/api/proxy/config` | Get proxy configuration  |
+| POST   | `/api/proxy/config` | Save proxy configuration |
+| POST   | `/api/proxy/test`   | Test proxy connection    |
 
 ### Public API (No Login Required)
 
-| Method | Path | Description |
-|--------|------|-------------|
-| GET | `/api/models` | Get available model list |
-| GET | `/api/usage` | Get active credential usage limits |
-| POST | `/api/public/usage` | Query usage via API Key |
+| Method | Path                | Description                        |
+|--------|---------------------|------------------------------------|
+| GET    | `/api/models`       | Get available model list           |
+| GET    | `/api/usage`        | Get active credential usage limits |
+| POST   | `/api/public/usage` | Query usage via API Key            |
 
 </details>
 
@@ -484,18 +484,18 @@ console.log(response);
 
 ### Environment Variables
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `13003` | API service port |
-| `MYSQL_HOST` | `127.0.0.1` | MySQL host address |
-| `MYSQL_PORT` | `13306` | MySQL port |
-| `MYSQL_USER` | `root` | MySQL username |
-| `MYSQL_PASSWORD` | - | MySQL password |
-| `MYSQL_DATABASE` | `kiro_api` | Database name |
-| `LOG_DIR` | `./logs` | Log file directory |
-| `LOG_LEVEL` | `INFO` | Log level |
-| `LOG_ENABLED` | `true` | Enable logging |
-| `LOG_CONSOLE` | `true` | Output to console |
+| Variable         | Default     | Description        |
+|------------------|-------------|--------------------|
+| `PORT`           | `13003`     | API service port   |
+| `MYSQL_HOST`     | `127.0.0.1` | MySQL host address |
+| `MYSQL_PORT`     | `13306`     | MySQL port         |
+| `MYSQL_USER`     | `root`      | MySQL username     |
+| `MYSQL_PASSWORD` | -           | MySQL password     |
+| `MYSQL_DATABASE` | `kiro_api`  | Database name      |
+| `LOG_DIR`        | `./logs`    | Log file directory |
+| `LOG_LEVEL`      | `INFO`      | Log level          |
+| `LOG_ENABLED`    | `true`      | Enable logging     |
+| `LOG_CONSOLE`    | `true`      | Output to console  |
 
 ### Project Structure
 

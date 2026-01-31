@@ -1,4 +1,4 @@
-// ============ 异常账号页面 JS ============
+// ============ Error Accounts Page JS ============
 
 let errorAccounts = [];
 
@@ -28,7 +28,7 @@ async function loadErrorAccounts() {
         renderErrorAccounts();
     } catch (err) {
         console.error('Load error accounts error:', err);
-        showToast('加载异常账号失败', 'error');
+        showToast('Failed to load error accounts', 'error');
     }
 }
 
@@ -49,13 +49,13 @@ function renderErrorAccounts() {
             '<td>' + (acc.authMethod || 'social') + '</td>' +
             '<td>' + (acc.region || 'us-east-1') + '</td>' +
             '<td>' + formatDateTime(acc.errorAt || acc.updatedAt) + '</td>' +
-            '<td style="color: var(--accent-danger);">' + (acc.errorMessage || '未知错误') + '</td>' +
+            '<td style="color: var(--accent-danger);">' + (acc.errorMessage || 'Unknown error') + '</td>' +
             '<td>' +
             '<div style="display: flex; gap: 4px;">' +
-            '<button class="btn btn-primary btn-sm" onclick="refreshErrorAccountUsage(' + acc.id + ')">刷新用量</button>' +
-            '<button class="btn btn-secondary btn-sm" onclick="refreshErrorAccount(' + acc.id + ')">刷新Token</button>' +
-            '<button class="btn btn-secondary btn-sm" onclick="restoreErrorAccount(' + acc.id + ')">恢复</button>' +
-            '<button class="btn btn-danger btn-sm" onclick="deleteErrorAccount(' + acc.id + ')">删除</button>' +
+            '<button class="btn btn-primary btn-sm" onclick="refreshErrorAccountUsage(' + acc.id + ')">Refresh Usage</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="refreshErrorAccount(' + acc.id + ')">Refresh Token</button>' +
+            '<button class="btn btn-secondary btn-sm" onclick="restoreErrorAccount(' + acc.id + ')">Restore</button>' +
+            '<button class="btn btn-danger btn-sm" onclick="deleteErrorAccount(' + acc.id + ')">Delete</button>' +
             '</div>' +
             '</td>' +
             '</tr>';
@@ -63,7 +63,7 @@ function renderErrorAccounts() {
 }
 
 async function refreshErrorAccount(id) {
-    showToast('正在刷新Token...', 'warning');
+    showToast('Refreshing Token...', 'warning');
     try {
         const res = await fetch('/api/error-credentials/' + id + '/refresh', {
             method: 'POST',
@@ -71,19 +71,19 @@ async function refreshErrorAccount(id) {
         });
         const result = await res.json();
         if (result.success) {
-            showToast('Token刷新成功，账号已恢复', 'success');
+            showToast('Token refreshed successfully, account restored', 'success');
             loadErrorAccounts();
             updateSidebarStats();
         } else {
-            showToast('Token刷新失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Token refresh failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (err) {
-        showToast('Token刷新失败: ' + err.message, 'error');
+        showToast('Token refresh failed: ' + err.message, 'error');
     }
 }
 
 async function refreshErrorAccountUsage(id) {
-    showToast('正在刷新用量...', 'warning');
+    showToast('Refreshing usage...', 'warning');
     try {
         const res = await fetch('/api/error-credentials/' + id + '/usage', {
             headers: { 'Authorization': 'Bearer ' + authToken }
@@ -91,22 +91,22 @@ async function refreshErrorAccountUsage(id) {
         const result = await res.json();
         if (result.success) {
             if (result.restored) {
-                showToast('用量获取成功，账号已恢复到正常列表', 'success');
+                showToast('Usage retrieved successfully, account restored to normal list', 'success');
                 loadErrorAccounts();
                 updateSidebarStats();
             } else {
-                showToast('用量获取成功', 'success');
+                showToast('Usage retrieved successfully', 'success');
             }
         } else {
-            showToast('用量获取失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Failed to get usage: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (err) {
-        showToast('用量获取失败: ' + err.message, 'error');
+        showToast('Failed to get usage: ' + err.message, 'error');
     }
 }
 
 async function restoreErrorAccount(id) {
-    if (!confirm('确定要恢复此账号吗？（不刷新 Token）')) return;
+    if (!confirm('Are you sure you want to restore this account? (Token will not be refreshed)')) return;
     try {
         const res = await fetch('/api/error-credentials/' + id + '/restore', {
             method: 'POST',
@@ -114,38 +114,38 @@ async function restoreErrorAccount(id) {
         });
         const result = await res.json();
         if (result.success) {
-            showToast('账号已恢复', 'success');
+            showToast('Account restored', 'success');
             loadErrorAccounts();
             updateSidebarStats();
         } else {
-            showToast('恢复失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Restore failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (err) {
-        showToast('恢复失败: ' + err.message, 'error');
+        showToast('Restore failed: ' + err.message, 'error');
     }
 }
 
 async function deleteErrorAccount(id) {
-    if (!confirm('确定要删除此账号吗？')) return;
+    if (!confirm('Are you sure you want to delete this account?')) return;
     try {
         await fetch('/api/error-credentials/' + id, {
             method: 'DELETE',
             headers: { 'Authorization': 'Bearer ' + authToken }
         });
-        showToast('账号已删除', 'success');
+        showToast('Account deleted', 'success');
         loadErrorAccounts();
         updateSidebarStats();
     } catch (err) {
-        showToast('删除失败: ' + err.message, 'error');
+        showToast('Delete failed: ' + err.message, 'error');
     }
 }
 
 async function refreshAllErrorAccounts() {
     if (errorAccounts.length === 0) {
-        showToast('没有需要刷新的账号', 'warning');
+        showToast('No accounts to refresh', 'warning');
         return;
     }
-    showToast('正在批量刷新...', 'warning');
+    showToast('Batch refreshing...', 'warning');
     let successCount = 0;
     let failCount = 0;
 
@@ -166,17 +166,17 @@ async function refreshAllErrorAccounts() {
         }
     }
 
-    showToast('刷新完成: ' + successCount + ' 成功, ' + failCount + ' 失败', successCount > 0 ? 'success' : 'warning');
+    showToast('Refresh complete: ' + successCount + ' succeeded, ' + failCount + ' failed', successCount > 0 ? 'success' : 'warning');
     loadErrorAccounts();
     updateSidebarStats();
 }
 
 async function deleteAllErrorAccounts() {
     if (errorAccounts.length === 0) {
-        showToast('没有需要删除的账号', 'warning');
+        showToast('No accounts to delete', 'warning');
         return;
     }
-    if (!confirm('确定要删除所有 ' + errorAccounts.length + ' 个异常账号吗？')) return;
+    if (!confirm('Are you sure you want to delete all ' + errorAccounts.length + ' error accounts?')) return;
 
     for (const acc of errorAccounts) {
         try {
@@ -187,7 +187,7 @@ async function deleteAllErrorAccounts() {
         } catch (err) {}
     }
 
-    showToast('已清空所有异常账号', 'success');
+    showToast('All error accounts cleared', 'success');
     loadErrorAccounts();
     updateSidebarStats();
 }

@@ -1,34 +1,34 @@
 /**
- * 统一日志模块
- * 支持按模块写入不同的日志文件
+ * Unified Logging Module
+ * Supports writing to different log files by module
  */
 import fs from 'fs';
 import path from 'path';
 
-// 日志目录
+// Log directory
 const LOG_DIR = process.env.LOG_DIR || path.join(process.cwd(), 'logs');
 
-// 确保日志目录存在
+// Ensure log directory exists
 if (!fs.existsSync(LOG_DIR)) {
     fs.mkdirSync(LOG_DIR, { recursive: true });
 }
 
 /**
- * 获取当前时间戳字符串
+ * Get current timestamp string
  */
 function getTimestamp() {
     return new Date().toISOString().replace('T', ' ').substring(0, 19);
 }
 
 /**
- * 获取当前日期字符串 (用于日志文件名)
+ * Get current date string (for log file names)
  */
 function getDateStr() {
     return new Date().toISOString().substring(0, 10);
 }
 
 /**
- * 日志级别
+ * Log levels
  */
 const LogLevel = {
     DEBUG: 0,
@@ -38,7 +38,7 @@ const LogLevel = {
 };
 
 /**
- * 当前日志级别（可通过环境变量配置）
+ * Current log level (configurable via environment variable)
  */
 let currentLevel = LogLevel.INFO;
 if (process.env.LOG_LEVEL) {
@@ -49,23 +49,23 @@ if (process.env.LOG_LEVEL) {
 }
 
 /**
- * 是否启用日志（可通过环境变量禁用）
+ * Whether logging is enabled (can be disabled via environment variable)
  */
 const enabled = process.env.LOG_ENABLED !== 'false';
 
 /**
- * 是否同时输出到控制台
+ * Whether to output to console simultaneously
  */
 const consoleOutput = process.env.LOG_CONSOLE !== 'false';
 
 /**
- * 写入流缓存
+ * Write stream cache
  */
 const streams = new Map();
 
 /**
- * 获取或创建写入流
- * @param {string} module - 模块名称
+ * Get or create write stream
+ * @param {string} module - Module name
  * @returns {fs.WriteStream}
  */
 function getStream(module) {
@@ -76,7 +76,7 @@ function getStream(module) {
         return streams.get(key);
     }
 
-    // 关闭旧的流（不同日期的）
+    // Close old streams (from different dates)
     for (const [k, stream] of streams) {
         if (k.startsWith(`${module}-`) && k !== key) {
             stream.end();
@@ -92,10 +92,10 @@ function getStream(module) {
 }
 
 /**
- * 写入日志到文件
- * @param {string} module - 模块名称
- * @param {string} level - 日志级别
- * @param {string} message - 日志消息
+ * Write log to file
+ * @param {string} module - Module name
+ * @param {string} level - Log level
+ * @param {string} message - Log message
  */
 function writeToFile(module, level, message) {
     const stream = getStream(module);
@@ -104,7 +104,7 @@ function writeToFile(module, level, message) {
 }
 
 /**
- * 格式化参数为字符串
+ * Format arguments to string
  */
 function formatArgs(args) {
     return args.map(arg => {
@@ -120,9 +120,9 @@ function formatArgs(args) {
 }
 
 /**
- * 创建模块日志器
- * @param {string} module - 模块名称
- * @returns {Object} 日志器对象
+ * Create module logger
+ * @param {string} module - Module name
+ * @returns {Object} Logger object
  */
 export function createLogger(module) {
     const prefix = `[${module}]`;
@@ -160,21 +160,21 @@ export function createLogger(module) {
         },
 
         /**
-         * 记录 HTTP 请求
+         * Log HTTP request
          */
         request(method, url) {
-            this.info(`请求: ${method} ${url}`);
+            this.info(`Request: ${method} ${url}`);
         },
 
         /**
-         * 记录成功
+         * Log success
          */
         success(message) {
             this.info(`✓ ${message}`);
         },
 
         /**
-         * 记录失败
+         * Log failure
          */
         fail(message, statusCode) {
             if (statusCode) {
@@ -185,7 +185,7 @@ export function createLogger(module) {
         },
 
         /**
-         * 打印 curl 命令
+         * Print curl command
          */
         curl(method, url, headers, data) {
             const curlCmd = buildCurlCommand(method, url, headers, data);
@@ -195,32 +195,32 @@ export function createLogger(module) {
 }
 
 /**
- * 构建 curl 命令字符串
- * @param {string} method - HTTP 方法
- * @param {string} url - 请求 URL
- * @param {Object} headers - 请求头
- * @param {Object|string} data - 请求体
- * @returns {string} curl 命令
+ * Build curl command string
+ * @param {string} method - HTTP method
+ * @param {string} url - Request URL
+ * @param {Object} headers - Request headers
+ * @param {Object|string} data - Request body
+ * @returns {string} curl command
  */
 function buildCurlCommand(method, url, headers, data) {
     const parts = ['curl'];
 
-    // 添加方法
+    // Add method
     if (method && method.toUpperCase() !== 'GET') {
         parts.push(`-X ${method.toUpperCase()}`);
     }
 
-    // 添加 URL
+    // Add URL
     parts.push(`'${url}'`);
 
-    // 添加请求头（不脱敏，完整输出）
+    // Add request headers (no masking, full output)
     if (headers) {
         for (const [key, value] of Object.entries(headers)) {
             parts.push(`-H '${key}: ${value}'`);
         }
     }
 
-    // 添加请求体（完整输出，不截断）
+    // Add request body (full output, no truncation)
     if (data) {
         let bodyStr;
         if (typeof data === 'string') {
@@ -228,7 +228,7 @@ function buildCurlCommand(method, url, headers, data) {
         } else {
             bodyStr = JSON.stringify(data);
         }
-        // 转义单引号
+        // Escape single quotes
         bodyStr = bodyStr.replace(/'/g, "'\\''");
         parts.push(`-d '${bodyStr}'`);
     }
@@ -237,8 +237,8 @@ function buildCurlCommand(method, url, headers, data) {
 }
 
 /**
- * 预定义的模块日志器
- * 每个模块写入独立的日志文件:
+ * Predefined module loggers
+ * Each module writes to independent log files:
  * - logs/api-YYYY-MM-DD.log
  * - logs/client-YYYY-MM-DD.log
  * - logs/auth-YYYY-MM-DD.log
@@ -256,8 +256,8 @@ export const logger = {
 };
 
 /**
- * 设置日志级别
- * @param {string} level - 日志级别 (DEBUG/INFO/WARN/ERROR)
+ * Set log level
+ * @param {string} level - Log level (DEBUG/INFO/WARN/ERROR)
  */
 export function setLogLevel(level) {
     const upperLevel = level.toUpperCase();
@@ -267,7 +267,7 @@ export function setLogLevel(level) {
 }
 
 /**
- * 关闭所有日志流
+ * Close all log streams
  */
 export function closeAllStreams() {
     for (const [, stream] of streams) {
@@ -277,7 +277,7 @@ export function closeAllStreams() {
 }
 
 /**
- * 获取时间戳（供外部使用）
+ * Get timestamp (for external use)
  */
 export { getTimestamp };
 

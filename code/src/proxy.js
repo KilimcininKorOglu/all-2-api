@@ -1,6 +1,6 @@
 /**
- * 代理配置模块
- * 支持 HTTP/HTTPS/SOCKS5 代理
+ * Proxy Configuration Module
+ * Supports HTTP/HTTPS/SOCKS5 proxies
  */
 
 import { HttpsProxyAgent } from 'https-proxy-agent';
@@ -10,9 +10,9 @@ let proxyConfig = null;
 let proxyAgent = null;
 
 /**
- * 解析代理配置字符串
- * 支持格式：
- * - host:port:username:password (ISP 格式)
+ * Parse proxy configuration string
+ * Supported formats:
+ * - host:port:username:password (ISP format)
  * - http://username:password@host:port
  * - http://host:port
  */
@@ -23,12 +23,12 @@ export function parseProxyString(proxyStr) {
 
     proxyStr = proxyStr.trim();
 
-    // 如果已经是 URL 格式
+    // If already in URL format
     if (proxyStr.startsWith('http://') || proxyStr.startsWith('https://')) {
         return proxyStr;
     }
 
-    // ISP 格式: host:port:username:password
+    // ISP format: host:port:username:password
     const parts = proxyStr.split(':');
     if (parts.length === 4) {
         const [host, port, username, password] = parts;
@@ -38,12 +38,12 @@ export function parseProxyString(proxyStr) {
         return `http://${host}:${port}`;
     }
 
-    // 无法解析，返回原始字符串
+    // Cannot parse, return original string
     return proxyStr;
 }
 
 /**
- * 创建代理 Agent
+ * Create proxy Agent
  */
 export function createProxyAgent(proxyUrl) {
     if (!proxyUrl) {
@@ -53,13 +53,13 @@ export function createProxyAgent(proxyUrl) {
 }
 
 /**
- * 初始化代理配置（从数据库加载）
+ * Initialize proxy configuration (load from database)
  */
 export async function initProxyConfig() {
     try {
         const db = await getDatabase();
 
-        // 确保 settings 表存在
+        // Ensure settings table exists
         await db.execute(`
             CREATE TABLE IF NOT EXISTS settings (
                 \`key\` VARCHAR(255) PRIMARY KEY,
@@ -78,26 +78,26 @@ export async function initProxyConfig() {
                 if (proxyConfig.enabled && proxyConfig.proxyUrl) {
                     const proxyUrl = parseProxyString(proxyConfig.proxyUrl);
                     proxyAgent = createProxyAgent(proxyUrl);
-                    console.log('[Proxy] 代理配置已加载:', proxyConfig.proxyUrl);
+                    console.log('[Proxy] Proxy configuration loaded:', proxyConfig.proxyUrl);
                 }
             }
         }
     } catch (error) {
-        console.error('加载代理配置失败:', error.message);
+        console.error('Failed to load proxy configuration:', error.message);
     }
 
     return proxyConfig;
 }
 
 /**
- * 获取当前代理配置
+ * Get current proxy configuration
  */
 export function getProxyConfig() {
     return proxyConfig;
 }
 
 /**
- * 获取代理 Agent（用于 axios 请求）
+ * Get proxy Agent (for axios requests)
  */
 export function getProxyAgent() {
     if (!proxyConfig || !proxyConfig.enabled) {
@@ -107,12 +107,12 @@ export function getProxyAgent() {
 }
 
 /**
- * 保存代理配置到数据库
+ * Save proxy configuration to database
  */
 export async function saveProxyConfig(config) {
     const db = await getDatabase();
 
-    // 确保 settings 表存在
+    // Ensure settings table exists
     await db.execute(`
         CREATE TABLE IF NOT EXISTS settings (
             \`key\` VARCHAR(255) PRIMARY KEY,
@@ -123,43 +123,43 @@ export async function saveProxyConfig(config) {
 
     const configStr = JSON.stringify(config);
 
-    // 使用 REPLACE 来插入或更新
+    // Use REPLACE to insert or update
     await db.execute(`
         REPLACE INTO settings (\`key\`, value, updated_at)
         VALUES (?, ?, NOW())
     `, ['proxy_config', configStr]);
 
-    // 更新内存中的配置
+    // Update in-memory configuration
     proxyConfig = config;
 
     if (config.enabled && config.proxyUrl) {
         const proxyUrl = parseProxyString(config.proxyUrl);
         proxyAgent = createProxyAgent(proxyUrl);
-        console.log('[Proxy] 代理配置已保存并启用:', config.proxyUrl);
+        console.log('[Proxy] Proxy configuration saved and enabled:', config.proxyUrl);
     } else {
         proxyAgent = null;
-        console.log('[Proxy] 代理已禁用');
+        console.log('[Proxy] Proxy disabled');
     }
 
     return config;
 }
 
 /**
- * 获取 axios 请求配置（包含代理）
- * 优先使用数据库配置，如果未启用则尝试使用环境变量代理
+ * Get axios request configuration (including proxy)
+ * Prioritize database configuration, fallback to environment variable proxy if not enabled
  */
 export function getAxiosProxyConfig() {
-    // 优先使用数据库配置的代理
+    // Prioritize database configured proxy
     const agent = getProxyAgent();
     if (agent) {
         return {
             httpAgent: agent,
             httpsAgent: agent,
-            proxy: false  // 禁用 axios 内置代理，使用 agent
+            proxy: false  // Disable axios built-in proxy, use agent
         };
     }
 
-    // 如果数据库代理未启用，尝试使用环境变量代理
+    // If database proxy not enabled, try environment variable proxy
     const envProxy = process.env.HTTPS_PROXY || process.env.https_proxy ||
                      process.env.HTTP_PROXY || process.env.http_proxy;
     if (envProxy) {
@@ -177,7 +177,7 @@ export function getAxiosProxyConfig() {
 }
 
 /**
- * 测试代理连接
+ * Test proxy connection
  */
 export async function testProxyConnection(proxyUrl) {
     const axios = (await import('axios')).default;
@@ -196,12 +196,12 @@ export async function testProxyConnection(proxyUrl) {
         return {
             success: true,
             ip: response.data.origin,
-            message: `代理连接成功，出口 IP: ${response.data.origin}`
+            message: `Proxy connection successful, exit IP: ${response.data.origin}`
         };
     } catch (error) {
         return {
             success: false,
-            message: `代理连接失败: ${error.message}`
+            message: `Proxy connection failed: ${error.message}`
         };
     }
 }

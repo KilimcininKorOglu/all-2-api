@@ -1,6 +1,6 @@
 /**
- * Orchids API 路由
- * 整合自 orchids-api-main 的功能
+ * Orchids API Routes
+ * Integrated from orchids-api-main functionality
  */
 import { OrchidsAPI } from './orchids-service.js';
 import { OrchidsChatService, ORCHIDS_MODELS } from './orchids-chat-service.js';
@@ -9,42 +9,42 @@ import { startRegisterTask, getRegisterTask, getAllRegisterTasks, cancelRegister
 
 export function setupOrchidsRoutes(app, orchidsStore) {
     
-    // ============ 自动注册功能 ============
+    // ============ Auto Registration Feature ============
 
-    // 启动注册任务
+    // Start registration task
     app.post('/api/orchids/register/start', async (req, res) => {
         try {
             const { count = 1 } = req.body;
             
             if (count < 1 || count > 50) {
-                return res.status(400).json({ success: false, error: '注册数量必须在 1-50 之间' });
+                return res.status(400).json({ success: false, error: 'Registration count must be between 1-50' });
             }
 
-            // 获取当前服务器地址
+            // Get current server address
             const protocol = req.protocol;
             const host = req.get('host');
             const serverUrl = `${protocol}://${host}`;
 
             const taskId = await startRegisterTask(count, orchidsStore, serverUrl);
             
-            res.json({ 
-                success: true, 
+            res.json({
+                success: true,
                 taskId,
-                message: `注册任务已启动，目标: ${count} 个账号`
+                message: `Registration task started, target: ${count} accounts`
             });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 获取注册任务状态
+    // Get registration task status
     app.get('/api/orchids/register/task/:taskId', async (req, res) => {
         try {
             const { taskId } = req.params;
             const task = getRegisterTask(taskId);
-            
+
             if (!task) {
-                return res.status(404).json({ success: false, error: '任务不存在' });
+                return res.status(404).json({ success: false, error: 'Task not found' });
             }
             
             res.json({ success: true, data: task.toJSON() });
@@ -53,7 +53,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 获取所有注册任务
+    // Get all registration tasks
     app.get('/api/orchids/register/tasks', async (req, res) => {
         try {
             const tasks = getAllRegisterTasks();
@@ -63,29 +63,29 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 取消注册任务
+    // Cancel registration task
     app.post('/api/orchids/register/cancel/:taskId', async (req, res) => {
         try {
             const { taskId } = req.params;
             const cancelled = cancelRegisterTask(taskId);
-            
+
             if (!cancelled) {
-                return res.status(404).json({ success: false, error: '任务不存在或已结束' });
+                return res.status(404).json({ success: false, error: 'Task not found or already finished' });
             }
-            
-            res.json({ success: true, message: '任务已取消' });
+
+            res.json({ success: true, message: 'Task cancelled' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // SSE 实时日志流
+    // SSE real-time log stream
     app.get('/api/orchids/register/stream/:taskId', async (req, res) => {
         const { taskId } = req.params;
         const task = getRegisterTask(taskId);
-        
+
         if (!task) {
-            return res.status(404).json({ success: false, error: '任务不存在' });
+            return res.status(404).json({ success: false, error: 'Task not found' });
         }
 
         res.setHeader('Content-Type', 'text/event-stream');
@@ -98,17 +98,17 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         const sendUpdate = () => {
             const data = task.toJSON();
             
-            // 只发送新日志
+            // Only send new logs
             const newLogs = data.logs.slice(lastLogIndex);
             lastLogIndex = data.logs.length;
             
             res.write(`data: ${JSON.stringify({ ...data, newLogs })}\n\n`);
         };
 
-        // 立即发送当前状态
+        // Immediately send current status
         sendUpdate();
 
-        // 定期发送更新
+        // Periodically send updates
         const interval = setInterval(() => {
             if (task.status === 'completed' || task.status === 'error' || task.status === 'cancelled') {
                 sendUpdate();
@@ -119,15 +119,15 @@ export function setupOrchidsRoutes(app, orchidsStore) {
             sendUpdate();
         }, 1000);
 
-        // 客户端断开连接
+        // Client disconnected
         req.on('close', () => {
             clearInterval(interval);
         });
     });
 
-    // ============ 统计信息 API ============
+    // ============ Statistics API ============
 
-    // 获取 Orchids 统计汇总
+    // Get Orchids statistics summary
     app.get('/api/orchids/stats', async (req, res) => {
         try {
             const stats = await orchidsStore.getStats();
@@ -137,22 +137,22 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // ============ 用量信息 API ============
+    // ============ Usage Info API ============
 
-    // 获取单个账号的用量信息
+    // Get single account usage info
     app.get('/api/orchids/credentials/:id/usage', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await orchidsStore.getById(id);
-            
+
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential not found' });
             }
 
             const usageResult = await OrchidsAPI.getAccountUsage(credential.clientJwt);
-            
+
             if (usageResult.success) {
-                // 更新数据库中的用量信息
+                // Update usage info in database
                 await orchidsStore.updateUsage(id, usageResult.usage);
                 
                 res.json({
@@ -180,17 +180,17 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 获取所有账号的用量信息汇总
+    // Get all accounts usage info summary
     app.get('/api/orchids/usage', async (req, res) => {
         try {
             const credentials = await orchidsStore.getAll();
-            
-            // 默认配额（Free 套餐 150K credits/月）
+
+            // Default quota (Free plan 150K credits/month)
             const DEFAULT_QUOTA = 150000;
-            
-            // 为每个账号计算用量（如果没有 usageData，使用默认配额）
+
+            // Calculate usage for each account (if no usageData, use default quota)
             const accountsWithUsage = credentials.map(cred => {
-                // 如果有缓存的用量数据，使用它
+                // If there's cached usage data, use it
                 if (cred.usageData && cred.usageData.limit) {
                     return {
                         id: cred.id,
@@ -202,9 +202,9 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                     };
                 }
                 
-                // 否则，使用默认免费套餐配额
-                // 估算已用量：可以基于本地请求统计来估算
-                // 假设每次请求平均消耗 500 credits
+                // Otherwise, use default free plan quota
+                // Estimate usage: can be estimated based on local request statistics
+                // Assume each request consumes 500 credits on average
                 const estimatedUsed = (cred.requestCount || 0) * 500;
                 const remaining = Math.max(0, DEFAULT_QUOTA - estimatedUsed);
                 
@@ -225,7 +225,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                 };
             });
             
-            // 只统计活跃账号
+            // Only count active accounts
             const activeAccounts = accountsWithUsage.filter(a => a.isActive);
             
             const usageData = {
@@ -239,7 +239,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                 }
             };
 
-            // 计算总剩余
+            // Calculate total remaining
             usageData.summary.totalRemaining = Math.max(0, usageData.summary.totalLimit - usageData.summary.totalUsed);
             usageData.summary.totalPercentage = usageData.summary.totalLimit > 0 
                 ? Math.round((usageData.summary.totalUsed / usageData.summary.totalLimit) * 100) 
@@ -251,18 +251,18 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 刷新所有账号的用量信息
+    // Refresh all accounts usage info
     app.post('/api/orchids/usage/refresh', async (req, res) => {
         try {
             const credentials = await orchidsStore.getAll();
-            
-            res.json({ 
-                success: true, 
-                message: `正在刷新 ${credentials.length} 个账号的用量信息...`,
+
+            res.json({
+                success: true,
+                message: `Refreshing usage info for ${credentials.length} accounts...`,
                 total: credentials.length
             });
 
-            // 异步执行刷新
+            // Async execute refresh
             (async () => {
                 for (const cred of credentials) {
                     try {
@@ -271,19 +271,19 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                             await orchidsStore.updateUsage(cred.id, usageResult.usage);
                         }
                     } catch (err) {
-                        console.error(`刷新账号 ${cred.id} 用量失败:`, err.message);
+                        console.error(`Failed to refresh account ${cred.id} usage:`, err.message);
                     }
-                    // 延迟避免请求过快
+                    // Delay to avoid too frequent requests
                     await new Promise(resolve => setTimeout(resolve, 500));
                 }
-                console.log('所有账号用量刷新完成');
+                console.log('All accounts usage refresh completed');
             })();
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // SSE 流式刷新用量（实时反馈进度）
+    // SSE streaming refresh usage (real-time progress feedback)
     app.get('/api/orchids/usage/refresh/stream', async (req, res) => {
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
@@ -297,7 +297,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
             let success = 0;
             let failed = 0;
 
-            // 发送开始事件
+            // Send start event
             res.write(`data: ${JSON.stringify({ type: 'start', total })}\n\n`);
 
             for (const cred of credentials) {
@@ -349,11 +349,11 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                         }
                     })}\n\n`);
                 }
-                // 延迟避免请求过快
+                // Delay to avoid too frequent requests
                 await new Promise(resolve => setTimeout(resolve, 300));
             }
 
-            // 发送完成事件
+            // Send complete event
             res.write(`data: ${JSON.stringify({ type: 'complete', total, success, failed })}\n\n`);
             res.end();
         } catch (error) {
@@ -362,23 +362,23 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 强制刷新负载均衡器缓存
+    // Force refresh load balancer cache
     app.post('/api/orchids/loadbalancer/refresh', async (req, res) => {
         try {
             const lb = await getOrchidsLoadBalancer(orchidsStore);
             if (lb) {
                 await lb.forceRefresh();
-                res.json({ success: true, message: '负载均衡器缓存已刷新' });
+                res.json({ success: true, message: 'Load balancer cache refreshed' });
             } else {
-                res.json({ success: false, error: '负载均衡器未初始化' });
+                res.json({ success: false, error: 'Load balancer not initialized' });
             }
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
-    // ============ Orchids 凭证管理 ============
+    // ============ Orchids Credential Management ============
 
-    // 获取所有 Orchids 凭证
+    // Get all Orchids credentials
     app.get('/api/orchids/credentials', async (req, res) => {
         try {
             const credentials = await orchidsStore.getAll();
@@ -388,13 +388,13 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 获取单个 Orchids 凭证
+    // Get single Orchids credential
     app.get('/api/orchids/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await orchidsStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential not found' });
             }
             res.json({ success: true, data: credential });
         } catch (error) {
@@ -402,7 +402,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 获取所有账号的健康状态
+    // Get all accounts health status
     app.get('/api/orchids/credentials/health', async (req, res) => {
         try {
             const credentials = await orchidsStore.getAll();
@@ -413,33 +413,33 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 添加 Orchids 凭证 - 只需输入 clientJwt，自动获取其他信息
+    // Add Orchids credential - only need clientJwt, auto-fetch other info
     app.post('/api/orchids/credentials', async (req, res) => {
         try {
             let { name, email, clientJwt, client_cookie, weight, enabled } = req.body;
-            
-            // 兼容 orchids-api-main 的字段名
+
+            // Compatible with orchids-api-main field names
             const token = clientJwt || client_cookie;
 
             if (!token) {
-                return res.status(400).json({ success: false, error: 'clientJwt 或 client_cookie 是必需的' });
+                return res.status(400).json({ success: false, error: 'clientJwt or client_cookie is required' });
             }
 
-            // 使用增强的方法获取完整账号信息（包括 email）
+            // Use enhanced method to get full account info (including email)
             const accountInfo = await OrchidsAPI.getFullAccountInfo(token);
             if (!accountInfo.success) {
-                return res.status(400).json({ success: false, error: `Token 验证失败: ${accountInfo.error}` });
+                return res.status(400).json({ success: false, error: `Token validation failed: ${accountInfo.error}` });
             }
 
-            // 如果没有提供 name，使用 email 或生成一个
+            // If name not provided, use email or generate one
             const finalName = name || accountInfo.email || `orchids-${Date.now()}`;
-            // 优先使用 API 返回的 email
+            // Prefer email from API response
             const finalEmail = accountInfo.email || email;
 
-            // 检查名称是否已存在
+            // Check if name already exists
             const existing = await orchidsStore.getByName(finalName);
             if (existing) {
-                return res.status(400).json({ success: false, error: '凭证名称已存在' });
+                return res.status(400).json({ success: false, error: 'Credential name already exists' });
             }
 
             const id = await orchidsStore.add({
@@ -453,7 +453,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                 isActive: enabled !== false
             });
 
-            // 刷新负载均衡器缓存
+            // Refresh load balancer cache
             const lb = await getOrchidsLoadBalancer(orchidsStore);
             if (lb) await lb.forceRefresh();
 
@@ -474,13 +474,13 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 批量导入 Orchids 凭证
+    // Batch import Orchids credentials
     app.post('/api/orchids/credentials/batch-import', async (req, res) => {
         try {
           const { accounts } = req.body;
 
             if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-                return res.status(400).json({ success: false, error: '请提供账号数组' });
+                return res.status(400).json({ success: false, error: 'Please provide accounts array' });
             }
 
             const results = {
@@ -492,33 +492,33 @@ export function setupOrchidsRoutes(app, orchidsStore) {
             for (const account of accounts) {
                 try {
                     const { email, clientJwt, client_jwt, refreshToken, refresh_token } = account;
-                    // 支持多种字段名：clientJwt, client_jwt, refreshToken, refresh_token
+                    // Support multiple field names: clientJwt, client_jwt, refreshToken, refresh_token
                     const token = clientJwt || client_jwt || refreshToken || refresh_token;
 
                     if (!token) {
                         results.failed++;
-                        results.errors.push({ email, error: '缺少 clientJwt/refreshToken' });
+                        results.errors.push({ email, error: 'Missing clientJwt/refreshToken' });
                         continue;
                     }
 
-                    // 检查是否已存在
+                    // Check if already exists
                     const name = email || `orchids-${Date.now()}`;
                     const existing = await orchidsStore.getByName(name);
                     if (existing) {
                         results.failed++;
-                        results.errors.push({ email, error: '凭证已存在' });
+                        results.errors.push({ email, error: 'Credential already exists' });
                         continue;
                     }
 
-                    // 验证 token 信息
+                    // Validate token info
                     const sessionResult = await OrchidsAPI.getSessionFromClerk(token);
                     if (!sessionResult.success) {
                         results.failed++;
-                        results.errors.push({ email, error: `Token 验证失败: ${sessionResult.error}` });
+                        results.errors.push({ email, error: `Token validation failed: ${sessionResult.error}` });
                         continue;
                     }
 
-                    // 添加凭证
+                    // Add credential
                     await orchidsStore.add({
                         name,
                         email,
@@ -538,14 +538,14 @@ export function setupOrchidsRoutes(app, orchidsStore) {
             res.json({
                 success: true,
                 data: results,
-                message: `成功导入 ${results.success} 个账号，失败 ${results.failed} 个`
+                message: `Successfully imported ${results.success} accounts, ${results.failed} failed`
             });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 更新 Orchids 凭证
+    // Update Orchids credential
     app.put('/api/orchids/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
@@ -561,85 +561,85 @@ export function setupOrchidsRoutes(app, orchidsStore) {
             
             await orchidsStore.update(id, updateData);
             
-            // 刷新负载均衡器缓存
+            // Refresh load balancer cache
             const lb = await getOrchidsLoadBalancer(orchidsStore);
             if (lb) await lb.forceRefresh();
             
-            res.json({ success: true, message: '凭证更新成功' });
+            res.json({ success: true, message: 'Credential updated successfully' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 更新账号权重
+    // Update account weight
     app.put('/api/orchids/credentials/:id/weight', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const { weight } = req.body;
-            
+
             if (weight === undefined || weight < 0) {
-                return res.status(400).json({ success: false, error: '权重必须是非负整数' });
+                return res.status(400).json({ success: false, error: 'Weight must be a non-negative integer' });
             }
             
             await orchidsStore.updateWeight(id, weight);
             
-            // 刷新负载均衡器缓存
+            // Refresh load balancer cache
             const lb = await getOrchidsLoadBalancer(orchidsStore);
             if (lb) await lb.forceRefresh();
             
-            res.json({ success: true, message: '权重更新成功' });
+            res.json({ success: true, message: 'Weight updated successfully' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 重置账号统计计数
+    // Reset account statistics counts
     app.post('/api/orchids/credentials/:id/reset-counts', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             await orchidsStore.resetCounts(id);
-            res.json({ success: true, message: '统计计数已重置' });
+            res.json({ success: true, message: 'Statistics counts reset' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 删除 Orchids 凭证
+    // Delete Orchids credential
     app.delete('/api/orchids/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             await orchidsStore.delete(id);
-            res.json({ success: true, message: '凭证删除成功' });
+            res.json({ success: true, message: 'Credential deleted successfully' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 激活 Orchids 凭证
+    // Activate Orchids credential
     app.post('/api/orchids/credentials/:id/activate', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             await orchidsStore.setActive(id);
-            res.json({ success: true, message: '凭证已激活' });
+            res.json({ success: true, message: 'Credential activated' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 测试 Orchids 凭证
+    // Test Orchids credential
     app.post('/api/orchids/credentials/:id/test', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await orchidsStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential not found' });
             }
 
-            // 验证 token
+            // Validate token
             const result = await OrchidsAPI.validateToken(credential.clientJwt);
 
             if (result.success && result.valid) {
-                // 更新凭证信息
+                // Update credential info
                 await orchidsStore.update(id, {
                     expiresAt: result.expiresAt
                 });
@@ -653,15 +653,15 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                         sessionId: result.sessionId,
                         expiresAt: result.expiresAt
                     },
-                    message: 'Token 有效'
+                    message: 'Token valid'
                 });
             } else {
-                await orchidsStore.incrementErrorCount(id, result.error || 'Token 无效');
+                await orchidsStore.incrementErrorCount(id, result.error || 'Token invalid');
                 res.json({
                     success: true,
                     valid: false,
                     error: result.error,
-                    message: 'Token 无效'
+                    message: 'Token invalid'
                 });
             }
         } catch (error) {
@@ -669,7 +669,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 获取 Orchids 错误凭证列表
+    // Get Orchids error credentials list
     app.get('/api/orchids/error-credentials', async (req, res) => {
         try {
             const errors = await orchidsStore.getAllErrors();
@@ -678,18 +678,18 @@ export function setupOrchidsRoutes(app, orchidsStore) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
-    // 删除 Orchids 错误凭证
+    // Delete Orchids error credential
     app.delete('/api/orchids/error-credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             await orchidsStore.deleteError(id);
-            res.json({ success: true, message: '错误凭证已删除' });
+            res.json({ success: true, message: 'Error credential deleted' });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
         }
     });
 
-    // 刷新 Orchids 错误凭证并恢复
+    // Refresh Orchids error credential and restore
     app.post('/api/orchids/error-credentials/:id/refresh', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
@@ -697,15 +697,15 @@ export function setupOrchidsRoutes(app, orchidsStore) {
 
             const errorCred = await orchidsStore.getErrorById(id);
             if (!errorCred) {
-                return res.status(404).json({ success: false, error: '错误凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Error credential not found' });
             }
 
             const tokenToUse = clientJwt || errorCred.clientJwt;
 
-            // 验证新的 token
+            // Validate new token
             const sessionResult = await OrchidsAPI.getSessionFromClerk(tokenToUse);
             if (!sessionResult.success) {
-                return res.status(400).json({ success: false, error: `Token 验证失败: ${sessionResult.error}` });
+                return res.status(400).json({ success: false, error: `Token validation failed: ${sessionResult.error}` });
             }
 
             const newId = await orchidsStore.restoreFromError(id, tokenToUse, sessionResult.expiresAt);
@@ -713,21 +713,21 @@ export function setupOrchidsRoutes(app, orchidsStore) {
             res.json({
                 success: true,
                 data: { newId, expiresAt: sessionResult.expiresAt },
-                message: 'Token 验证成功，凭证已恢复'
+                message: 'Token validation successful, credential restored'
             });
         } catch (error) {
-            res.status(500).json({ success: false, error: `Token 验证失败: ${error.message}` });
+            res.status(500).json({ success: false, error: `Token validation failed: ${error.message}` });
         }
     });
 
-    // ============ 导出/导入功能（整合自 orchids-api-main）============
+    // ============ Export/Import Feature (integrated from orchids-api-main) ============
 
-    // 导出所有账号数据 (JSON)
+    // Export all account data (JSON)
     app.get('/api/orchids/export', async (req, res) => {
         try {
             const credentials = await orchidsStore.getAll();
             
-            // 格式化为导出格式
+            // Format as export format
             const exportData = credentials.map(cred => ({
                 name: cred.name,
                 email: cred.email,
@@ -746,13 +746,13 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 导入账号数据 (JSON)
+    // Import account data (JSON)
     app.post('/api/orchids/import', async (req, res) => {
         try {
             const accounts = req.body;
-            
+
             if (!Array.isArray(accounts)) {
-                return res.status(400).json({ success: false, error: '请提供账号数组' });
+                return res.status(400).json({ success: false, error: 'Please provide accounts array' });
             }
 
             let imported = 0;
@@ -766,7 +766,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                         continue;
                     }
 
-                    // 检查是否已存在
+                    // Check if already exists
                     const name = account.name || account.email || `orchids-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
                     const existing = await orchidsStore.getByName(name);
                     if (existing) {
@@ -774,7 +774,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                         continue;
                     }
 
-                    // 验证并获取完整信息
+                    // Validate and get full info
                     const accountInfo = await OrchidsAPI.getFullAccountInfo(token);
                     if (!accountInfo.success) {
                         skipped++;
@@ -802,14 +802,14 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 一键刷新所有账号
+    // One-click refresh all accounts
     app.post('/api/orchids/refresh-all', async (req, res) => {
         try {
             const credentials = await orchidsStore.getAll();
-            
-            res.json({ success: true, message: '刷新任务已启动' });
 
-            // 异步执行刷新
+            res.json({ success: true, message: 'Refresh task started' });
+
+            // Async execute refresh
             (async () => {
                 for (const cred of credentials) {
                     try {
@@ -835,13 +835,13 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 批量删除账号
+    // Batch delete accounts
     app.post('/api/orchids/batch-delete', async (req, res) => {
         try {
             const { ids } = req.body;
 
             if (!Array.isArray(ids) || ids.length === 0) {
-                return res.status(400).json({ success: false, error: '请提供要删除的账号 ID 数组' });
+                return res.status(400).json({ success: false, error: 'Please provide account IDs array to delete' });
             }
 
             let deleted = 0;
@@ -862,20 +862,20 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // 测试单个账号激活状态
+    // Test single account activation status
     app.post('/api/orchids/credentials/:id/activate-test', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await orchidsStore.getById(id);
-            
+
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential not found' });
             }
 
             const healthResult = await OrchidsAPI.testAccountHealth(credential.clientJwt);
 
             if (healthResult.isHealthy) {
-                // 更新凭证信息
+                // Update credential info
                 if (healthResult.data) {
                     await orchidsStore.update(id, {
                         email: healthResult.data.email,
@@ -898,9 +898,9 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // ============ Orchids 聊天 API ============
+    // ============ Orchids Chat API ============
 
-    // 获取 Orchids 支持的模型列表
+    // Get Orchids supported models list
     app.get('/api/orchids/models', async (req, res) => {
         try {
             res.json({
@@ -912,27 +912,27 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // Orchids 聊天端点 - 流式 SSE (使用指定凭证)
+    // Orchids chat endpoint - streaming SSE (using specified credential)
     app.post('/api/orchids/chat/:id', async (req, res) => {
         const id = parseInt(req.params.id);
 
         try {
             const credential = await orchidsStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential not found' });
             }
 
             const { messages, model, system, max_tokens, stream = true } = req.body;
 
             if (!messages || !Array.isArray(messages)) {
-                return res.status(400).json({ success: false, error: '缺少 messages 参数' });
+                return res.status(400).json({ success: false, error: 'Missing messages parameter' });
             }
 
             const service = new OrchidsChatService(credential);
             const requestBody = { messages, system, max_tokens };
 
             if (stream) {
-                // 流式响应
+                // Streaming response
                 res.setHeader('Content-Type', 'text/event-stream');
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('Connection', 'keep-alive');
@@ -952,7 +952,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                     res.end();
                 }
             } else {
-                // 非流式响应
+                // Non-streaming response
                 const response = await service.generateContent(model, requestBody);
                 res.json(response);
             }
@@ -961,20 +961,20 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // Orchids 聊天端点 - 非流式 (使用指定凭证)
+    // Orchids chat endpoint - non-streaming (using specified credential)
     app.post('/api/orchids/chat/:id/sync', async (req, res) => {
         const id = parseInt(req.params.id);
 
         try {
             const credential = await orchidsStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential not found' });
             }
 
             const { messages, model, system, max_tokens } = req.body;
 
             if (!messages || !Array.isArray(messages)) {
-                return res.status(400).json({ success: false, error: '缺少 messages 参数' });
+                return res.status(400).json({ success: false, error: 'Missing messages parameter' });
             }
 
             const service = new OrchidsChatService(credential);
@@ -987,28 +987,28 @@ export function setupOrchidsRoutes(app, orchidsStore) {
         }
     });
 
-    // Orchids 聊天端点 - 使用活跃凭证
+    // Orchids chat endpoint - using active credential
     app.post('/api/orchids/chat', async (req, res) => {
         try {
-            // 获取活跃凭证
+            // Get active credential
             const credentials = await orchidsStore.getAll();
             const activeCredential = credentials.find(c => c.isActive) || credentials[0];
 
             if (!activeCredential) {
-                return res.status(400).json({ success: false, error: '没有可用的 Orchids 凭证' });
+                return res.status(400).json({ success: false, error: 'No available Orchids credential' });
             }
 
             const { messages, model, system, max_tokens, stream = true } = req.body;
 
             if (!messages || !Array.isArray(messages)) {
-                return res.status(400).json({ success: false, error: '缺少 messages 参数' });
+                return res.status(400).json({ success: false, error: 'Missing messages parameter' });
             }
 
             const service = new OrchidsChatService(activeCredential);
             const requestBody = { messages, system, max_tokens };
 
             if (stream) {
-                // 流式响应
+                // Streaming response
                 res.setHeader('Content-Type', 'text/event-stream');
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('Connection', 'keep-alive');
@@ -1028,7 +1028,7 @@ export function setupOrchidsRoutes(app, orchidsStore) {
                     res.end();
                 }
             } else {
-                // 非流式响应
+                // Non-streaming response
                 const response = await service.generateContent(model, requestBody);
                 res.json(response);
             }

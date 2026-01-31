@@ -1,13 +1,13 @@
 /**
- * 多代理循环系统 (Multi-Agent Loop System)
- * 
- * 实现原理：
- * 1. 用户提问 → 发送到 AI
- * 2. AI 返回响应（可能包含工具调用）
- * 3. 如果有工具调用 → 执行工具 → 将结果回传给 AI
- * 4. 循环直到 AI 返回最终答案（无工具调用）
- * 
- * 参考 Warp 的 /ai/multi-agent 接口实现
+ * Multi-Agent Loop System
+ *
+ * Implementation principle:
+ * 1. User question -> Send to AI
+ * 2. AI returns response (may contain tool calls)
+ * 3. If there are tool calls -> Execute tools -> Return results to AI
+ * 4. Loop until AI returns final answer (no tool calls)
+ *
+ * Reference: Warp's /ai/multi-agent interface implementation
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -18,18 +18,18 @@ import path from 'path';
 
 const execAsync = promisify(exec);
 
-// ==================== 工具定义 ====================
+// ==================== Tool Definitions ====================
 
 /**
- * 可用工具列表
+ * Available tools list
  */
 const AVAILABLE_TOOLS = {
-    // 文件系统工具
+    // File system tools
     list_dir: {
         name: 'list_dir',
-        description: '列出目录内容',
+        description: 'List directory contents',
         parameters: {
-            path: { type: 'string', description: '目录路径', required: true }
+            path: { type: 'string', description: 'Directory path', required: true }
         },
         handler: async (params) => {
             const files = await fs.readdir(params.path, { withFileTypes: true });
@@ -39,13 +39,13 @@ const AVAILABLE_TOOLS = {
             }));
         }
     },
-    
+
     read_file: {
         name: 'read_file',
-        description: '读取文件内容',
+        description: 'Read file contents',
         parameters: {
-            path: { type: 'string', description: '文件路径', required: true },
-            limit: { type: 'number', description: '最大行数', required: false }
+            path: { type: 'string', description: 'File path', required: true },
+            limit: { type: 'number', description: 'Maximum lines', required: false }
         },
         handler: async (params) => {
             const content = await fs.readFile(params.path, 'utf-8');
@@ -55,27 +55,27 @@ const AVAILABLE_TOOLS = {
             return content;
         }
     },
-    
+
     write_file: {
         name: 'write_file',
-        description: '写入文件',
+        description: 'Write to file',
         parameters: {
-            path: { type: 'string', description: '文件路径', required: true },
-            content: { type: 'string', description: '文件内容', required: true }
+            path: { type: 'string', description: 'File path', required: true },
+            content: { type: 'string', description: 'File content', required: true }
         },
         handler: async (params) => {
             await fs.writeFile(params.path, params.content, 'utf-8');
-            return { success: true, message: `文件已写入: ${params.path}` };
+            return { success: true, message: `File written: ${params.path}` };
         }
     },
-    
-    // Shell 命令工具
+
+    // Shell command tools
     run_command: {
         name: 'run_command',
-        description: '执行 shell 命令',
+        description: 'Execute shell command',
         parameters: {
-            command: { type: 'string', description: '要执行的命令', required: true },
-            cwd: { type: 'string', description: '工作目录', required: false }
+            command: { type: 'string', description: 'Command to execute', required: true },
+            cwd: { type: 'string', description: 'Working directory', required: false }
         },
         handler: async (params) => {
             try {
@@ -86,22 +86,22 @@ const AVAILABLE_TOOLS = {
                 });
                 return { stdout, stderr, exitCode: 0 };
             } catch (error) {
-                return { 
-                    stdout: error.stdout || '', 
+                return {
+                    stdout: error.stdout || '',
                     stderr: error.stderr || error.message,
-                    exitCode: error.code || 1 
+                    exitCode: error.code || 1
                 };
             }
         }
     },
-    
-    // 搜索工具
+
+    // Search tools
     grep_search: {
         name: 'grep_search',
-        description: '在文件中搜索内容',
+        description: 'Search content in files',
         parameters: {
-            pattern: { type: 'string', description: '搜索模式', required: true },
-            path: { type: 'string', description: '搜索路径', required: true }
+            pattern: { type: 'string', description: 'Search pattern', required: true },
+            path: { type: 'string', description: 'Search path', required: true }
         },
         handler: async (params) => {
             try {
@@ -109,32 +109,32 @@ const AVAILABLE_TOOLS = {
                     `grep -rn "${params.pattern}" "${params.path}" 2>/dev/null | head -50`,
                     { maxBuffer: 1024 * 1024 }
                 );
-                return stdout || '未找到匹配内容';
+                return stdout || 'No matches found';
             } catch (error) {
-                return '未找到匹配内容';
+                return 'No matches found';
             }
         }
     }
 };
 
-// ==================== 会话管理 ====================
+// ==================== Session Management ====================
 
 /**
- * 会话存储
+ * Session storage
  */
 class SessionStore {
     constructor() {
         this.sessions = new Map();
     }
-    
+
     create(userId) {
         const sessionId = uuidv4();
         const session = {
             id: sessionId,
             userId,
-            messages: [],      // 对话历史
-            toolCalls: [],     // 工具调用历史
-            context: {},       // 上下文信息
+            messages: [],      // Conversation history
+            toolCalls: [],     // Tool call history
+            context: {},       // Context information
             createdAt: new Date(),
             updatedAt: new Date()
         };
@@ -184,30 +184,30 @@ class SessionStore {
     }
 }
 
-// ==================== 多代理循环核心 ====================
+// ==================== Multi-Agent Loop Core ====================
 
 /**
- * 多代理服务
+ * Multi-Agent Service
  */
 export class MultiAgentService {
     constructor(options = {}) {
         this.sessionStore = new SessionStore();
         this.tools = { ...AVAILABLE_TOOLS, ...options.customTools };
-        this.maxIterations = options.maxIterations || 10;  // 最大循环次数
-        this.aiClient = options.aiClient;  // AI 客户端（如 OpenAI、Claude 等）
-        this.onToolCall = options.onToolCall;  // 工具调用回调
-        this.onIteration = options.onIteration;  // 每次迭代回调
+        this.maxIterations = options.maxIterations || 10;  // Maximum loop iterations
+        this.aiClient = options.aiClient;  // AI client (e.g., OpenAI, Claude, etc.)
+        this.onToolCall = options.onToolCall;  // Tool call callback
+        this.onIteration = options.onIteration;  // Each iteration callback
     }
-    
+
     /**
-     * 注册自定义工具
+     * Register custom tool
      */
     registerTool(name, tool) {
         this.tools[name] = tool;
     }
-    
+
     /**
-     * 构建工具定义（用于发送给 AI）
+     * Build tool definitions (for sending to AI)
      */
     buildToolDefinitions() {
         return Object.values(this.tools).map(tool => ({
@@ -230,16 +230,16 @@ export class MultiAgentService {
             }
         }));
     }
-    
+
     /**
-     * 执行工具调用
+     * Execute tool call
      */
     async executeTool(toolName, params) {
         const tool = this.tools[toolName];
         if (!tool) {
-            throw new Error(`未知工具: ${toolName}`);
+            throw new Error(`Unknown tool: ${toolName}`);
         }
-        
+
         try {
             const result = await tool.handler(params);
             return {
@@ -255,56 +255,56 @@ export class MultiAgentService {
     }
     
     /**
-     * 核心：多代理循环处理
-     * 
-     * @param {string} userQuery - 用户问题
-     * @param {object} options - 选项
-     * @returns {AsyncGenerator} - 流式返回结果
+     * Core: Multi-agent loop processing
+     *
+     * @param {string} userQuery - User question
+     * @param {object} options - Options
+     * @returns {AsyncGenerator} - Stream return results
      */
     async *processQuery(userQuery, options = {}) {
         const sessionId = options.sessionId || this.sessionStore.create(options.userId || 'anonymous').id;
         const session = this.sessionStore.get(sessionId);
-        
-        // 添加用户消息
+
+        // Add user message
         this.sessionStore.addMessage(sessionId, 'user', userQuery);
-        
+
         let iteration = 0;
         let isComplete = false;
-        
+
         while (!isComplete && iteration < this.maxIterations) {
             iteration++;
-            
-            // 发送迭代开始事件
+
+            // Send iteration start event
             yield {
                 type: 'iteration_start',
                 iteration,
                 sessionId
             };
-            
-            // 构建请求消息
+
+            // Build request messages
             const messages = this.buildMessages(session);
-            
-            // 调用 AI
+
+            // Call AI
             const aiResponse = await this.callAI(messages, options);
-            
-            // 发送 AI 响应事件
+
+            // Send AI response event
             yield {
                 type: 'ai_response',
                 iteration,
                 content: aiResponse.content,
                 toolCalls: aiResponse.toolCalls
             };
-            
-            // 检查是否有工具调用
+
+            // Check if there are tool calls
             if (aiResponse.toolCalls && aiResponse.toolCalls.length > 0) {
-                // 添加 AI 消息（带工具调用）
+                // Add AI message (with tool calls)
                 this.sessionStore.addMessage(sessionId, 'assistant', aiResponse.content || '', null);
-                
-                // 执行所有工具调用
+
+                // Execute all tool calls
                 for (const toolCall of aiResponse.toolCalls) {
                     const toolCallId = toolCall.id || uuidv4();
-                    
-                    // 发送工具调用开始事件
+
+                    // Send tool call start event
                     yield {
                         type: 'tool_call_start',
                         iteration,
@@ -312,13 +312,13 @@ export class MultiAgentService {
                         toolName: toolCall.function.name,
                         arguments: toolCall.function.arguments
                     };
-                    
-                    // 回调通知
+
+                    // Callback notification
                     if (this.onToolCall) {
                         await this.onToolCall(toolCall);
                     }
-                    
-                    // 解析参数并执行工具
+
+                    // Parse parameters and execute tool
                     let params;
                     try {
                         params = typeof toolCall.function.arguments === 'string'
@@ -327,26 +327,26 @@ export class MultiAgentService {
                     } catch (e) {
                         params = {};
                     }
-                    
+
                     const toolResult = await this.executeTool(toolCall.function.name, params);
-                    
-                    // 记录工具调用
+
+                    // Record tool call
                     this.sessionStore.addToolCall(sessionId, {
                         id: toolCallId,
                         name: toolCall.function.name,
                         params,
                         result: toolResult
                     });
-                    
-                    // 添加工具结果消息
+
+                    // Add tool result message
                     this.sessionStore.addMessage(
-                        sessionId, 
-                        'tool', 
-                        toolResult.success ? toolResult.result : `错误: ${toolResult.error}`,
+                        sessionId,
+                        'tool',
+                        toolResult.success ? toolResult.result : `Error: ${toolResult.error}`,
                         toolCallId
                     );
-                    
-                    // 发送工具调用完成事件
+
+                    // Send tool call end event
                     yield {
                         type: 'tool_call_end',
                         iteration,
@@ -355,14 +355,14 @@ export class MultiAgentService {
                         result: toolResult
                     };
                 }
-                
-                // 继续循环，将工具结果发送给 AI
+
+                // Continue loop, send tool results to AI
             } else {
-                // 没有工具调用，AI 返回最终答案
+                // No tool calls, AI returns final answer
                 this.sessionStore.addMessage(sessionId, 'assistant', aiResponse.content);
                 isComplete = true;
-                
-                // 发送完成事件
+
+                // Send complete event
                 yield {
                     type: 'complete',
                     iteration,
@@ -370,14 +370,14 @@ export class MultiAgentService {
                     finalResponse: aiResponse.content
                 };
             }
-            
-            // 迭代回调
+
+            // Iteration callback
             if (this.onIteration) {
                 await this.onIteration(iteration, isComplete);
             }
         }
-        
-        // 超过最大迭代次数
+
+        // Exceeded maximum iterations
         if (!isComplete) {
             yield {
                 type: 'max_iterations_reached',
@@ -388,18 +388,18 @@ export class MultiAgentService {
     }
     
     /**
-     * 构建发送给 AI 的消息列表
+     * Build message list to send to AI
      */
     buildMessages(session) {
         const messages = [];
-        
-        // 系统提示
+
+        // System prompt
         messages.push({
             role: 'system',
             content: this.buildSystemPrompt()
         });
-        
-        // 历史消息
+
+        // History messages
         for (const msg of session.messages) {
             if (msg.role === 'user') {
                 messages.push({ role: 'user', content: msg.content });
@@ -413,44 +413,44 @@ export class MultiAgentService {
                 });
             }
         }
-        
+
         return messages;
     }
-    
+
     /**
-     * 构建系统提示
+     * Build system prompt
      */
     buildSystemPrompt() {
         const toolDescriptions = Object.values(this.tools)
             .map(t => `- ${t.name}: ${t.description}`)
             .join('\n');
-        
-        return `你是一个智能助手，可以使用以下工具来帮助用户完成任务：
+
+        return `You are an intelligent assistant that can use the following tools to help users complete tasks:
 
 ${toolDescriptions}
 
-使用工具时：
-1. 分析用户需求，决定需要使用哪些工具
-2. 调用工具获取信息或执行操作
-3. 根据工具返回的结果，继续分析或给出最终答案
-4. 如果一个工具调用失败，尝试其他方法或向用户说明
+When using tools:
+1. Analyze user requirements and decide which tools to use
+2. Call tools to obtain information or perform operations
+3. Based on tool results, continue analysis or provide final answer
+4. If a tool call fails, try other methods or explain to user
 
-请用中文回复用户。`;
+Please reply to the user.`;
     }
-    
+
     /**
-     * 调用 AI（需要根据实际使用的 AI 服务实现）
+     * Call AI (needs implementation based on actual AI service)
      */
     async callAI(messages, options = {}) {
         if (this.aiClient) {
-            // 使用注入的 AI 客户端
+            // Use injected AI client
             return await this.aiClient.chat(messages, {
                 tools: this.buildToolDefinitions(),
                 ...options
             });
         }
-        
-        // 默认实现：使用 OpenAI 兼容接口
+
+        // Default implementation: use OpenAI compatible interface
         const response = await fetch(options.apiUrl || 'http://localhost:3456/v1/chat/completions', {
             method: 'POST',
             headers: {
@@ -464,23 +464,23 @@ ${toolDescriptions}
                 tool_choice: 'auto'
             })
         });
-        
+
         const data = await response.json();
         const choice = data.choices?.[0];
-        
+
         return {
             content: choice?.message?.content || '',
             toolCalls: choice?.message?.tool_calls || []
         };
     }
-    
+
     /**
-     * 简化的同步处理方法（等待完成后返回最终结果）
+     * Simplified synchronous processing method (wait for completion and return final result)
      */
     async chat(userQuery, options = {}) {
         let finalResponse = '';
         let allToolCalls = [];
-        
+
         for await (const event of this.processQuery(userQuery, options)) {
             if (event.type === 'complete') {
                 finalResponse = event.finalResponse;
@@ -491,7 +491,7 @@ ${toolDescriptions}
                 });
             }
         }
-        
+
         return {
             response: finalResponse,
             toolCalls: allToolCalls
@@ -499,10 +499,10 @@ ${toolDescriptions}
     }
 }
 
-// ==================== 流式响应包装器 ====================
+// ==================== Streaming Response Wrapper ====================
 
 /**
- * 将多代理循环转换为 SSE 流
+ * Convert multi-agent loop to SSE stream
  */
 export function createSSEStream(multiAgentService, userQuery, options = {}) {
     return new ReadableStream({
@@ -524,30 +524,30 @@ export function createSSEStream(multiAgentService, userQuery, options = {}) {
     });
 }
 
-// ==================== Express 路由集成 ====================
+// ==================== Express Route Integration ====================
 
 /**
- * 设置多代理路由
+ * Setup multi-agent routes
  */
 export function setupMultiAgentRoutes(app, multiAgentService) {
-    // 创建会话
+    // Create session
     app.post('/api/agent/sessions', (req, res) => {
         const session = multiAgentService.sessionStore.create(req.body.userId);
         res.json({ success: true, sessionId: session.id });
     });
-    
-    // 发送消息（流式）
+
+    // Send message (streaming)
     app.post('/api/agent/chat/stream', async (req, res) => {
         const { query, sessionId, model } = req.body;
-        
+
         if (!query) {
             return res.status(400).json({ error: 'query is required' });
         }
-        
+
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
-        
+
         try {
             for await (const event of multiAgentService.processQuery(query, { sessionId, model })) {
                 res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
@@ -558,15 +558,15 @@ export function setupMultiAgentRoutes(app, multiAgentService) {
             res.end();
         }
     });
-    
-    // 发送消息（非流式）
+
+    // Send message (non-streaming)
     app.post('/api/agent/chat', async (req, res) => {
         const { query, sessionId, model } = req.body;
-        
+
         if (!query) {
             return res.status(400).json({ error: 'query is required' });
         }
-        
+
         try {
             const result = await multiAgentService.chat(query, { sessionId, model });
             res.json({ success: true, ...result });
@@ -574,41 +574,41 @@ export function setupMultiAgentRoutes(app, multiAgentService) {
             res.status(500).json({ error: error.message });
         }
     });
-    
-    // 获取会话历史
+
+    // Get session history
     app.get('/api/agent/sessions/:sessionId/history', (req, res) => {
         const history = multiAgentService.sessionStore.getHistory(req.params.sessionId);
         res.json({ success: true, history });
     });
 }
 
-// ==================== 使用示例 ====================
+// ==================== Usage Examples ====================
 
 /*
-// 基本使用
+// Basic usage
 import { MultiAgentService } from './multi-agent-service.js';
 
 const agent = new MultiAgentService({
     maxIterations: 10,
-    // 可选：自定义 AI 客户端
+    // Optional: custom AI client
     aiClient: {
         async chat(messages, options) {
-            // 调用你的 AI 服务
+            // Call your AI service
             return { content: '...', toolCalls: [] };
         }
     }
 });
 
-// 同步调用
-const result = await agent.chat('帮我看看当前目录有什么文件');
+// Synchronous call
+const result = await agent.chat('Show me what files are in the current directory');
 console.log(result.response);
 
-// 流式调用
-for await (const event of agent.processQuery('分析这个项目的结构')) {
+// Streaming call
+for await (const event of agent.processQuery('Analyze the structure of this project')) {
     console.log(event.type, event);
 }
 
-// Express 集成
+// Express integration
 import express from 'express';
 const app = express();
 setupMultiAgentRoutes(app, agent);

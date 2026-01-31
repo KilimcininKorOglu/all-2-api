@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>账号详情 - Kiro Account Manager</title>
+    <title>Account Details - Kiro Account Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -302,8 +302,8 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 class="page-title">账号详情</h1>
-                            <p class="page-subtitle" id="account-subtitle">加载中...</p>
+                            <h1 class="page-title">Account Details</h1>
+                            <p class="page-subtitle" id="account-subtitle">Loading...</p>
                         </div>
                     </div>
                 </div>
@@ -312,106 +312,106 @@
             <!-- Content Area -->
             <div class="content-area">
                 <div class="detail-container">
-                    <!-- 返回按钮 -->
+                    <!-- Back Button -->
                     <div class="detail-header">
                         <button class="back-btn" onclick="goBack()">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M19 12H5M12 19l-7-7 7-7"/>
                             </svg>
-                            返回列表
+                            Back to List
                         </button>
                     </div>
 
-                    <!-- 加载状态 -->
+                    <!-- Loading State -->
                     <div class="loading-state" id="loading-state">
                         <div class="spinner"></div>
-                        <p>加载账号信息...</p>
-                    </d                    <!-- 账号详情内容 -->
+                        <p>Loading account information...</p>
+                    </d                    <!-- Account Details Content -->
                     <div id="detail-content" style="display: none;">
-                        <!-- 基本信息 -->
+                        <!-- Basic Information -->
                         <div class="detail-card">
                             <div class="detail-card-header">
-                                <h3 class="detail-card-title">基本信息</h3>
+                                <h3 class="detail-card-title">Basic Information</h3>
                                 <div class="action-buttons">
                                     <button class="btn btn-secondary btn-sm" onclick="refreshToken()">
                                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" th="2">
                                             <polyline points="23 4 23 10 17 10"/>
                                             <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                                         </svg>
-                                        刷新Token
+                                        Refresh Token
                                     </button>
                                     <button class="btn btn-secondary btn-sm" onclick="testConnection()">
                                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d 11.08V12a10 10 0 1 1-5.93-9.14"/>
                                             <polyline points="22 4 12 14.01 9 11.01"/>
                                         </svg>
-                                        测试连接
+                                        Test Connection
                                     </button>
                                     <button class="btn btn-primary btn-sm" onclick="startChat()">
                                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                      </svg>
-                                        开始对话
+                                        Start Chat
                                     </button>
                                 </div>
                             </div>
                             <div class="detail-grid">
                                 <div class="detail-item">
-                                    <span class="detail-label">账号名称</span>
+                                    <span class="detail-label">Account Name</span>
                                     <span class="detail-value" id="detail-name">-</span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">邮箱</span>
+                                    <span class="detail-label">Email</span>
                                     <span class="detail-value" id="detail-email">-</span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">提供商</span>
+                                    <span class="detail-label">Provider</span>
                                     <span class="detail-value" id="detail-provider">-</span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">认证方式</span>
+                                    <span class="detail-label">Auth Method</span>
                                     <span class="detail-value" id="detail-auth-method">-</span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">区域</span>
+                                    <span class="detail-label">Region</span>
                                     <span class="detail-value" id="detail-region">-</span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">状态</span>
+                                    <span class="detail-label">Status</span>
                                     <span class="detail-value" id="detail-status">-</span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">创建时间</span>
+                                    <span class="detail-label">Created At</span>
                                     <span class="detail-value" id="detail-created">-</span>
                                 </div>
                                 <div class="detail-item">
-                                    <span class="detail-label">Token过期时间</span>
+                                    <span class="detail-label">Token Expires At</span>
                                     <span class="detail-value" id="detail-expires">-</span>
                                 </div>
                             </div>
                         </div>
 
-                        <!-- 用量信息 -->
+                        <!-- Usage Information -->
                         <div class="detail-card">
                             <div class="detail-card-header">
-                                <h3 class="detail-card-title">用量信息</h3>
+                                <h3 class="detail-card-title">Usage Information</h3>
                                 <button class="btn btn-secondary btn-sm" onclick="refreshUsage()">
                                     <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                         <polyline points="23 4 23 10 17 10"/>
                                         <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                                     </svg>
-                                    刷新用量
+                                    Refresh Usage
                                 </button>
                             </div>
                             <div id="usage-content">
-                                <p style="color: var(--text-muted);">点击"刷新用量"获取最新数据</p>
+                                <p style="color: var(--text-muted);">Click "Refresh Usage" to get the latest data</p>
                             </div>
                         </div>
 
-                        <!-- Token 信息 -->
+                        <!-- Token Information -->
                         <div class="detail-card">
                             <div class="detail-card-header">
-                                <h3 class="detail-card-title">Token 信息</h3>
+                                <h3 class="detail-card-title">Token Information</h3>
                             </div>
                             <div class="detail-grid">
                                 <div class="detail-item full-width token-section">
@@ -419,13 +419,13 @@
                                     <div class="token-value">
                                         <span class="token-text" id="detail-access-token">-</span>
                                         <div class="token-actions">
-                                            <button class="token-btn" onclick="copyToken('access')" title="复制">
+                                            <button class="token-btn" onclick="copyToken('access')" title="Copy">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                                                 </svg>
                                             </button>
-                                            <button class="token-btn" onclick="toggleToken('access')" title="显示/隐藏">
+                                            <button class="token-btn" onclick="toggleToken('access')" title="Show/Hide">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="access-eye-icon">
                                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                                     <circle cx="12" cy="12" r="3"/>
@@ -439,13 +439,13 @@
                                     <div class="token-value">
                                         <span class="token-text" id="detail-refresh-token">-</span>
                                         <div class="token-actions">
-                                            <button class="token-btn" onclick="copyToken('refresh')" title="复制">
+                                            <button class="token-btn" onclick="copyToken('refresh')" title="Copy">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                                                 </svg>
                                             </button>
-                                            <button class="token-btn" onclick="toggleToken('refresh')" title="显示/隐藏">
+                                            <button class="token-btn" onclick="toggleToken('refresh')" title="Show/Hide">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="refresh-eye-icon">
                                                     <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                                                     <circle cx="12" cy="12" r="3"/>
@@ -459,7 +459,7 @@
                                     <div class="token-value">
                                         <span class="token-text" id="detail-profile-arn">-</span>
                                         <div class="token-actions">
-                                            <button class="token-btn" onclick="copyProfileArn()" title="复制">
+                                            <button class="token-btn" onclick="copyProfileArn()" title="Copy">
                                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
@@ -471,10 +471,10 @@
                             </div>
                         </div>
 
-                        <!-- 危险操作 -->
+                        <!-- Danger Zone -->
                         <div class="detail-card" style="border-color: var(--accent-danger);">
                             <div class="detail-card-header">
-                                <h3 class="detail-card-title" style="color: var(--accent-danger);">危险操作</h3>
+                                <h3 class="detail-card-title" style="color: var(--accent-danger);">Danger Zone</h3>
                             </div>
                             <div class="action-buttons">
                                 <button class="btn btn-danger" onclick="deleteAccount()">
@@ -484,7 +484,7 @@
                                         <line x1="10" y1="11" x2="10" y2="17"/>
                                         <line x1="14" y1="11" x2="14" y2="17"/>
                                     </svg>
-                                    删除账号
+                                    Delete Account
                                 </button>
                             </div>
                         </div>

@@ -1860,7 +1860,7 @@ body {
 
 /* ============ Gemini Page Styles ============ */
 
-/* Gemini 卡片样式 - 与 Kiro 账户卡片保持一致 */
+/* Gemini Card Styles - Consistent with Kiro Account Cards */
 .gemini-card {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -1945,7 +1945,7 @@ body {
     font-size: 8px;
 }
 
-/* 模型标签网格 */
+/* Model Tag Grid */
 .gemini-card .card-models {
     margin-bottom: 16px;
 }
@@ -2044,7 +2044,7 @@ body {
     color: var(--accent-danger);
 }
 
-/* Gemini 卡片底部 */
+/* Gemini Card Footer */
 .gemini-card .card-footer {
     display: flex;
     align-items: center;
@@ -2106,7 +2106,7 @@ body {
     height: 16px;
 }
 
-/* Gemini 页面卡片特殊样式 */
+/* Gemini page card special styles */
 #gemini-page .account-card::before {
     background: linear-gradient(90deg, #4285f4, #34a853, #fbbc05, #ea4335);
 }
@@ -2120,7 +2120,7 @@ body {
     background: rgba(66, 133, 244, 0.05);
 }
 
-/* Gemini 操作按钮 hover 效果 */
+/* Gemini action button hover effect */
 #gemini-page .action-btn:hover {
     background: rgba(66, 133, 244, 0.1);
     color: var(--accent-gemini);
@@ -2135,7 +2135,7 @@ body {
     color: var(--accent-danger);
 }
 
-/* Gemini 用量条样式 */
+/* Gemini usage bar styles */
 #gemini-page .usage-bar-fill {
     background: linear-gradient(90deg, #4285f4, #34a853);
 }
@@ -2148,7 +2148,7 @@ body {
     background: linear-gradient(90deg, #ea4335, #ef4444);
 }
 
-/* Gemini 空状态样式 */
+/* Gemini empty state styles */
 #gemini-page .empty-state .empty-icon {
     color: var(--accent-gemini);
     opacity: 0.6;

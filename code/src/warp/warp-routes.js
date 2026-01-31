@@ -1,5 +1,5 @@
 /**
- * Warp API 路由
+ * Warp API Routes
  */
 import crypto from 'crypto';
 import https from 'https';
@@ -8,52 +8,52 @@ import { ApiLogStore } from '../db.js';
 import { WarpMultiAgentService } from './warp-multi-agent.js';
 import { WarpProxy } from './warp-proxy.js';
 
-// 导入新的 protobuf 模块
+// Import new protobuf module
 import { loadProtos, encodeRequest, decodeResponseEvent, responseEventToObject } from './warp-proto.js';
 import { buildWarpRequest, parseWarpResponseEvent, convertToClaudeSSE, buildClaudeResponse, createSSEState, createMessageStartSSE } from './warp-message-converter.js';
 import { warpToolCallToClaudeToolUse } from './warp-tool-mapper.js';
 
-// 简单的 token 估算函数（按字符数估算）
+// Simple token estimation function (by character count)
 function estimateTokens(text) {
     if (!text) return 0;
-    // 粗略估算：中文约 1.5 字符/token，英文约 4 字符/token
-    // 这里使用平均值约 2.5 字符/token
+    // Rough estimate: Chinese ~1.5 chars/token, English ~4 chars/token
+    // Using average of ~2.5 chars/token
     return Math.ceil(text.length / 2.5);
 }
 
-// 生成请求ID
+// Generate request ID
 function generateRequestId() {
     return `warp-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 }
 
-// 429 错误重试配置
+// 429 error retry configuration
 const RETRY_CONFIG = {
-    maxRetries: 3,           // 最大重试次数
-    retryDelay: 1000,        // 重试延迟（毫秒）
-    excludeCredentialIds: new Set()  // 临时排除的凭证ID（配额耗尽）
+    maxRetries: 3,           // Maximum retry attempts
+    retryDelay: 1000,        // Retry delay (milliseconds)
+    excludeCredentialIds: new Set()  // Temporarily excluded credential IDs (quota exhausted)
 };
 
-// 清理过期的排除凭证（每小时重置）
+// Clear expired excluded credentials (reset every hour)
 setInterval(() => {
     RETRY_CONFIG.excludeCredentialIds.clear();
-    console.log('[Warp] 已重置配额耗尽凭证排除列表');
+    console.log('[Warp] Quota exhausted credential exclusion list has been reset');
 }, 3600000);
 
 export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) {
-    // 初始化日志存储
+    // Initialize log storage
     const apiLogStore = await ApiLogStore.create();
     
-    // 初始化多代理服务
+    // Initialize multi-agent service
     const multiAgentService = new WarpMultiAgentService(warpStore, {
         maxIterations: 10
     });
     
-    // WarpProxy 实例缓存（按凭证ID）
+    // WarpProxy instance cache (by credential ID)
     const warpProxies = new Map();
     
     /**
-     * 带 429 重试的 Warp 请求
-     * 当遇到 429 错误时，自动切换到其他凭证重试
+     * Warp request with 429 retry
+     * Automatically switch to other credentials when encountering 429 error
      */
     async function sendWarpRequestWithRetry(query, warpModel, warpReqOptions = {}) {
         const { sendWarpRequest } = await import('./warp-service.js');
@@ -61,7 +61,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         let triedCredentialIds = new Set();
         
         for (let attempt = 0; attempt < RETRY_CONFIG.maxRetries; attempt++) {
-            // 获取可用凭证（排除已尝试的和配额耗尽的）
+            // Get available credentials (exclude tried ones and quota exhausted ones)
             const allCredentials = await warpStore.getAllActive();
             const availableCredentials = allCredentials.filter(c => 
                 !triedCredentialIds.has(c.id) && 
@@ -69,12 +69,12 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             );
             
             if (availableCredentials.length === 0) {
-                // 没有更多可用凭证
+                // No more available credentials
                 if (lastError) throw lastError;
-                throw new Error('没有可用的 Warp 账号（所有账号配额已耗尽）');
+                throw new Error('No available Warp accounts (all account quotas exhausted)');
             }
             
-            // 随机选择一个凭证
+            // Randomly select a credential
             const credential = availableCredentials[Math.floor(Math.random() * availableCredentials.length)];
             triedCredentialIds.add(credential.id);
             
@@ -89,30 +89,30 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             } catch (error) {
                 lastError = error;
                 
-                // 检查是否是 429 配额耗尽错误
+                // Check if this is a 429 quota exhausted error
                 if (error.message && error.message.includes('429')) {
                     console.log(`  <- [429] credential #${credential.id} quota exhausted, trying next...`);
                     RETRY_CONFIG.excludeCredentialIds.add(credential.id);
                     
-                    // 标记凭证配额耗尽
+                    // Mark credential quota exhausted
                     await warpStore.markQuotaExhausted(credential.id).catch(() => {});
                     
-                    // 短暂延迟后重试
+                    // Retry after brief delay
                     await new Promise(resolve => setTimeout(resolve, RETRY_CONFIG.retryDelay));
                     continue;
                 }
                 
-                // 其他错误直接抛出
+                // Throw other errors directly
                 throw error;
             }
         }
         
-        // 所有重试都失败
-        throw lastError || new Error('所有重试都失败');
+        // All retries failed
+        throw lastError || new Error('All retries failed');
     }
     
     /**
-     * 获取 WarpProxy 实例
+     * Get WarpProxy instance
      */
     async function getWarpProxy(credentialId = null) {
         const credential = credentialId 
@@ -120,19 +120,19 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             : await warpStore.getRandomActive();
             
         if (!credential) {
-            throw new Error('没有可用的 Warp 凭证');
+            throw new Error('No available Warp credentials');
         }
         
-        // 检查缓存
+        // Check cache
         if (warpProxies.has(credential.id)) {
             const proxy = warpProxies.get(credential.id);
-            // 检查 token 是否过期
+            // Check if token is expired
             if (!isTokenExpired(proxy.accessToken)) {
                 return { proxy, credential };
             }
         }
         
-        // 刷新 token
+        // Refresh token
         let accessToken = credential.accessToken;
         if (!accessToken || isTokenExpired(accessToken)) {
             const result = await refreshAccessToken(credential.refreshToken);
@@ -140,7 +140,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             await warpStore.updateToken(credential.id, accessToken, new Date(Date.now() + result.expiresIn * 1000));
         }
         
-        // 创建新的 proxy
+        // Create new proxy
         const proxy = new WarpProxy({ 
             accessToken,
             maxIterations: 20,
@@ -152,10 +152,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
     }
     
     /**
-     * 验证 API 密钥中间件
+     * Verify API key middleware
      */
     async function verifyWarpApiKey(req, res, next) {
-        // 从 Authorization header 或 X-API-Key 获取密钥
+        // Get key from Authorization header or X-API-Key
         const authHeader = req.headers.authorization;
         const xApiKey = req.headers['x-api-key'];
         
@@ -176,7 +176,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             });
         }
         
-        // 验证密钥
+        // Verify key
         const hash = crypto.createHash('sha256').update(apiKey).digest('hex');
         const keyRecord = await apiKeyStore.getByKeyHash(hash);
         
@@ -200,16 +200,16 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             });
         }
         
-        // 将密钥信息附加到请求对象
+        // Attach key info to request object
         req.apiKey = keyRecord;
         
-        // 更新最后使用时间
+        // Update last used time
         await apiKeyStore.updateLastUsed(keyRecord.id);
         
         next();
     }
 
-    // Warp API 配置
+    // Warp API configuration
     const WARP_CONFIG = {
         host: 'app.warp.dev',
         path: '/ai/multi-agent',
@@ -226,20 +226,20 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
     };
 
     /**
-     * 使用 protobufjs 发送 Warp 请求
-     * @param {Object} claudeRequest - Claude API 格式的请求
-     * @param {string} accessToken - Warp 访问令牌
-     * @param {Object} context - 上下文信息
-     * @returns {Promise<Object>} 响应结果
+     * Send Warp request using protobufjs
+     * @param {Object} claudeRequest - Claude API format request
+     * @param {string} accessToken - Warp access token
+     * @param {Object} context - Context information
+     * @returns {Promise<Object>} Response result
      */
     async function sendProtobufRequest(claudeRequest, accessToken, context = {}) {
-        // 确保 proto 已加载
+        // Ensure proto is loaded
         await loadProtos();
 
-        // 构建 Warp 请求
+        // Build Warp request
         const warpRequest = buildWarpRequest(claudeRequest, context);
 
-        // 编码为 protobuf
+        // Encode to protobuf
         const requestBuffer = encodeRequest(warpRequest);
 
         return new Promise((resolve, reject) => {
@@ -294,7 +294,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                                         }
                                     }
                                 } catch (e) {
-                                    // 解码失败，忽略
+                                    // Decode failed, ignore
                                     if (process.env.WARP_DEBUG === 'true') {
                                         console.log(`  [PROTO DEBUG] decode error: ${e.message}`);
                                     }
@@ -305,7 +305,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
 
                 res.on('end', () => {
-                    // 处理剩余的 buffer
+                    // Process remaining buffer
                     if (buffer.startsWith('data:')) {
                         const eventData = buffer.substring(5).trim();
                         if (eventData) {
@@ -345,21 +345,21 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
     }
 
     /**
-     * 使用 protobufjs 发送流式 Warp 请求
-     * @param {Object} claudeRequest - Claude API 格式的请求
-     * @param {string} accessToken - Warp 访问令牌
-     * @param {Object} context - 上下文信息
-     * @param {Function} onEvent - 事件回调
+     * Send streaming Warp request using protobufjs
+     * @param {Object} claudeRequest - Claude API format request
+     * @param {string} accessToken - Warp access token
+     * @param {Object} context - Context information
+     * @param {Function} onEvent - Event callback
      * @returns {Promise<void>}
      */
     async function sendProtobufStreamRequest(claudeRequest, accessToken, context, onEvent) {
-        // 确保 proto 已加载
+        // Ensure proto is loaded
         await loadProtos();
 
-        // 构建 Warp 请求
+        // Build Warp request
         const warpRequest = buildWarpRequest(claudeRequest, context);
 
-        // 编码为 protobuf
+        // Encode to protobuf
         const requestBuffer = encodeRequest(warpRequest);
 
         return new Promise((resolve, reject) => {
@@ -414,7 +414,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
 
                 res.on('end', () => {
-                    // 处理剩余的 buffer
+                    // Process remaining buffer
                     if (buffer.startsWith('data:')) {
                         const eventData = buffer.substring(5).trim();
                         if (eventData) {
@@ -443,7 +443,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
     }
 
     /**
-     * 带重试的 protobuf 请求
+     * Protobuf request with retry
      */
     async function sendProtobufRequestWithRetry(claudeRequest, context = {}) {
         let lastError = null;
@@ -458,7 +458,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
 
             if (availableCredentials.length === 0) {
                 if (lastError) throw lastError;
-                throw new Error('没有可用的 Warp 账号（所有账号配额已耗尽）');
+                throw new Error('No available Warp accounts (all account quotas exhausted)');
             }
 
             const credential = availableCredentials[Math.floor(Math.random() * availableCredentials.length)];
@@ -487,12 +487,12 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             }
         }
 
-        throw lastError || new Error('所有重试都失败');
+        throw lastError || new Error('All retries failed');
     }
 
-    // ============ 测试端点（无需 API Key） ============
+    // ============ Test endpoints (no API Key required) ============
     
-    // 测试 /w/v1/messages 端点功能（无需验证）
+    // Test /w/v1/messages endpoint functionality (no verification)
     app.post('/api/warp/test/messages', async (req, res) => {
         const startTime = Date.now();
         const requestId = generateRequestId();
@@ -508,7 +508,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
 
-            // 构建查询
+            // Build query
             let query = '';
             if (system) query += `[System] ${system}\n\n`;
             
@@ -520,7 +520,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         for (const block of m.content) {
                             if (block.type === 'text') query += block.text + '\n\n';
                             else if (block.type === 'tool_result') {
-                                query += `[工具执行结果]\n命令ID: ${block.tool_use_id}\n输出:\n${block.content}\n\n`;
+                                query += `[Tool execution result]\nCommand ID: ${block.tool_use_id}\nOutput:\n${block.content}\n\n`;
                             }
                         }
                     }
@@ -531,10 +531,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
 
             const warpModel = mapModelToWarp(model || 'claude-4.1-opus');
             
-            // 获取凭证
+            // Get credentials
             const credential = await warpStore.getRandomActive();
             if (!credential) {
-                return res.status(503).json({ type: 'error', error: { message: '没有可用的 Warp 账号' } });
+                return res.status(503).json({ type: 'error', error: { message: 'No available Warp accounts' } });
             }
             
             const accessToken = await warpService.getValidAccessToken(credential);
@@ -561,7 +561,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             }
             
             if (contentBlocks.length === 0) {
-                contentBlocks.push({ type: 'text', text: '请问有什么可以帮助你的？' });
+                contentBlocks.push({ type: 'text', text: 'How can I help you?' });
             }
 
             res.json({
@@ -578,13 +578,13 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // ============ Warp 凭证管理 ============
+    // ============ Warp Credential Management ============
 
-    // 获取所有 Warp 凭证
+    // Get all Warp credentials
     app.get('/api/warp/credentials', async (req, res) => {
         try {
             const credentials = await warpStore.getAll();
-            // 隐藏敏感信息
+            // Hide sensitive information
             const safeCredentials = credentials.map(c => ({
                 ...c,
                 refreshToken: c.refreshToken ? `${c.refreshToken.substring(0, 20)}...` : null,
@@ -596,7 +596,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 获取 Warp 统计信息
+    // Get Warp statistics
     app.get('/api/warp/statistics', async (req, res) => {
         try {
             const stats = await warpStore.getStatistics();
@@ -606,15 +606,15 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 获取单个 Warp 凭证
+    // Get single Warp credential
     app.get('/api/warp/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await warpStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential does not exist' });
             }
-            // 隐藏敏感信息
+            // Hide sensitive information
             const safeCredential = {
                 ...credential,
                 refreshToken: credential.refreshToken ? `${credential.refreshToken.substring(0, 20)}...` : null,
@@ -626,16 +626,16 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 添加 Warp 凭证
+    // Add Warp credential
     app.post('/api/warp/credentials', async (req, res) => {
         try {
             const { name, refreshToken } = req.body;
 
             if (!refreshToken) {
-                return res.status(400).json({ success: false, error: 'refreshToken 是必需的' });
+                return res.status(400).json({ success: false, error: 'refreshToken is required' });
             }
 
-            // 尝试刷新 token 来验证
+            // Try refreshing token to verify
             let accessToken = null;
             let email = null;
             let tokenExpiresAt = null;
@@ -646,16 +646,16 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 tokenExpiresAt = new Date(Date.now() + result.expiresIn * 1000);
                 email = getEmailFromToken(accessToken);
             } catch (e) {
-                return res.status(400).json({ success: false, error: `Token 验证失败: ${e.message}` });
+                return res.status(400).json({ success: false, error: `Token verification failed: ${e.message}` });
             }
 
-            // 生成名称
+            // Generate name
             const credName = name || email || `warp-${Date.now()}`;
 
-            // 检查是否已存在
+            // Check if already exists
             const existing = await warpStore.getByName(credName);
             if (existing) {
-                return res.status(400).json({ success: false, error: '凭证名称已存在' });
+                return res.status(400).json({ success: false, error: 'Credential name already exists' });
             }
 
             const id = await warpStore.add({
@@ -672,13 +672,13 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 批量导入 Warp 凭证
+    // Batch import Warp credentials
     app.post('/api/warp/credentials/batch-import', async (req, res) => {
         try {
             const { accounts } = req.body;
 
             if (!accounts || !Array.isArray(accounts) || accounts.length === 0) {
-                return res.status(400).json({ success: false, error: '请提供账号数组' });
+                return res.status(400).json({ success: false, error: 'Please provide an account array' });
             }
 
             const results = {
@@ -689,17 +689,17 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
 
             for (const account of accounts) {
                 try {
-                    // 支持多种字段名
+                    // Support multiple field names
                     const refreshToken = account.refreshToken || account.refresh_token || account.token;
                     const name = account.name || account.email;
 
                     if (!refreshToken) {
                         results.failed++;
-                        results.errors.push({ name, error: '缺少 refreshToken' });
+                        results.errors.push({ name, error: 'Missing refreshToken' });
                         continue;
                     }
 
-                    // 尝试刷新 token 来验证
+                    // Try refreshing token to verify
                     let accessToken = null;
                     let email = null;
                     let tokenExpiresAt = null;
@@ -711,17 +711,17 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         email = getEmailFromToken(accessToken);
                     } catch (e) {
                         results.failed++;
-                        results.errors.push({ name, error: `Token 验证失败: ${e.message}` });
+                        results.errors.push({ name, error: `Token verification failed: ${e.message}` });
                         continue;
                     }
 
-                    // 生成名称
+                    // Generate name
                     const credName = name || email || `warp-${Date.now()}-${results.success}`;
 
-                    // 检查是否已存在
+                    // Check if already exists
                     const existing = await warpStore.getByName(credName);
                     if (existing) {
-                        // 更新现有凭证
+                        // Update existing credential
                         await warpStore.update(existing.id, {
                             refreshToken,
                             accessToken,
@@ -753,7 +753,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 更新 Warp 凭证
+    // Update Warp credential
     app.put('/api/warp/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
@@ -761,7 +761,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
 
             const credential = await warpStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential does not exist' });
             }
 
             await warpStore.update(id, { name, isActive });
@@ -771,7 +771,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 删除 Warp 凭证
+    // Delete Warp credential
     app.delete('/api/warp/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
@@ -782,14 +782,14 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 刷新单个凭证的 Token
+    // Refresh single credential Token
     app.post('/api/warp/credentials/:id/refresh', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await warpStore.getById(id);
 
             if (!credential) {
-                return res.status(404).json({ success: false, error: '凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Credential does not exist' });
             }
 
             const result = await refreshAccessToken(credential.refreshToken);
@@ -809,7 +809,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 批量刷新所有 Token
+    // Batch refresh all Tokens
     app.post('/api/warp/credentials/refresh-all', async (req, res) => {
         try {
             const results = await warpService.refreshAllTokens();
@@ -819,7 +819,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 健康检查
+    // Health check
     app.get('/api/warp/health', async (req, res) => {
         try {
             const health = await warpService.healthCheck();
@@ -829,14 +829,14 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 获取 Warp 模型列表
+    // Get Warp model list
     app.get('/api/warp/models', async (req, res) => {
         res.json({ success: true, data: WARP_MODELS });
     });
 
-    // ============ 错误凭证管理 ============
+    // ============ Error Credential Management ============
 
-    // 获取所有错误凭证
+    // Get all error credentials
     app.get('/api/warp/errors', async (req, res) => {
         try {
             const errors = await warpStore.getAllErrors();
@@ -846,7 +846,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 恢复错误凭证
+    // Restore error credential
     app.post('/api/warp/errors/:id/restore', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
@@ -854,7 +854,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
 
             const newId = await warpStore.restoreFromError(id, refreshToken);
             if (!newId) {
-                return res.status(404).json({ success: false, error: '错误凭证不存在' });
+                return res.status(404).json({ success: false, error: 'Error credential does not exist' });
             }
 
             res.json({ success: true, data: { id: newId } });
@@ -863,7 +863,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 删除错误凭证
+    // Delete error credential
     app.delete('/api/warp/errors/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
@@ -874,23 +874,23 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // ============ Warp 对话 API ============
+    // ============ Warp Conversation API ============
 
-    // 简单对话接口（支持指定账号）
+    // Simple conversation interface (supports specified account)
     app.post('/api/warp/chat', async (req, res) => {
         try {
             const { query, model, credentialId } = req.body;
 
             if (!query) {
-                return res.status(400).json({ success: false, error: '请提供 query' });
+                return res.status(400).json({ success: false, error: 'Please provide query' });
             }
 
             let result;
             if (credentialId) {
-                // 使用指定账号
+                // Use specified account
                 const credential = await warpStore.getById(credentialId);
                 if (!credential) {
-                    return res.status(404).json({ success: false, error: '账号不存在' });
+                    return res.status(404).json({ success: false, error: 'Account does not exist' });
                 }
                 const accessToken = await warpService.getValidAccessToken(credential);
                 const { sendWarpRequest } = await import('./warp-service.js');
@@ -898,7 +898,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 await warpStore.incrementUseCount(credentialId);
                 result = { response: warpResponse.text, credentialId, credentialName: credential.name };
             } else {
-                // 自动选择账号
+                // Auto select account
                 result = await warpService.chat(query, model || 'claude-4.1-opus');
             }
             
@@ -914,16 +914,16 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 多代理对话接口（支持工具调用循环）
+    // Multi-agent conversation interface (supports tool call loop)
     app.post('/api/warp/agent', async (req, res) => {
         try {
             const { query, model, workingDir, sessionId } = req.body;
 
             if (!query) {
-                return res.status(400).json({ success: false, error: '请提供 query' });
+                return res.status(400).json({ success: false, error: 'Please provide query' });
             }
 
-            // 使用多代理服务处理请求
+            // Use multi-agent service to process request
             const result = await multiAgentService.chat(query, {
                 model: model || 'claude-4.1-opus',
                 workingDir: workingDir || process.cwd(),
@@ -942,12 +942,12 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 多代理流式对话接口
+    // Multi-agent streaming conversation interface
     app.post('/api/warp/agent/stream', async (req, res) => {
         const { query, model, workingDir, sessionId } = req.body;
 
         if (!query) {
-            return res.status(400).json({ success: false, error: '请提供 query' });
+            return res.status(400).json({ success: false, error: 'Please provide query' });
         }
 
         res.setHeader('Content-Type', 'text/event-stream');
@@ -969,36 +969,36 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // ============ 交互式工具调用 API ============
-    // 会话存储（内存中，生产环境应使用 Redis）
+    // ============ Interactive Tool Call API ============
+    // Session storage (in memory, Redis should be used in production)
     const agentSessions = new Map();
 
-    // 开始对话 - 返回 AI 响应和工具调用请求（需要用户确认）
+    // Start conversation - Return AI response and tool call request (requires user confirmation)
     app.post('/api/warp/agent/start', async (req, res) => {
         try {
             const { query, model, workingDir } = req.body;
 
             if (!query) {
-                return res.status(400).json({ success: false, error: '请提供 query' });
+                return res.status(400).json({ success: false, error: 'Please provide query' });
             }
 
-            // 获取凭证
+            // Get credentials
             const credential = await warpStore.getRandomActive();
             if (!credential) {
-                return res.status(503).json({ success: false, error: '没有可用的 Warp 账号' });
+                return res.status(503).json({ success: false, error: 'No available Warp accounts' });
             }
 
             const accessToken = await warpService.getValidAccessToken(credential);
             const { sendWarpRequest } = await import('./warp-service.js');
             
-            // 发送请求
+            // Send request
             const warpResponse = await sendWarpRequest(query, accessToken, model || 'claude-4.1-opus');
             await warpStore.incrementUseCount(credential.id);
 
-            // 生成会话 ID
+            // Generate session ID
             const sessionId = crypto.randomUUID();
             
-            // 保存会话状态
+            // Save session state
             agentSessions.set(sessionId, {
                 credentialId: credential.id,
                 credentialName: credential.name,
@@ -1010,7 +1010,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 createdAt: Date.now()
             });
 
-            // 清理过期会话（30分钟）
+            // Clean up expired sessions (30 minutes)
             for (const [id, session] of agentSessions) {
                 if (Date.now() - session.createdAt > 30 * 60 * 1000) {
                     agentSessions.delete(id);
@@ -1032,19 +1032,19 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 执行命令 - 用户确认后执行 bash 命令
+    // Execute command - Execute bash command after user confirmation
     app.post('/api/warp/agent/execute', async (req, res) => {
         try {
             const { sessionId, command, workingDir } = req.body;
 
             if (!command) {
-                return res.status(400).json({ success: false, error: '请提供 command' });
+                return res.status(400).json({ success: false, error: 'Please provide command' });
             }
 
             const session = sessionId ? agentSessions.get(sessionId) : null;
             const cwd = workingDir || (session ? session.workingDir : '/tmp');
 
-            // 执行命令
+            // Execute command
             const { exec } = await import('child_process');
             const { promisify } = await import('util');
             const execAsync = promisify(exec);
@@ -1074,7 +1074,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 };
             }
 
-            // 更新会话
+            // Update session
             if (session) {
                 session.lastToolResult = result;
                 session.history.push({ role: 'tool', content: result.stdout || result.stderr || result.error });
@@ -1086,38 +1086,38 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 继续对话 - 将工具结果发回 Warp
+    // Continue conversation - Send tool result back to Warp
     app.post('/api/warp/agent/continue', async (req, res) => {
         try {
             const { sessionId, toolResult } = req.body;
 
             if (!sessionId) {
-                return res.status(400).json({ success: false, error: '请提供 sessionId' });
+                return res.status(400).json({ success: false, error: 'Please provide sessionId' });
             }
 
             const session = agentSessions.get(sessionId);
             if (!session) {
-                return res.status(404).json({ success: false, error: '会话不存在或已过期' });
+                return res.status(404).json({ success: false, error: 'Session does not exist or has expired' });
             }
 
-            // 获取凭证
+            // Get credentials
             const credential = await warpStore.getById(session.credentialId);
             if (!credential) {
-                return res.status(503).json({ success: false, error: '账号不可用' });
+                return res.status(503).json({ success: false, error: 'Account not available' });
             }
 
             const accessToken = await warpService.getValidAccessToken(credential);
             const { sendWarpRequest } = await import('./warp-service.js');
 
-            // 构建包含工具结果的查询
+            // Build query containing tool results
             const result = toolResult || session.lastToolResult;
-            const continueQuery = `${session.query}\n\n[工具执行结果]\n命令: ${result.command}\n输出:\n${result.stdout || result.stderr || result.error}`;
+            const continueQuery = `${session.query}\n\n[Tool execution result]\nCommand: ${result.command}\nOutput:\n${result.stdout || result.stderr || result.error}`;
 
-            // 发送请求
+            // Send request
             const warpResponse = await sendWarpRequest(continueQuery, accessToken, session.model);
             await warpStore.incrementUseCount(credential.id);
 
-            // 更新会话
+            // Update session
             session.history.push({ role: 'assistant', content: warpResponse.text });
             session.toolCalls = warpResponse.toolCalls || [];
 
@@ -1136,11 +1136,11 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 获取会话状态
+    // Get session state
     app.get('/api/warp/agent/session/:sessionId', async (req, res) => {
         const session = agentSessions.get(req.params.sessionId);
         if (!session) {
-            return res.status(404).json({ success: false, error: '会话不存在或已过期' });
+            return res.status(404).json({ success: false, error: 'Session does not exist or has expired' });
         }
         res.json({
             success: true,
@@ -1156,24 +1156,24 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         });
     });
 
-    // ============ OpenAI 兼容端点（需要 API 密钥验证） ============
+    // ============ OpenAI Compatible Endpoints (API Key verification required) ============
 
-    // Warp OpenAI 兼容 - /w/v1/chat/completions
+    // Warp OpenAI compatible - /w/v1/chat/completions
     app.post('/w/v1/chat/completions', verifyWarpApiKey, async (req, res) => {
         const startTime = Date.now();
         const apiKeyId = req.apiKey?.id || null;
         const requestId = generateRequestId();
         
-        // 打印请求详情
+        // Print request details
         console.log('\n' + '='.repeat(80));
-        console.log(`[${new Date().toISOString()}] /w/v1/chat/completions 请求`);
+        console.log(`[${new Date().toISOString()}] /w/v1/chat/completions Request`);
         console.log('='.repeat(80));
-        console.log(`请求ID: ${requestId}`);
+        console.log(`Request ID: ${requestId}`);
         console.log(`API Key: ${req.apiKey?.keyPrefix || 'unknown'}***`);
         console.log(`IP: ${req.ip || req.connection?.remoteAddress}`);
         console.log(`User-Agent: ${req.headers['user-agent']}`);
         console.log('-'.repeat(40));
-        console.log('请求体:');
+        console.log('Request body:');
         console.log(JSON.stringify(req.body, null, 2));
         console.log('='.repeat(80));
         
@@ -1189,7 +1189,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
 
-            // 将 messages 转换为单个查询
+            // Convert messages to single query
             const query = messages.map(m => {
                 if (m.role === 'system') return `[System] ${m.content}`;
                 if (m.role === 'user') return m.content;
@@ -1197,12 +1197,12 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 return m.content;
             }).join('\n\n');
 
-            // 将外部模型名转换为 Warp 支持的模型名
+            // Convert external model name to Warp supported model name
             const warpModel = mapModelToWarp(model);
             const inputTokens = estimateTokens(query);
 
             if (stream) {
-                // 流式响应
+                // Streaming response
                 res.setHeader('Content-Type', 'text/event-stream');
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('Connection', 'keep-alive');
@@ -1232,7 +1232,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     },
                     async (credentialId) => {
                         if (credentialId) usedCredentialId = credentialId;
-                        // 发送结束标记
+                        // Send end marker
                         const endChunk = {
                             id: responseId,
                             object: 'chat.completion.chunk',
@@ -1248,7 +1248,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         res.write('data: [DONE]\n\n');
                         res.end();
                         
-                        // 记录统计到 api_logs（不记录消息内容）
+                        // Record statistics to api_logs (do not record message content)
                         const outputTokens = estimateTokens(fullContent);
                         await apiLogStore.create({
                             requestId: generateRequestId(),
@@ -1279,7 +1279,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         res.write(`data: ${JSON.stringify(errorChunk)}\n\n`);
                         res.end();
                         
-                        // 记录错误统计到 api_logs
+                        // Record error statistics to api_logs
                         await apiLogStore.create({
                             requestId: generateRequestId(),
                             apiKeyId,
@@ -1302,26 +1302,26 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     }
                 );
             } else {
-                // 非流式响应
+                // Non-streaming response
                 const result = await warpService.chat(query, warpModel);
                 const outputTokens = estimateTokens(result.response);
 
-                // 打印非流式响应详情
+                // Print non-streaming response details
                 const durationMs = Date.now() - startTime;
                 console.log('\n' + '-'.repeat(80));
-                console.log(`[${new Date().toISOString()}] /w/v1/chat/completions 非流式响应`);
+                console.log(`[${new Date().toISOString()}] /w/v1/chat/completions Non-streaming response`);
                 console.log('-'.repeat(80));
-                console.log(`请求ID: ${requestId}`);
-                console.log(`模型: ${warpModel}`);
-                console.log(`凭证ID: ${result.credentialId || 'unknown'}`);
-                console.log(`输入tokens: ${inputTokens}, 输出tokens: ${outputTokens}`);
-                console.log(`耗时: ${durationMs}ms`);
+                console.log(`Request ID: ${requestId}`);
+                console.log(`Model: ${warpModel}`);
+                console.log(`Credential ID: ${result.credentialId || 'unknown'}`);
+                console.log(`Input tokens: ${inputTokens}, Output tokens: ${outputTokens}`);
+                console.log(`Duration: ${durationMs}ms`);
                 console.log('-'.repeat(40));
-                console.log('响应内容:');
+                console.log('Response content:');
                 console.log(result.response);
                 console.log('='.repeat(80) + '\n');
 
-                // 记录统计到 api_logs（不记录消息内容）
+                // Record statistics to api_logs (do not record message content)
                 await apiLogStore.create({
                     requestId,
                     apiKeyId,
@@ -1362,7 +1362,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
         } catch (error) {
-            // 记录错误统计到 api_logs
+            // Record error statistics to api_logs
             await apiLogStore.create({
                 requestId: generateRequestId(),
                 apiKeyId,
@@ -1392,7 +1392,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // Warp 模型列表 - /w/v1/models
+    // Warp Model list - /w/v1/models
     app.get('/w/v1/models', async (req, res) => {
         const models = WARP_MODELS.map(m => ({
             id: m.id,
@@ -1407,13 +1407,13 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         });
     });
 
-    // ============ Claude 格式端点 ============
+    // ============ Claude Format Endpoints ============
 
-    // 会话存储（用于工具调用的连续对话）
+    // Session storage (for continuous conversation with tool calls)
     const messagesSessions = new Map();
 
-    // Warp Claude 格式 (Protobuf 版本) - /w/v1/messages/proto
-    // 使用 protobufjs 进行编解码，支持完整的工具映射
+    // Warp Claude format (Protobuf version) - /w/v1/messages/proto
+    // Use protobufjs for encoding/decoding, supports full tool mapping
     app.post('/w/v1/messages/proto', verifyWarpApiKey, async (req, res) => {
         const startTime = Date.now();
         const apiKeyId = req.apiKey?.id || null;
@@ -1433,16 +1433,16 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
 
-            // 构建 Claude 请求对象
+            // Build Claude request object
             const claudeRequest = { model, messages, system, tools, metadata };
             const context = { workingDir, homeDir: process.env.HOME || '/root' };
 
-            // 将外部模型名转换为 Warp 支持的模型名
+            // Convert external model name to Warp supported model name
             const warpModel = mapModelToWarp(model);
             const inputTokens = estimateTokens(JSON.stringify(messages));
 
             if (stream) {
-                // 流式响应
+                // Streaming response
                 res.setHeader('Content-Type', 'text/event-stream');
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('Connection', 'keep-alive');
@@ -1451,19 +1451,19 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 const state = createSSEState(messageId, warpModel, inputTokens);
                 let usedCredentialId = null;
 
-                // 发送 message_start
+                // Send message_start
                 const startEvent = createMessageStartSSE(state);
                 res.write(`event: ${startEvent.event}\ndata: ${JSON.stringify(startEvent.data)}\n\n`);
 
                 try {
-                    // 获取凭证
+                    // Get credentials
                     const allCredentials = await warpStore.getAllActive();
                     const availableCredentials = allCredentials.filter(c =>
                         !RETRY_CONFIG.excludeCredentialIds.has(c.id)
                     );
 
                     if (availableCredentials.length === 0) {
-                        throw new Error('没有可用的 Warp 账号');
+                        throw new Error('No available Warp accounts');
                     }
 
                     const credential = availableCredentials[Math.floor(Math.random() * availableCredentials.length)];
@@ -1472,7 +1472,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
 
                     console.log(`  -> [protobuf stream] using credential #${credential.id}`);
 
-                    // 发送流式请求
+                    // Send streaming request
                     await sendProtobufStreamRequest(claudeRequest, accessToken, context, (event) => {
                         const sseEvents = convertToClaudeSSE([event], state);
                         for (const sse of sseEvents) {
@@ -1480,9 +1480,9 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         }
                     });
 
-                    // 确保发送结束事件
+                    // Ensure end events are sent
                     if (!state.finished) {
-                        // 结束文本块
+                        // End text block
                         if (state.textBlockStarted) {
                             res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: state.blockIndex })}\n\n`);
                         }
@@ -1500,7 +1500,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     await warpStore.incrementUseCount(credential.id);
                     res.end();
 
-                    // 记录日志
+                    // Log
                     const durationMs = Date.now() - startTime;
                     await apiLogStore.create({
                         requestId,
@@ -1529,13 +1529,13 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 }
 
             } else {
-                // 非流式响应
+                // Non-streaming response
                 try {
                     const { response, credentialId } = await sendProtobufRequestWithRetry(claudeRequest, context);
 
                     console.log(`  <- [protobuf] text=${(response.text || '').length}c toolCalls=${(response.toolCalls || []).length}`);
 
-                    // 构建响应内容
+                    // Build Response content
                     const contentBlocks = [];
 
                     if (response.text) {
@@ -1555,7 +1555,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     const outputTokens = estimateTokens(response.text || '');
                     const stopReason = (response.toolCalls && response.toolCalls.length > 0) ? 'tool_use' : 'end_turn';
 
-                    // 记录日志
+                    // Log
                     const durationMs = Date.now() - startTime;
                     await apiLogStore.create({
                         requestId,
@@ -1626,8 +1626,8 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // Warp Claude 格式 - /w/v1/messages
-    // 支持工具调用、用户确认、连续对话
+    // Warp Claude format - /w/v1/messages
+    // Supports tool calls, user confirmation, continuous conversation
     app.post('/w/v1/messages', verifyWarpApiKey, async (req, res) => {
         const startTime = Date.now();
         const apiKeyId = req.apiKey?.id || null;
@@ -1640,7 +1640,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             const hasBearer = Boolean(authHeader && authHeader.startsWith('Bearer '));
             const hasXApiKey = Boolean(req.headers['x-api-key']);
 
-            // 简洁日志（不打印完整 req.body）
+            // Concise log (do not print full req.body)
             const clientIp = req.ip || req.headers['x-forwarded-for'] || req.connection?.remoteAddress || '?';
             console.log(`[${new Date().toISOString()}] /w/v1/messages | ip=${clientIp} | key=${req.apiKey?.keyPrefix || '?'}*** | model=${model || '?'} | stream=${Boolean(stream)}`);
 
@@ -1659,7 +1659,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
 
-            // 检查是否有 tool_result 消息（用户确认执行后的结果）
+            // Check if there is a tool_result message (result after user confirms execution)
             const lastMessage = messages[messages.length - 1];
             let toolResultContent = null;
             let toolCommand = null;
@@ -1669,7 +1669,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 for (const block of lastMessage.content) {
                     if (block.type === 'tool_result') {
                         toolResultContent = block;
-                        // 从之前的 assistant 消息中查找对应的 tool_use 获取命令
+                        // Find corresponding tool_use from previous assistant message to get command
                         for (let i = messages.length - 2; i >= 0; i--) {
                             const m = messages[i];
                             if (m.role === 'assistant' && Array.isArray(m.content)) {
@@ -1687,15 +1687,15 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 }
             }
 
-            // 只在有 tool_result 时打印额外日志
+            // Print extra log only when there is tool_result
             if (toolResultContent) {
                 console.log(`  tool_result: id=${toolResultContent.tool_use_id || '?'} cmd=${toolCommand || '?'} len=${(toolResultContent.content || '').length}`);
             }
 
-            // 构建查询
+            // Build query
             let query = '';
             if (system) {
-                // system 可能是字符串或数组
+                // system may be string or array
                 if (typeof system === 'string') {
                     query += `[System] ${system}\n\n`;
                 } else if (Array.isArray(system)) {
@@ -1709,7 +1709,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 }
             }
             
-            // 处理消息，包括工具调用和结果
+            // Process messages, including tool calls and results
             for (const m of messages) {
                 if (m.role === 'user') {
                     if (typeof m.content === 'string') {
@@ -1719,8 +1719,8 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                             if (block.type === 'text') {
                                 query += block.text + '\n\n';
                             } else if (block.type === 'tool_result') {
-                                // 工具执行结果
-                                query += `[工具执行结果]\n命令ID: ${block.tool_use_id}\n输出:\n${block.content}\n\n`;
+                                // Tool execution result
+                                query += `[Tool execution result]\nCommand ID: ${block.tool_use_id}\nOutput:\n${block.content}\n\n`;
                             }
                         }
                     }
@@ -1732,14 +1732,14 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                             if (block.type === 'text') {
                                 query += `[Assistant] ${block.text}\n\n`;
                             } else if (block.type === 'tool_use') {
-                                query += `[Assistant 请求执行工具] ${block.name}: ${JSON.stringify(block.input)}\n\n`;
+                                query += `[Assistant requests tool execution] ${block.name}: ${JSON.stringify(block.input)}\n\n`;
                             }
                         }
                     }
                 }
             }
 
-            // 将外部模型名转换为 Warp 支持的模型名
+            // Convert external model name to Warp supported model name
             const warpModel = mapModelToWarp(model);
             const inputTokens = estimateTokens(query);
 
@@ -1767,7 +1767,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 })}\n\n`);
 
                 try {
-                    // 构建请求选项
+                    // Build request options
                     const warpReqOptions = { workingDir };
                     if (toolResultContent) {
                         warpReqOptions.toolResult = {
@@ -1784,7 +1784,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         console.log(`  -> calling Warp API (query len=${query.length})...`);
                     }
                     
-                    // 使用带 429 重试的请求函数
+                    // Use request function with 429 retry
                     const { response: warpResponse, credentialId } = await sendWarpRequestWithRetry(query, warpModel, warpReqOptions);
                     usedCredentialId = credentialId;
                     console.log(`  <- Warp response: text=${(warpResponse.text || '').length}c toolCalls=${(warpResponse.toolCalls || []).length}`);
@@ -1793,7 +1793,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     const text = warpResponse.text || '';
                     fullContent = text;
                     
-                    // 调试：打印实际响应内容
+                    // Debug: print actual Response content
                     if (text) {
                         console.log(`  [SSE] sending text: "${text.substring(0, 100)}${text.length > 100 ? '...' : ''}"`);
                     }
@@ -1825,14 +1825,14 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         for (const tc of toolCalls) {
                             const toolUseId = tc.callId || `toolu_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
                             
-                            // 根据工具类型选择正确的工具名称和输入格式
+                            // Select correct tool name and input format based on tool type
                             let toolName = 'Bash';
                             let input = { command: tc.command };
                             
                             if (tc.toolName === 'Write' || tc.command === 'create_documents') {
                                 toolName = 'Write';
 
-                                // 调试：打印原始工具调用信息
+                                // Debug: print original tool call info
                                 console.log(`  [TOOL DEBUG] Original tool call:`, {
                                     toolName: tc.toolName,
                                     command: tc.command,
@@ -1843,12 +1843,12 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                                     input: tc.input
                                 });
 
-                                // 更智能的文件路径提取
+                                // Smarter file path extraction
                                 let filePath = tc.filePath || tc.file_path || tc.path ||
                                               (tc.input && tc.input.file_path) ||
                                               (tc.input && tc.input.path);
 
-                                // 如果没有明确的文件路径，根据内容推断
+                                // If no explicit file path, infer from content
                                 if (!filePath) {
                                     const contentToCheck = tc.content || text || '';
                                     if (contentToCheck.includes('<!doctype html') || contentToCheck.includes('<html')) {
@@ -1863,26 +1863,26 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                                     console.log(`  [TOOL] Inferred file type: ${filePath}`);
                                 }
 
-                                // 更完整的内容提取 - 关键修复：优先使用 text 内容
+                                // More complete content extraction - key fix: prioritize text content
                                 let writeContent = '';
 
-                                // 1. 首先尝试工具调用中的内容
+                                // 1. First try content from tool call
                                 if (tc.content && tc.content.trim()) {
                                     writeContent = tc.content;
                                 } else if (tc.input && tc.input.content && tc.input.content.trim()) {
                                     writeContent = tc.input.content;
                                 }
-                                // 2. 如果工具调用内容为空或只是描述，使用响应文本
+                                // 2. If tool call content is empty or just description, use response text
                                 else if (text && text.trim() && text.length > 100) {
                                     writeContent = text;
                                     console.log(`  [TOOL FIX] Using response text as Write content (${text.length} chars)`);
                                 }
-                                // 3. 最后的回退
+                                // 3. Final fallback
                                 else {
                                     writeContent = tc.content || text || '';
                                 }
 
-                                // 参数验证
+                                // Parameter validation
                                 if (!writeContent || writeContent.length < 10) {
                                     console.warn(`  [TOOL WARN] Write tool has insufficient content (${writeContent.length} chars)`);
                                 }
@@ -1900,10 +1900,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                                 });
                             }
                             
-                            // 确保只传递必要的字段，移除可能的额外字段
+                            // Ensure only necessary fields are passed, remove extra fields
                             const cleanInput = {};
                             if (toolName === 'Write') {
-                                // 参数验证和修复
+                                // Parameter validation and fix
                                 if (!input.file_path || input.file_path === 'undefined') {
                                     console.warn(`  [TOOL WARN] Invalid file_path: ${input.file_path}, using default`);
                                     input.file_path = 'output.md';
@@ -2010,8 +2010,8 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     });
                 }
             } else {
-                // 非流式响应 - 支持工具调用
-                // 构建请求选项（与流式分支相同逻辑）
+                // Non-streaming response - supports tool calls
+                // Build request options (same logic as streaming branch)
                 const warpReqOptions = { workingDir };
                 if (toolResultContent) {
                     warpReqOptions.toolResult = {
@@ -2021,16 +2021,16 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     };
                 }
                 
-                // 使用带 429 重试的请求函数
+                // Use request function with 429 retry
                 const { response: warpResponse, credentialId: usedCredId } = await sendWarpRequestWithRetry(query, warpModel, warpReqOptions);
                 
                 let finalResponse = warpResponse.text || '';
                 const toolCalls = warpResponse.toolCalls || [];
                 
-                // 构建响应内容
+                // Build Response content
                 const contentBlocks = [];
                 
-                // 添加文本内容
+                // Add text content
                 if (finalResponse) {
                     contentBlocks.push({
                         type: 'text',
@@ -2038,19 +2038,19 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     });
                 }
                 
-                // 如果有工具调用，添加 tool_use 块
+                // If there are tool calls, add tool_use blocks
                 if (toolCalls.length > 0) {
                     for (const tc of toolCalls) {
                         const toolUseId = tc.callId || `toolu_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
                         
-                        // 根据工具类型选择正确的工具名称和输入格式
+                        // Select correct tool name and input format based on tool type
                         let toolName = 'Bash';
                         let input = { command: tc.command };
                         
                         if (tc.toolName === 'Write' || tc.command === 'create_documents') {
                             toolName = 'Write';
 
-                            // 调试：打印原始工具调用信息
+                            // Debug: print original tool call info
                             console.log(`  [TOOL DEBUG] Original tool call (non-stream):`, {
                                 toolName: tc.toolName,
                                 command: tc.command,
@@ -2061,12 +2061,12 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                                 input: tc.input
                             });
 
-                            // 更智能的文件路径提取
+                            // Smarter file path extraction
                             let filePath = tc.filePath || tc.file_path || tc.path ||
                                           (tc.input && tc.input.file_path) ||
                                           (tc.input && tc.input.path);
 
-                            // 如果没有明确的文件路径，根据内容推断
+                            // If no explicit file path, infer from content
                             if (!filePath) {
                                 const contentToCheck = tc.content || finalResponse || '';
                                 if (contentToCheck.includes('<!doctype html') || contentToCheck.includes('<html')) {
@@ -2081,26 +2081,26 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                                 console.log(`  [TOOL] Inferred file type (non-stream): ${filePath}`);
                             }
 
-                            // 更完整的内容提取 - 关键修复：优先使用 finalResponse 内容
+                            // More complete content extraction - key fix: prioritize finalResponse content
                             let writeContent = '';
 
-                            // 1. 首先尝试工具调用中的内容
+                            // 1. First try content from tool call
                             if (tc.content && tc.content.trim()) {
                                 writeContent = tc.content;
                             } else if (tc.input && tc.input.content && tc.input.content.trim()) {
                                 writeContent = tc.input.content;
                             }
-                            // 2. 如果工具调用内容为空或只是描述，使用响应文本
+                            // 2. If tool call content is empty or just description, use response text
                             else if (finalResponse && finalResponse.trim() && finalResponse.length > 100) {
                                 writeContent = finalResponse;
                                 console.log(`  [TOOL FIX] Using response text as Write content (${finalResponse.length} chars)`);
                             }
-                            // 3. 最后的回退
+                            // 3. Final fallback
                             else {
                                 writeContent = tc.content || finalResponse || '';
                             }
 
-                            // 参数验证
+                            // Parameter validation
                             if (!writeContent || writeContent.length < 10) {
                                 console.warn(`  [TOOL WARN] Write tool has insufficient content (${writeContent.length} chars)`);
                             }
@@ -2118,10 +2118,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                             });
                         }
                         
-                        // 确保只传递必要的字段，移除可能的额外字段如 description
+                        // Ensure only necessary fields are passed, remove extra fields like description
                         const cleanInput = {};
                         if (toolName === 'Write') {
-                            // 参数验证和修复
+                            // Parameter validation and fix
                             if (!input.file_path || input.file_path === 'undefined') {
                                 console.warn(`  [TOOL WARN] Invalid file_path: ${input.file_path}, using default`);
                                 input.file_path = 'output.md';
@@ -2148,11 +2148,11 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     }
                 }
                 
-                // 如果没有内容，添加默认提示
+                // If no content, add default prompt
                 if (contentBlocks.length === 0) {
                     contentBlocks.push({
                         type: 'text',
-                        text: '请问有什么可以帮助你的？'
+                        text: 'How can I help you?'
                     });
                 }
 
@@ -2162,7 +2162,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 const durationMs = Date.now() - startTime;
                 console.log(`  ✓ ${durationMs}ms | in=${inputTokens} out=${outputTokens}`);
 
-                // 记录统计到 api_logs
+                // Log statistics to api_logs
                 await apiLogStore.create({
                     requestId,
                     apiKeyId,
@@ -2182,7 +2182,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     durationMs
                 });
 
-                // 生成会话 ID 用于连续对话
+                // Generate session ID for continuous conversation
                 const newSessionId = crypto.randomUUID();
                 messagesSessions.set(newSessionId, {
                     credentialId: usedCredId,
@@ -2193,7 +2193,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     createdAt: Date.now()
                 });
                 
-                // 清理过期会话
+                // Clean up expired sessions
                 for (const [id, session] of messagesSessions) {
                     if (Date.now() - session.createdAt > 30 * 60 * 1000) {
                         messagesSessions.delete(id);
@@ -2212,7 +2212,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         input_tokens: inputTokens,
                         output_tokens: outputTokens
                     },
-                    // 扩展字段：会话 ID 用于连续对话
+                    // Extended field: session ID for continuous conversation
                     metadata: {
                         session_id: newSessionId,
                         has_tool_calls: toolCalls.length > 0
@@ -2223,7 +2223,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             const durationMs = Date.now() - startTime;
             console.error(`  ✗ ${durationMs}ms | error: ${error.message}`);
 
-            // 记录错误统计到 api_logs
+            // Record error statistics to api_logs
             await apiLogStore.create({
                 requestId,
                 apiKeyId,
@@ -2254,14 +2254,14 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 工具执行端点 - 用户确认后执行 bash 命令
-    // 配合 /w/v1/messages 的 tool_use 返回使用
+    // Tool execution endpoint - execute bash command after user confirmation
+    // Used together with tool_use return from /w/v1/messages
     app.post('/w/v1/tools/execute', verifyWarpApiKey, async (req, res) => {
         try {
             const { tool_use_id, command, working_dir } = req.body;
 
             console.log('\n' + '-'.repeat(80));
-            console.log(`[${new Date().toISOString()}] /w/v1/tools/execute 请求`);
+            console.log(`[${new Date().toISOString()}] /w/v1/tools/execute request`);
             console.log('-'.repeat(80));
             console.log(`API Key: ${req.apiKey?.keyPrefix || 'unknown'}***`);
             console.log(`IP: ${req.ip || req.connection?.remoteAddress}`);
@@ -2274,13 +2274,13 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             if (!command) {
                 return res.status(400).json({
                     type: 'error',
-                    error: { type: 'invalid_request_error', message: '请提供 command' }
+                    error: { type: 'invalid_request_error', message: 'Please provide command' }
                 });
             }
 
             const cwd = working_dir || '/tmp';
 
-            // 执行命令
+            // Execute command
             const { exec } = await import('child_process');
             const { promisify } = await import('util');
             const execAsync = promisify(exec);
@@ -2295,7 +2295,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 result = {
                     success: true,
                     tool_use_id: tool_use_id || `toolu_${Date.now()}`,
-                    output: stdout.trim() || stderr.trim() || '命令执行成功（无输出）',
+                    output: stdout.trim() || stderr.trim() || 'Command executed successfully (no output)',
                     command,
                     working_dir: cwd
                 };
@@ -2324,19 +2324,19 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // ============ W2 Claude 格式端点（完整多轮工具调用） ============
+    // ============ W2 Claude Format Endpoints (Full Multi-turn Tool Calls) ============
     
-    // Warp Claude 格式 V2 - /w2/v1/messages
-    // 支持完整的多轮对话和工具自动执行
+    // Warp Claude Format V2 - /w2/v1/messages
+    // Supports full multi-turn conversation and automatic tool execution
     app.post('/w2/v1/messages', verifyWarpApiKey, async (req, res) => {
         const startTime = Date.now();
         const apiKeyId = req.apiKey?.id || null;
         const requestId = generateRequestId();
         
         console.log('\n' + '='.repeat(80));
-        console.log(`[${new Date().toISOString()}] /w2/v1/messages 请求 (多轮工具模式)`);
+        console.log(`[${new Date().toISOString()}] /w2/v1/messages request (multi-turn tool mode)`);
         console.log('='.repeat(80));
-        console.log(`请求ID: ${requestId}`);
+        console.log(`Request ID: ${requestId}`);
         console.log(`API Key: ${req.apiKey?.keyPrefix || 'unknown'}***`);
         console.log('-'.repeat(40));
         
@@ -2353,10 +2353,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
             
-            // 获取 WarpProxy 实例
+            // Get WarpProxy instance
             const { proxy, credential } = await getWarpProxy();
             
-            // 构建查询
+            // Build query
             let query = '';
             if (system) {
                 query += `[System] ${system}\n\n`;
@@ -2382,10 +2382,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             const warpModel = mapModelToWarp(model);
             const inputTokens = estimateTokens(query);
             
-            // 从请求中获取或创建 sessionId
+            // Get or create sessionId from request
             const sessionId = req.headers['x-session-id'] || `session-${Date.now()}`;
             
-            // 设置上下文
+            // Set context
             const context = {
                 workingDir: req.headers['x-working-dir'] || process.cwd(),
                 homeDir: process.env.HOME || '/tmp',
@@ -2396,7 +2396,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             };
             
             if (stream) {
-                // 流式响应
+                // Streaming response
                 res.setHeader('Content-Type', 'text/event-stream');
                 res.setHeader('Cache-Control', 'no-cache');
                 res.setHeader('Connection', 'keep-alive');
@@ -2406,7 +2406,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 let fullContent = '';
                 let totalToolCalls = [];
                 
-                // 发送 message_start
+                // Send message_start
                 res.write(`event: message_start\ndata: ${JSON.stringify({
                     type: 'message_start',
                     message: {
@@ -2421,7 +2421,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     }
                 })}\n\n`);
                 
-                // 发送 content_block_start
+                // Send content_block_start
                 res.write(`event: content_block_start\ndata: ${JSON.stringify({
                     type: 'content_block_start',
                     index: 0,
@@ -2429,7 +2429,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 })}\n\n`);
                 
                 try {
-                    // 使用 WarpProxy 的流式接口
+                    // Use WarpProxy streaming interface
                     for await (const event of proxy.chatStream(sessionId, query, { model: warpModel, context })) {
                         if (event.type === 'text') {
                             fullContent += event.content;
@@ -2439,8 +2439,8 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                                 delta: { type: 'text_delta', text: event.content }
                             })}\n\n`);
                         } else if (event.type === 'tool_call') {
-                            // 发送工具调用信息（作为文本）
-                            const toolInfo = `\n[执行工具: ${event.command}]\n`;
+                            // Send tool call info (as text)
+                            const toolInfo = `\n[Executing tool: ${event.command}]\n`;
                             res.write(`event: content_block_delta\ndata: ${JSON.stringify({
                                 type: 'content_block_delta',
                                 index: 0,
@@ -2448,15 +2448,15 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                             })}\n\n`);
                         } else if (event.type === 'tool_result') {
                             totalToolCalls.push(event);
-                            // 发送工具结果（简略版）
-                            const resultInfo = `[结果: ${event.result?.output?.substring(0, 200) || ''}...]\n`;
+                            // Send tool result (summary version)
+                            const resultInfo = `[Result: ${event.result?.output?.substring(0, 200) || ''}...]\n`;
                             res.write(`event: content_block_delta\ndata: ${JSON.stringify({
                                 type: 'content_block_delta',
                                 index: 0,
                                 delta: { type: 'text_delta', text: resultInfo }
                             })}\n\n`);
                         } else if (event.type === 'iteration_start') {
-                            console.log(`[迭代 ${event.iteration}] 开始...`);
+                            console.log(`[Iteration ${event.iteration}] Starting...`);
                         }
                     }
                     
@@ -2482,10 +2482,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     
                     res.end();
                     
-                    // 记录日志
+                    // Log
                     const durationMs = Date.now() - startTime;
-                    console.log(`[${new Date().toISOString()}] /w2/v1/messages 完成`);
-                    console.log(`耗时: ${durationMs}ms, 工具调用: ${totalToolCalls.length}次`);
+                    console.log(`[${new Date().toISOString()}] /w2/v1/messages completed`);
+                    console.log(`Duration: ${durationMs}ms, tool calls: ${totalToolCalls.length}`);
                     console.log('='.repeat(80) + '\n');
                     
                     await apiLogStore.create({
@@ -2518,15 +2518,15 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 }
                 
             } else {
-                // 非流式响应
+                // Non-streaming response
                 const result = await proxy.chat(sessionId, query, { model: warpModel, context });
                 
                 const finalResponse = result.response || '';
                 const outputTokens = estimateTokens(finalResponse);
                 
                 const durationMs = Date.now() - startTime;
-                console.log(`[${new Date().toISOString()}] /w2/v1/messages 完成`);
-                console.log(`耗时: ${durationMs}ms, 工具调用: ${result.toolCalls?.length || 0}次, 迭代: ${result.iterations}次`);
+                console.log(`[${new Date().toISOString()}] /w2/v1/messages completed`);
+                console.log(`Duration: ${durationMs}ms, tool calls: ${result.toolCalls?.length || 0}, iterations: ${result.iterations}`);
                 console.log('='.repeat(80) + '\n');
                 
                 await apiLogStore.create({
@@ -2574,7 +2574,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
             
         } catch (error) {
             const durationMs = Date.now() - startTime;
-            console.log(`[${new Date().toISOString()}] /w2/v1/messages 错误: ${error.message}`);
+            console.log(`[${new Date().toISOString()}] /w2/v1/messages error: ${error.message}`);
             console.log('='.repeat(80) + '\n');
             
             await apiLogStore.create({
@@ -2607,9 +2607,9 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // ============ Gemini 格式端点 ============
+    // ============ Gemini Format Endpoints ============
 
-    // Warp Gemini 格式 - /w/v1beta/models/:model:generateContent
+    // Warp Gemini Format - /w/v1beta/models/:model:generateContent
     app.post('/w/v1beta/models/:model\\:generateContent', verifyWarpApiKey, async (req, res) => {
         const startTime = Date.now();
         const apiKeyId = req.apiKey?.id || null;
@@ -2628,7 +2628,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
 
-            // 构建查询
+            // Build query
             let query = '';
             if (systemInstruction && systemInstruction.parts) {
                 query += `[System] ${systemInstruction.parts.map(p => p.text).join('')}\n\n`;
@@ -2640,13 +2640,13 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 return text;
             }).join('\n\n');
 
-            // 将外部模型名转换为 Warp 支持的模型名
+            // Convert external model name to Warp supported model name
             const warpModel = mapModelToWarp(model);
             const inputTokens = estimateTokens(query);
             const result = await warpService.chat(query, warpModel);
             const outputTokens = estimateTokens(result.response);
 
-            // 记录统计到 api_logs（不记录消息内容）
+            // Record statistics to api_logs (do not record message content)
             await apiLogStore.create({
                 requestId: generateRequestId(),
                 apiKeyId,
@@ -2682,7 +2682,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 }
             });
         } catch (error) {
-            // 记录错误统计到 api_logs
+            // Record error statistics to api_logs
             await apiLogStore.create({
                 requestId: generateRequestId(),
                 apiKeyId,
@@ -2713,7 +2713,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // Warp Gemini 流式 - /w/v1beta/models/:model:streamGenerateContent
+    // Warp Gemini Streaming - /w/v1beta/models/:model:streamGenerateContent
     app.post('/w/v1beta/models/:model\\:streamGenerateContent', verifyWarpApiKey, async (req, res) => {
         const startTime = Date.now();
         const apiKeyId = req.apiKey?.id || null;
@@ -2731,7 +2731,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 });
             }
 
-            // 构建查询
+            // Build query
             let query = '';
             if (systemInstruction && systemInstruction.parts) {
                 query += `[System] ${systemInstruction.parts.map(p => p.text).join('')}\n\n`;
@@ -2743,7 +2743,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 return text;
             }).join('\n\n');
 
-            // 将外部模型名转换为 Warp 支持的模型名
+            // Convert external model name to Warp supported model name
             const warpModel = mapModelToWarp(req.params.model);
             const inputTokens = estimateTokens(query);
             let fullContent = '';
@@ -2792,7 +2792,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     res.write(`data: ${JSON.stringify(endChunk)}\n\n`);
                     res.end();
                     
-                    // 记录统计到 api_logs（不记录消息内容）
+                    // Record statistics to api_logs (do not record message content)
                     await apiLogStore.create({
                         requestId: generateRequestId(),
                         apiKeyId,
@@ -2816,7 +2816,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     res.write(`data: ${JSON.stringify({ error: { message: error.message } })}\n\n`);
                     res.end();
                     
-                    // 记录错误统计到 api_logs
+                    // Record error statistics to api_logs
                     await apiLogStore.create({
                         requestId: generateRequestId(),
                         apiKeyId,
@@ -2839,7 +2839,7 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                 }
             );
         } catch (error) {
-            // 记录错误统计到 api_logs
+            // Record error statistics to api_logs
             await apiLogStore.create({
                 requestId: generateRequestId(),
                 apiKeyId,
@@ -2870,15 +2870,15 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // ============ 用量查询端点 ============
+    // ============ Usage Query Endpoints ============
 
-    // 查询单个账户用量（并保存到数据库）
+    // Query single account usage (and save to database)
     app.get('/w/api/quota', async (req, res) => {
         try {
             const { credentialId } = req.query;
             const quota = await warpService.getQuota(credentialId);
             
-            // 保存用量到数据库
+            // Save usage to database
             if (quota.credentialId && !quota.error) {
                 await warpStore.updateQuota(quota.credentialId, quota.requestLimit, quota.requestsUsed);
             }
@@ -2889,12 +2889,12 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    // 查询所有账户用量（并保存到数据库）
+    // Query all accounts usage (and save to database)
     app.get('/w/api/quotas', async (req, res) => {
         try {
             const quotas = await warpService.getAllQuotas();
             
-            // 计算汇总信息并保存用量到数据库
+            // Calculate summary info and save usage to database
             const summary = {
                 totalAccounts: quotas.length,
                 totalLimit: 0,
@@ -2909,13 +2909,13 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     summary.errorAccounts++;
                 } else if (q.isUnlimited) {
                     summary.unlimitedAccounts++;
-                    // 保存用量到数据库
+                    // Save usage to database
                     await warpStore.updateQuota(q.credentialId, -1, 0);
                 } else {
                     summary.totalLimit += q.requestLimit;
                     summary.totalUsed += q.requestsUsed;
                     summary.totalRemaining += q.requestsRemaining;
-                    // 保存用量到数据库
+                    // Save usage to database
                     await warpStore.updateQuota(q.credentialId, q.requestLimit, q.requestsUsed);
                 }
             }
@@ -2932,11 +2932,11 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
         }
     });
 
-    console.log('[Warp] 路由已设置');
-    console.log('[Warp] 支持的端点:');
-    console.log('[Warp]   OpenAI 格式: /w/v1/chat/completions');
-    console.log('[Warp]   Claude 格式: /w/v1/messages');
-    console.log('[Warp]   Gemini 格式: /w/v1beta/models/{model}:generateContent');
-    console.log('[Warp]   模型列表:   /w/v1/models');
-    console.log('[Warp]   用量查询:   /w/api/quota, /w/api/quotas');
+    console.log('[Warp] Routes configured');
+    console.log('[Warp] Supported endpoints:');
+    console.log('[Warp]   OpenAI format: /w/v1/chat/completions');
+    console.log('[Warp]   Claude format: /w/v1/messages');
+    console.log('[Warp]   Gemini format: /w/v1beta/models/{model}:generateContent');
+    console.log('[Warp]   Model list:    /w/v1/models');
+    console.log('[Warp]   Usage query:   /w/api/quota, /w/api/quotas');
 }

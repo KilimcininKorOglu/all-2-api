@@ -1,7 +1,7 @@
 /**
- * Vertex AI 路由
- * 提供 Vertex AI 凭据管理和聊天 API
- * 仅支持 Gemini 模型（通过 GCP Vertex AI）
+ * Vertex AI Routes
+ * Provides Vertex AI credential management and chat API
+ * Only supports Gemini models (via GCP Vertex AI)
  */
 import { VertexClient, VERTEX_GEMINI_MODEL_MAPPING, VERTEX_REGIONS } from './vertex.js';
 import { VertexCredentialStore, GeminiCredentialStore } from '../db.js';
@@ -17,7 +17,7 @@ let vertexStore = null;
 let geminiStore = null;
 
 /**
- * 检测是否为 Gemini 模型
+ * Detect if model is a Gemini model
  */
 function isGeminiModel(model) {
     if (!model) return false;
@@ -25,7 +25,7 @@ function isGeminiModel(model) {
 }
 
 /**
- * 检查 Gemini Token 是否即将过期（提前 50 分钟刷新）
+ * Check if Gemini Token is expiring soon (refresh 50 minutes in advance)
  */
 function isGeminiTokenExpiringSoon(credential, minutes = 50) {
     if (!credential.expiresAt) return false;
@@ -40,29 +40,29 @@ function isGeminiTokenExpiringSoon(credential, minutes = 50) {
 }
 
 /**
- * 选择一个可用的 Gemini 凭据（LRU 策略）
+ * Select an available Gemini credential (LRU strategy)
  */
 async function selectGeminiCredential() {
     const allCredentials = await geminiStore.getAllActive();
     if (allCredentials.length === 0) return null;
 
-    // 过滤健康的凭据（错误次数小于阈值 且 projectId 不为空）
+    // Filter healthy credentials (error count below threshold and projectId is not empty)
     const maxErrorCount = 5;
     let healthyCredentials = allCredentials.filter(c =>
         (c.errorCount || 0) < maxErrorCount && c.projectId
     );
 
-    // 如果没有健康凭证，尝试只过滤 projectId 不为空的
+    // If no healthy credentials, try filtering only those with non-empty projectId
     if (healthyCredentials.length === 0) {
         healthyCredentials = allCredentials.filter(c => c.projectId);
     }
 
-    // 如果仍然没有，使用所有可用凭证（会触发 onboarding）
+    // If still none available, use all credentials (will trigger onboarding)
     if (healthyCredentials.length === 0) {
         healthyCredentials = allCredentials;
     }
 
-    // LRU 策略：按最后使用时间排序，优先选择最久未使用的
+    // LRU strategy: sort by last used time, prioritize least recently used
     healthyCredentials.sort((a, b) => {
         const timeA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
         const timeB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
@@ -74,19 +74,19 @@ async function selectGeminiCredential() {
 }
 
 /**
- * 设置 Vertex AI 路由
+ * Setup Vertex AI routes
  */
 export async function setupVertexRoutes(app) {
     vertexStore = await VertexCredentialStore.create();
     geminiStore = await GeminiCredentialStore.create();
 
-    // ============ 凭据管理 API ============
+    // ============ Credential Management API ============
 
-    // 获取所有 Vertex 凭据
+    // Get all Vertex credentials
     app.get('/api/vertex/credentials', async (req, res) => {
         try {
             const credentials = await vertexStore.getAll();
-            // 隐藏私钥
+            // Hide private key
             const safeCredentials = credentials.map(c => ({
                 ...c,
                 privateKey: c.privateKey ? '******' : null
@@ -97,14 +97,14 @@ export async function setupVertexRoutes(app) {
         }
     });
 
-    // 获取单个 Vertex 凭据
+    // Get single Vertex credential
     app.get('/api/vertex/credentials/:id', async (req, res) => {
         try {
             const credential = await vertexStore.getById(parseInt(req.params.id));
             if (!credential) {
-                return res.status(404).json({ error: '凭据不存在' });
+                return res.status(404).json({ error: 'Credential not found' });
             }
-            // 隐藏私钥
+            // Hide private key
             res.json({
                 ...credential,
                 privateKey: credential.privateKey ? '******' : null
@@ -114,19 +114,19 @@ export async function setupVertexRoutes(app) {
         }
     });
 
-    // 添加 Vertex 凭据
+    // Add Vertex credential
     app.post('/api/vertex/credentials', async (req, res) => {
         try {
             const { name, projectId, clientEmail, privateKey, region } = req.body;
 
             if (!name || !projectId || !clientEmail || !privateKey) {
-                return res.status(400).json({ error: '缺少必要字段: name, projectId, clientEmail, privateKey' });
+                return res.status(400).json({ error: 'Missing required fields: name, projectId, clientEmail, privateKey' });
             }
 
-            // 检查名称是否已存在
+            // Check if name already exists
             const existing = await vertexStore.getByName(name);
             if (existing) {
-                return res.status(400).json({ error: '凭据名称已存在' });
+                return res.status(400).json({ error: 'Credential name already exists' });
             }
 
             const id = await vertexStore.add({
@@ -137,36 +137,36 @@ export async function setupVertexRoutes(app) {
                 region: region || 'global'
             });
 
-            res.json({ success: true, id, message: '凭据添加成功' });
+            res.json({ success: true, id, message: 'Credential added successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     });
 
-    // 从 JSON 文件导入凭据
+    // Import credentials from JSON file
     app.post('/api/vertex/credentials/import', async (req, res) => {
         try {
             const { name, keyJson, region } = req.body;
 
             if (!name || !keyJson) {
-                return res.status(400).json({ error: '缺少必要字段: name, keyJson' });
+                return res.status(400).json({ error: 'Missing required fields: name, keyJson' });
             }
 
             let keyData;
             try {
                 keyData = typeof keyJson === 'string' ? JSON.parse(keyJson) : keyJson;
             } catch (e) {
-                return res.status(400).json({ error: '无效的 JSON 格式' });
+                return res.status(400).json({ error: 'Invalid JSON format' });
             }
 
             if (!keyData.project_id || !keyData.client_email || !keyData.private_key) {
-                return res.status(400).json({ error: 'JSON 缺少必要字段: project_id, client_email, private_key' });
+                return res.status(400).json({ error: 'JSON missing required fields: project_id, client_email, private_key' });
             }
 
-            // 检查名称是否已存在
+            // Check if name already exists
             const existing = await vertexStore.getByName(name);
             if (existing) {
-                return res.status(400).json({ error: '凭据名称已存在' });
+                return res.status(400).json({ error: 'Credential name already exists' });
             }
 
             const id = await vertexStore.add({
@@ -177,19 +177,19 @@ export async function setupVertexRoutes(app) {
                 region: region || 'global'
             });
 
-            res.json({ success: true, id, message: '凭据导入成功' });
+            res.json({ success: true, id, message: 'Credential imported successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     });
 
-    // 更新 Vertex 凭据
+    // Update Vertex credential
     app.put('/api/vertex/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await vertexStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ error: '凭据不存在' });
+                return res.status(404).json({ error: 'Credential not found' });
             }
 
             const updateData = {};
@@ -203,58 +203,58 @@ export async function setupVertexRoutes(app) {
             if (req.body.isActive !== undefined) updateData.isActive = req.body.isActive;
 
             await vertexStore.update(id, updateData);
-            res.json({ success: true, message: '凭据更新成功' });
+            res.json({ success: true, message: 'Credential updated successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     });
 
-    // 删除 Vertex 凭据
+    // Delete Vertex credential
     app.delete('/api/vertex/credentials/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             await vertexStore.delete(id);
-            res.json({ success: true, message: '凭据删除成功' });
+            res.json({ success: true, message: 'Credential deleted successfully' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     });
 
-    // 激活 Vertex 凭据
+    // Activate Vertex credential
     app.post('/api/vertex/credentials/:id/activate', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             await vertexStore.setActive(id);
-            res.json({ success: true, message: '凭据已激活' });
+            res.json({ success: true, message: 'Credential activated' });
         } catch (error) {
             res.status(500).json({ error: error.message });
         }
     });
 
-    // 测试 Vertex 凭据
+    // Test Vertex credential
     app.post('/api/vertex/credentials/:id/test', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await vertexStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ error: '凭据不存在' });
+                return res.status(404).json({ error: 'Credential not found' });
             }
 
             const gcpCredentials = vertexStore.toGcpCredentials(credential);
             const client = VertexClient.fromCredentials(gcpCredentials, credential.region);
 
-            // 尝试获取访问令牌来测试凭据
+            // Try to get access token to test credentials
             await client.getAccessToken();
 
             await vertexStore.resetErrorCount(id);
-            res.json({ success: true, message: '凭据测试成功' });
+            res.json({ success: true, message: 'Credential test successful' });
         } catch (error) {
             await vertexStore.incrementErrorCount(id, error.message);
             res.status(400).json({ success: false, error: error.message });
         }
     });
 
-    // 获取 Vertex 统计信息
+    // Get Vertex statistics
     app.get('/api/vertex/statistics', async (req, res) => {
         try {
             const stats = await vertexStore.getStatistics();
@@ -264,7 +264,7 @@ export async function setupVertexRoutes(app) {
         }
     });
 
-    // 获取支持的模型列表
+    // Get supported model list
     app.get('/api/vertex/models', (req, res) => {
         res.json({
             models: Object.keys(VERTEX_GEMINI_MODEL_MAPPING),
@@ -272,26 +272,26 @@ export async function setupVertexRoutes(app) {
         });
     });
 
-    // 获取支持的区域列表
+    // Get supported region list
     app.get('/api/vertex/regions', (req, res) => {
         res.json({ regions: VERTEX_REGIONS });
     });
 
-    // ============ 聊天 API (仅支持 Gemini) ============
+    // ============ Chat API (Gemini only) ============
 
-    // 非流式聊天 (Gemini)
+    // Non-streaming chat (Gemini)
     app.post('/api/vertex/chat/:id', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await vertexStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ error: '凭据不存在' });
+                return res.status(404).json({ error: 'Credential not found' });
             }
 
             const { messages, model, system, max_tokens, temperature, top_p, top_k } = req.body;
 
             if (!messages || !Array.isArray(messages)) {
-                return res.status(400).json({ error: '缺少 messages 参数' });
+                return res.status(400).json({ error: 'Missing messages parameter' });
             }
 
             const gcpCredentials = vertexStore.toGcpCredentials(credential);
@@ -316,19 +316,19 @@ export async function setupVertexRoutes(app) {
         }
     });
 
-    // 流式聊天 (Gemini)
+    // Streaming chat (Gemini)
     app.post('/api/vertex/chat/:id/stream', async (req, res) => {
         try {
             const id = parseInt(req.params.id);
             const credential = await vertexStore.getById(id);
             if (!credential) {
-                return res.status(404).json({ error: '凭据不存在' });
+                return res.status(404).json({ error: 'Credential not found' });
             }
 
             const { messages, model, system, max_tokens, temperature, top_p, top_k } = req.body;
 
             if (!messages || !Array.isArray(messages)) {
-                return res.status(400).json({ error: '缺少 messages 参数' });
+                return res.status(400).json({ error: 'Missing messages parameter' });
             }
 
             const gcpCredentials = vertexStore.toGcpCredentials(credential);
@@ -341,7 +341,7 @@ export async function setupVertexRoutes(app) {
             const messageId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 8);
             const inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
 
-            // 发送 message_start 事件
+            // Send message_start event
             res.write(`event: message_start\ndata: ${JSON.stringify({
                 type: 'message_start',
                 message: {
@@ -356,7 +356,7 @@ export async function setupVertexRoutes(app) {
                 }
             })}\n\n`);
 
-            // 发送 content_block_start 事件
+            // Send content_block_start event
             res.write(`event: content_block_start\ndata: ${JSON.stringify({
                 type: 'content_block_start',
                 index: 0,
@@ -385,7 +385,7 @@ export async function setupVertexRoutes(app) {
                 }
             }
 
-            // 发送结束事件
+            // Send end events
             res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
             res.write(`event: message_delta\ndata: ${JSON.stringify({
                 type: 'message_delta',
@@ -410,26 +410,26 @@ export async function setupVertexRoutes(app) {
         }
     });
 
-    // ============ Claude API 兼容端点 ============
+    // ============ Claude API Compatible Endpoints ============
 
-    // /vertex/v1/messages - Claude API 格式（仅支持 Gemini 模型）
+    // /vertex/v1/messages - Claude API format (Gemini models only)
     app.post('/vertex/v1/messages', async (req, res) => {
         const { messages, model, system, max_tokens, temperature, top_p, top_k, stream } = req.body;
 
         if (!messages || !Array.isArray(messages)) {
-            return res.status(400).json({ error: '缺少 messages 参数' });
+            return res.status(400).json({ error: 'Missing messages parameter' });
         }
 
-        // 检测是否为 Gemini 模型
+        // Detect if model is Gemini
         if (isGeminiModel(model)) {
-            // ============ Gemini 模型处理 ============
-            // 优先使用 Vertex AI（GCP JSON 凭据），如果没有则回退到 Antigravity
+            // ============ Gemini Model Processing ============
+            // Prioritize Vertex AI (GCP JSON credentials), fallback to Antigravity if unavailable
             const vertexCredential = await vertexStore.getRandomActive();
 
             if (vertexCredential) {
-                // ============ 通过 Vertex AI 调用 Gemini ============
-                console.log(`[Vertex/Gemini] 收到请求 | model=${model} | stream=${stream}`);
-                console.log(`[Vertex/Gemini] 使用 Vertex AI 凭据: ${vertexCredential.name}`);
+                // ============ Call Gemini via Vertex AI ============
+                console.log(`[Vertex/Gemini] Request received | model=${model} | stream=${stream}`);
+                console.log(`[Vertex/Gemini] Using Vertex AI credential: ${vertexCredential.name}`);
 
                 try {
                     const gcpCredentials = vertexStore.toGcpCredentials(vertexCredential);
@@ -438,7 +438,7 @@ export async function setupVertexRoutes(app) {
                     const requestModel = model || 'gemini-1.5-flash';
 
                     if (stream) {
-                        // 流式响应
+                        // Streaming response
                         res.setHeader('Content-Type', 'text/event-stream');
                         res.setHeader('Cache-Control', 'no-cache');
                         res.setHeader('Connection', 'keep-alive');
@@ -446,7 +446,7 @@ export async function setupVertexRoutes(app) {
                         const messageId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 8);
                         const inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
 
-                        // 发送 message_start 事件
+                        // Send message_start event
                         res.write(`event: message_start\ndata: ${JSON.stringify({
                             type: 'message_start',
                             message: {
@@ -461,7 +461,7 @@ export async function setupVertexRoutes(app) {
                             }
                         })}\n\n`);
 
-                        // 发送 content_block_start 事件
+                        // Send content_block_start event
                         res.write(`event: content_block_start\ndata: ${JSON.stringify({
                             type: 'content_block_start',
                             index: 0,
@@ -490,7 +490,7 @@ export async function setupVertexRoutes(app) {
                             }
                         }
 
-                        // 发送结束事件
+                        // Send end events
                         res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
                         res.write(`event: message_delta\ndata: ${JSON.stringify({
                             type: 'message_delta',
@@ -500,9 +500,9 @@ export async function setupVertexRoutes(app) {
                         res.write(`event: message_stop\ndata: ${JSON.stringify({ type: 'message_stop' })}\n\n`);
                         res.end();
 
-                        console.log('[Vertex/Gemini] 流式请求完成');
+                        console.log('[Vertex/Gemini] Streaming request completed');
                     } else {
-                        // 非流式响应
+                        // Non-streaming response
                         const response = await client.geminiChat(messages, requestModel, {
                             system,
                             max_tokens: max_tokens || 8192,
@@ -511,14 +511,14 @@ export async function setupVertexRoutes(app) {
                             top_k
                         });
 
-                        console.log('[Vertex/Gemini] 请求成功');
+                        console.log('[Vertex/Gemini] Request successful');
                         res.json(response);
                     }
 
                     await vertexStore.incrementUseCount(vertexCredential.id);
                     await vertexStore.resetErrorCount(vertexCredential.id);
                 } catch (error) {
-                    console.error(`[Vertex/Gemini] 错误: ${error.message}`);
+                    console.error(`[Vertex/Gemini] Error: ${error.message}`);
                     if (!res.headersSent) {
                         res.status(500).json({ error: error.message });
                     } else {
@@ -527,15 +527,15 @@ export async function setupVertexRoutes(app) {
                     }
                 }
             } else {
-                // ============ 回退到 Antigravity（OAuth 凭据）============
-                console.log('[Vertex/Gemini] 没有 Vertex AI 凭据，回退到 Antigravity');
+                // ============ Fallback to Antigravity (OAuth credentials) ============
+                console.log('[Vertex/Gemini] No Vertex AI credentials, falling back to Antigravity');
                 try {
                     let credential = await selectGeminiCredential();
                     if (!credential) {
-                        return res.status(503).json({ error: '没有可用的 Gemini 凭据' });
+                        return res.status(503).json({ error: 'No available Gemini credentials' });
                     }
 
-                    // 检查并刷新 Token（如果即将过期）
+                    // Check and refresh Token (if expiring soon)
                     if (credential.refreshToken && isGeminiTokenExpiringSoon(credential)) {
                         try {
                             const result = await refreshGeminiToken(credential.refreshToken);
@@ -546,18 +546,18 @@ export async function setupVertexRoutes(app) {
                             });
                             credential = await geminiStore.getById(credential.id);
                         } catch (refreshError) {
-                            console.error(`[Vertex/Gemini] Token 刷新失败: ${refreshError.message}`);
+                            console.error(`[Vertex/Gemini] Token refresh failed: ${refreshError.message}`);
                         }
                     }
 
-                    // 创建 Antigravity 服务
+                    // Create Antigravity service
                     const service = AntigravityApiService.fromCredentials(credential);
 
-                    // 转换消息格式
+                    // Convert message format
                     const contents = claudeToGeminiMessages(messages);
                     const requestBody = { contents };
 
-                    // 添加系统提示
+                    // Add system prompt
                     if (system) {
                         const systemText = typeof system === 'string'
                             ? system
@@ -565,7 +565,7 @@ export async function setupVertexRoutes(app) {
                         requestBody.systemInstruction = { parts: [{ text: systemText }] };
                     }
 
-                    // 添加生成配置
+                    // Add generation config
                     if (max_tokens) {
                         requestBody.generationConfig = { maxOutputTokens: max_tokens };
                     }
@@ -573,7 +573,7 @@ export async function setupVertexRoutes(app) {
                     const requestModel = model || 'gemini-3-flash-preview';
 
                     if (stream) {
-                        // 流式响应
+                        // Streaming response
                         res.setHeader('Content-Type', 'text/event-stream');
                         res.setHeader('Cache-Control', 'no-cache');
                         res.setHeader('Connection', 'keep-alive');
@@ -581,7 +581,7 @@ export async function setupVertexRoutes(app) {
                         const messageId = 'msg_' + Date.now() + Math.random().toString(36).substring(2, 8);
                         const inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
 
-                        // 发送 message_start 事件
+                        // Send message_start event
                         res.write(`event: message_start\ndata: ${JSON.stringify({
                             type: 'message_start',
                             message: {
@@ -596,7 +596,7 @@ export async function setupVertexRoutes(app) {
                             }
                         })}\n\n`);
 
-                        // 发送 content_block_start 事件
+                        // Send content_block_start event
                         res.write(`event: content_block_start\ndata: ${JSON.stringify({
                             type: 'content_block_start',
                             index: 0,
@@ -623,7 +623,7 @@ export async function setupVertexRoutes(app) {
                             }
                         }
 
-                        // 发送结束事件
+                        // Send end events
                         res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: 0 })}\n\n`);
                         res.write(`event: message_delta\ndata: ${JSON.stringify({
                             type: 'message_delta',
@@ -635,7 +635,7 @@ export async function setupVertexRoutes(app) {
 
                         await geminiStore.resetErrorCount(credential.id);
                     } else {
-                        // 非流式响应
+                        // Non-streaming response
                         const response = await service.generateContent(requestModel, requestBody);
                         const claudeResponse = geminiToClaudeResponse(response, requestModel);
 
@@ -643,7 +643,7 @@ export async function setupVertexRoutes(app) {
                         res.json(claudeResponse);
                     }
                 } catch (error) {
-                    console.error(`[Vertex/Gemini/Antigravity] 错误: ${error.message}`);
+                    console.error(`[Vertex/Gemini/Antigravity] Error: ${error.message}`);
                     if (!res.headersSent) {
                         res.status(500).json({ error: error.message });
                     } else {
@@ -653,16 +653,16 @@ export async function setupVertexRoutes(app) {
                 }
             }
         } else {
-            // 不支持非 Gemini 模型
+            // Non-Gemini models not supported
             return res.status(400).json({
-                error: `不支持的模型: ${model}。Vertex 端点仅支持 Gemini 模型。`
+                error: `Unsupported model: ${model}. Vertex endpoint only supports Gemini models.`
             });
         }
     });
 
-    // /vertex/v1/models - 模型列表（仅 Gemini）
+    // /vertex/v1/models - Model list (Gemini only)
     app.get('/vertex/v1/models', (req, res) => {
-        // Gemini 模型
+        // Gemini models
         const geminiModels = [
             ...Object.keys(VERTEX_GEMINI_MODEL_MAPPING),
             ...GEMINI_MODELS.filter(m => !VERTEX_GEMINI_MODEL_MAPPING[m])
@@ -676,7 +676,7 @@ export async function setupVertexRoutes(app) {
         res.json({ object: 'list', data: geminiModels });
     });
 
-    console.log('[Vertex] 路由已设置');
+    console.log('[Vertex] Routes configured');
     return vertexStore;
 }
 

@@ -1,4 +1,4 @@
-/* docs.css - 接入教程页面样式 */
+/* docs.css - Integration Tutorial Page Styles */
 
 .public-page {
     min-height: 100vh;
@@ -62,7 +62,7 @@
     width: 100%;
 }
 
-/* 文档头部 */
+/* Document Header */
 .docs-header {
     margin-bottom: 40px;
 }
@@ -80,7 +80,7 @@
     line-height: 1.6;
 }
 
-/* 接入类型卡片 */
+/* Integration Type Cards */
 .integration-types {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
@@ -136,7 +136,7 @@
     color: var(--text-muted);
 }
 
-/* 接入内容区域 */
+/* Integration Content Area */
 .integration-content {
     display: none !important;
 }
@@ -149,7 +149,7 @@
     margin-bottom: 0;
 }
 
-/* 文档章节 */
+/* Document Section */
 .docs-section {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
@@ -200,7 +200,7 @@
     margin-bottom: 8px;
 }
 
-/* 代码块 */
+/* Code Block */
 .code-block {
     background: var(--bg-primary);
     border: 1px solid var(--border-color);
@@ -248,7 +248,7 @@
     margin-bottom: 8px;
 }
 
-/* 端点框 */
+/* Endpoint Box */
 .endpoint-box {
     background: var(--bg-tertiary);
     border: 1px solid var(--border-color);
@@ -275,7 +275,7 @@
     color: var(--text-primary);
 }
 
-/* 信息框 */
+/* Info Box */
 .info-box {
     background: rgba(59, 130, 246, 0.1);
     border: 1px solid rgba(59, 130, 246, 0.3);
@@ -300,7 +300,7 @@
     line-height: 1.6;
 }
 
-/* 警告框 */
+/* Warning Box */
 .warning-box {
     background: var(--accent-warning-bg);
     border: 1px solid rgba(245, 158, 11, 0.3);
@@ -325,7 +325,7 @@
     line-height: 1.6;
 }
 
-/* 模型表格 */
+/* Model Table */
 .model-table {
     width: 100%;
     border-collapse: collapse;
@@ -361,7 +361,7 @@
     color: var(--accent-primary);
 }
 
-/* Tab 容器 */
+/* Tab Container */
 .tab-container {
     margin: 16px 0;
 }
@@ -403,7 +403,7 @@
     display: block;
 }
 
-/* 响应式布局 */
+/* Responsive Layout */
 @media (max-width: 900px) {
     .integration-types {
         grid-template-columns: repeat(2, 1fr);

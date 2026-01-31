@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>接入教程</title>
+    <title>Integration Guide</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -18,52 +18,52 @@
                 <span class="public-logo-text" id="logo-text">Kiro API</span>
             </div>
             <nav class="public-nav">
-                <a href="/pages/usage-query.html">用量查询</a>
-                <a href="/pages/trial-apply.html">试用申请</a>
-                <a href="/pages/docs.html" class="active">接入教程</a>
+                <a href="/pages/usage-query.html">Usage Query</a>
+                <a href="/pages/trial-apply.html">Trial Application</a>
+                <a href="/pages/docs.html" class="active">Integration Guide</a>
             </nav>
         </header>
 
         <main class="public-content">
             <div class="docs-header">
-                <h1 class="docs-title">Claude API 接入教程</h1>
-                <p class="docs-subtitle">选择您的接入方式，按照教程快速开始使用 Claude 模型。</p>
+                <h1 class="docs-title">Claude API Integration Guide</h1>
+                <p class="docs-subtitle">Choose your integration method and follow the guide to quickly start using Claude models.</p>
             </div>
 
-            <!-- 接入类型选择 -->
+            <!-- Integration Type Selection -->
             <div class="integration-types">
                 <div class="integration-card active" data-type="api">
                     <div class="integration-icon">🔌</div>
-                    <div class="integration-name">API 接入</div>
-                    <div class="integration-desc">直接调用 REST API</div>
+                    <div class="integration-name">API Integration</div>
+                    <div class="integration-desc">Direct REST API calls</div>
                 </div>
                 <div class="integration-card" data-type="ccswitch">
                     <div class="integration-icon">🔄</div>
-                    <div class="integration-name">CCswitch 接入</div>
-                    <div class="integration-desc">Claude Code 代理切换</div>
+                    <div class="integration-name">CCswitch Integration</div>
+                    <div class="integration-desc">Claude Code proxy switching</div>
                 </div>
                 <div class="integration-card" data-type="cli">
                     <div class="integration-icon">💻</div>
-                    <div class="integration-name">原生命令行接入</div>
-                    <div class="integration-desc">Claude CLI 直接使用</div>
+                    <div class="integration-name">Native CLI Integration</div>
+                    <div class="integration-desc">Direct Claude CLI usage</div>
                 </div>
                 <div class="integration-card" data-type="opencode">
                     <div class="integration-icon">📝</div>
-                    <div class="integration-name">opencode 接入</div>
-                    <div class="integration-desc">opencode 编辑器集成</div>
+                    <div class="integration-name">opencode Integration</div>
+                    <div class="integration-desc">opencode editor integration</div>
                 </div>
             </div>
 
-            <!-- API 接入内容 -->
+            <!-- API Integration Content -->
             <div class="integration-content active" id="content-api">
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">1</span>
-                        获取 API 密钥
+                        Get API Key
                     </h2>
                     <div class="section-content">
-                        <p>在开始使用之前，您需要获取一个 API 密钥。请联系管理员获取您的专属 API 密钥。</p>
-                        <p>API 密钥格式为：<code>sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></p>
+                        <p>Before you begin, you need to obtain an API key. Please contact the administrator to get your dedicated API key.</p>
+                        <p>API key format: <code>sk-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx</code></p>
                         <div class="warning-box">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
@@ -71,7 +71,7 @@
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
                             <div class="warning-box-content">
-                                请妥善保管您的 API 密钥，不要将其泄露给他人或提交到公开代码仓库中。
+                                Please keep your API key secure. Do not share it with others or commit it to public code repositories.
                             </div>
                         </div>
                     </div>
@@ -80,16 +80,16 @@
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">2</span>
-                        API 端点
+                        API Endpoints
                     </h2>
                     <div class="section-content">
-                        <p>我们提供两种 API 格式，您可以根据需要选择：</p>
-                        <p class="code-label">Claude API 格式</p>
+                        <p>We provide two API formats. You can choose according to your needs:</p>
+                        <p class="code-label">Claude API Format</p>
                         <div class="endpoint-box">
                             <span class="endpoint-method">POST</span>
                             <span class="endpoint-url">{BASE_URL}/v1/messages</span>
                         </div>
-                        <p class="code-label">OpenAI API 格式</p>
+                        <p class="code-label">OpenAI API Format</p>
                         <div class="endpoint-box">
                             <span class="endpoint-method">POST</span>
                             <span class="endpoint-url">{BASE_URL}/v1/chat/completions</span>
@@ -101,7 +101,7 @@
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                将 <code>{BASE_URL}</code> 替换为实际的服务地址，例如 <code>http://localhost:3000</code> 或您的部署域名。
+                                Replace <code>{BASE_URL}</code> with the actual service address, e.g., <code>http://localhost:3000</code> or your deployment domain.
                             </div>
                         </div>
                     </div>
@@ -110,25 +110,25 @@
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">3</span>
-                        支持的模型
+                        Supported Models
                     </h2>
                     <div class="section-content">
-                        <p>以下是当前支持的 Claude 模型列表：</p>
+                        <p>Here is the list of currently supported Claude models:</p>
                         <table class="model-table">
                             <thead>
                                 <tr>
-                                    <th>模型名称</th>
-                                    <th>说明</th>
+                                    <th>Model Name</th>
+                                    <th>Description</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td class="model-name">claude-sonnet-4-20250514</td>
-                                    <td>Claude Sonnet 4 - 平衡性能与速度</td>
+                                    <td>Claude Sonnet 4 - Balanced performance and speed</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">claude-opus-4-5-20251101</td>
-                                    <td>Claude Opus 4.5 - 最强大的模型</td>
+                                    <td>Claude Opus 4.5 - Most powerful model</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">claude-3-5-sonnet-20241022</td>
@@ -136,7 +136,7 @@
                                 </tr>
                                 <tr>
                                     <td class="model-name">claude-3-5-haiku-20241022</td>
-                                  <td>Claude 3.5 Haiku - 快速响应</td>
+                                    <td>Claude 3.5 Haiku - Fast response</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -144,22 +144,22 @@
                 </div>
             </div>
 
-            <!-- CCswitch 接入内容 -->
+            <!-- CCswitch Integration Content -->
             <div class="integration-content" id="content-ccswitch">
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">1</span>
-                        什么是 CCswitch
+                        What is CCswitch
                     </h2>
                     <div class="section-content">
-                        <p>CCswitch 是一个 Claude Code / Codex 代理切换工具，提供可视化界面管理多个 API 供应商配置，支持一键切换不同的 API 端点。</p>
-                        <p>主要特性：</p>
+                        <p>CCswitch is a Claude Code / Codex proxy switching tool that provides a visual interface to manage multiple API provider configurations, supporting one-click switching between different API endpoints.</p>
+                        <p>Key Features:</p>
                         <ul>
-                            <li>支持 Claude Code、Codex 等多种客户端</li>
-                            <li>可视化配置管理界面</li>
-                            <li>内置多种供应商模版（DeepSeek、GLM、ModelScope 等）</li>
-                            <li>支持自定义供应商配置</li>
-                            <li>配置导入/导出，方便备份迁移</li>
+                            <li>Support for Claude Code, Codex and other clients</li>
+                            <li>Visual configuration management interface</li>
+                            <li>Built-in provider templates (DeepSeek, GLM, ModelScope, etc.)</li>
+                            <li>Custom provider configuration support</li>
+                            <li>Configuration import/export for easy backup and migration</li>
                         </ul>
                         <div class="info-box">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -168,7 +168,7 @@
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                CCswitch 项目地址：<a href="https://github.com/yiGmMk/ccswitch" target="_blank" style="color: var(--accent-primary);">https://github.com/yiGmMk/ccswitch</a>
+                                CCswitch project: <a href="https://github.com/yiGmMk/ccswitch" target="_blank" style="color: var(--accent-primary);">https://github.com/yiGmMk/ccswitch</a>
                             </div>
                         </div>
                     </div>
@@ -177,25 +177,25 @@
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">2</span>
-                        安装 CCswitch
+                        Install CCswitch
                     </h2>
                     <div class="section-content">
                         <div class="tab-container">
                             <div class="tab-buttons">
                                 <button class="tab-btn active" data-tab="ccswitch-go">Go Install</button>
-                                <button class="tab-btn" data-tab="ccswitch-release">下载二进制</button>
+                                <button class="tab-btn" data-tab="ccswitch-release">Download Binary</button>
                             </div>
                             <div class="tab-content active" id="tab-ccswitch-go">
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                                     <pre>go install github.com/yiGmMk/ccswitch@latest</pre>
                                 </div>
                             </div>
                             <div class="tab-content" id="tab-ccswitch-release">
-                                <p>从 GitHub Releases 下载对应平台的预编译二进制文件：</p>
+                                <p>Download the precompiled binary for your platform from GitHub Releases:</p>
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                                    <pre># 访问下载页面
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre># Visit the download page
 https://github.com/yiGmMk/ccswitch/releases</pre>
                                 </div>
                             </div>
@@ -206,15 +206,15 @@ https://github.com/yiGmMk/ccswitch/releases</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">3</span>
-                        配置文件位置
+                        Configuration File Location
                     </h2>
                     <div class="section-content">
-                        <p>CCswitch 的配置文件存储在以下位置：</p>
+                        <p>CCswitch configuration files are stored in the following locations:</p>
                         <table class="model-table">
                             <thead>
                                 <tr>
-                                    <th>客户端</th>
-                                    <th>配置目录</th>
+                                    <th>Client</th>
+                                    <th>Config Directory</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -239,7 +239,7 @@ https://github.com/yiGmMk/ccswitch/releases</pre>
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                CCswitch 支持配置的导入/导出功能，方便备份和迁移到其他设备。
+                                CCswitch supports configuration import/export for easy backup and migration to other devices.
                             </div>
                         </div>
                     </div>
@@ -248,35 +248,35 @@ https://github.com/yiGmMk/ccswitch/releases</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">4</span>
-                        添加供应商配置
+                        Add Provider Configuration
                     </h2>
                     <div class="section-content">
-                        <p>启动 CCswitch 后，点击【添加供应商】按钮，可以选择两种配置方式：</p>
+                        <p>After launching CCswitch, click the [Add Provider] button. You can choose between two configuration methods:</p>
                         <div class="tab-container">
                             <div class="tab-buttons">
-                                <button class="tab-btn active" data-tab="ccswitch-template">模版配置</button>
-                                <button class="tab-btn" data-tab="ccswitch-custom">自定义配置</button>
+                                <button class="tab-btn active" data-tab="ccswitch-template">Template Configuration</button>
+                                <button class="tab-btn" data-tab="ccswitch-custom">Custom Configuration</button>
                             </div>
                             <div class="tab-content active" id="tab-ccswitch-template">
-                                <p>CCswitch 内置了多种供应商模版，选择对应模版会自动填充配置信息：</p>
+                                <p>CCswitch has built-in provider templates. Selecting a template will auto-fill the configuration:</p>
                                 <ul>
                                     <li>DeepSeek</li>
-                                    <li>GLM (智谱)</li>
-                                    <li>ModelScope (魔搭)</li>
-                                    <li>更多模版持续更新中...</li>
+                                    <li>GLM (Zhipu)</li>
+                                    <li>ModelScope</li>
+                                    <li>More templates coming soon...</li>
                                 </ul>
-                                <p>选择模版后，只需填入您的 API Key 即可完成配置。</p>
+                                <p>After selecting a template, just enter your API Key to complete the configuration.</p>
                             </div>
                             <div class="tab-content" id="tab-ccswitch-custom">
-                                <p>如果没有对应的供应商模版，可以选择【自定义配置】：</p>
+                                <p>If there is no corresponding provider template, you can select [Custom Configuration]:</p>
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                                    <pre># 自定义供应商配置示例
-名称: Kiro API
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                                    <pre># Custom provider configuration example
+Name: Kiro API
 Base URL: {BASE_URL}
 API Key: sk-your-api-key</pre>
                                 </div>
-                                <p>将 <code>{BASE_URL}</code> 替换为实际的服务地址。</p>
+                                <p>Replace <code>{BASE_URL}</code> with the actual service address.</p>
                             </div>
                         </div>
                         <div class="warning-box">
@@ -286,7 +286,7 @@ API Key: sk-your-api-key</pre>
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
                             <div class="warning-box-content">
-                                配置完成后点击【添加】保存，配置会显示在首页列表中。
+                                Click [Add] to save after configuration. The configuration will appear in the home page list.
                             </div>
                         </div>
                     </div>
@@ -295,15 +295,15 @@ API Key: sk-your-api-key</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">5</span>
-                        启用配置
+                        Enable Configuration
                     </h2>
                     <div class="section-content">
-                        <p>在配置列表中点击【启用】按钮激活对应的供应商配置：</p>
+                        <p>Click the [Enable] button in the configuration list to activate the corresponding provider:</p>
                         <ol>
-                            <li>在首页找到您添加的供应商配置</li>
-                            <li>点击配置项右侧的【启用】按钮</li>
-                            <li>启用成功后，根据提示重启 Claude Code</li>
-                            <li>重启后即可使用新的 API 端点</li>
+                            <li>Find the provider configuration you added on the home page</li>
+                            <li>Click the [Enable] button on the right side of the configuration item</li>
+                            <li>After successful activation, restart Claude Code as prompted</li>
+                            <li>After restart, you can use the new API endpoint</li>
                         </ol>
                         <div class="info-box">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -312,7 +312,7 @@ API Key: sk-your-api-key</pre>
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                您可以添加多个供应商配置，随时切换使用不同的 API 服务。
+                                You can add multiple provider configurations and switch between different API services at any time.
                             </div>
                         </div>
                     </div>
@@ -321,32 +321,32 @@ API Key: sk-your-api-key</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">6</span>
-                        其他功能
+                        Other Features
                     </h2>
                     <div class="section-content">
                         <table class="model-table">
                             <thead>
                                 <tr>
-                                    <th>功能</th>
-                                    <th>说明</th>
+                                    <th>Feature</th>
+                                    <th>Description</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
-                                    <td class="model-name">导入配置</td>
-                                    <td>从文件导入已有的供应商配置</td>
+                                    <td class="model-name">Import Configuration</td>
+                                    <td>Import existing provider configurations from a file</td>
                                 </tr>
                                 <tr>
-                                    <td class="model-name">导出配置</td>
-                                    <td>将当前配置导出为文件，方便备份迁移</td>
+                                    <td class="model-name">Export Configuration</td>
+                                    <td>Export current configuration to a file for backup and migration</td>
                                 </tr>
                                 <tr>
-                                    <td class="model-name">检查更新</td>
-                                    <td>在关于页面检查 CCswitch 是否有新版本</td>
+                                    <td class="model-name">Check for Updates</td>
+                                    <td>Check if there is a new version of CCswitch on the About page</td>
                                 </tr>
                                 <tr>
-                                    <td class="model-name">更新日志</td>
-                                    <td>查看 CCswitch 的版本更新历史</td>
+                                    <td class="model-name">Changelog</td>
+                                    <td>View CCswitch version update history</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -354,17 +354,17 @@ API Key: sk-your-api-key</pre>
                 </div>
             </div>
 
-            <!-- 原生命令行接入内容 -->
+            <!-- Native CLI Integration Content -->
             <div class="integration-content" id="content-cli">
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">1</span>
-                        安装 Claude Code
+                        Install Claude Code
                     </h2>
                     <div class="section-content">
-                        <p>Claude Code 是 Anthropic 官方的命令行工具，可以通过 npm 全局安装：</p>
+                        <p>Claude Code is Anthropic's official command-line tool, which can be installed globally via npm:</p>
                         <div class="code-block">
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             <pre>npm install -g @anthropic-ai/claude-code</pre>
                         </div>
                         <div class="info-box">
@@ -374,7 +374,7 @@ API Key: sk-your-api-key</pre>
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                安装前请确保已安装 Node.js 18 或更高版本。可通过 <code>node -v</code> 检查版本。
+                                Please ensure Node.js 18 or higher is installed before installation. Check your version with <code>node -v</code>.
                             </div>
                         </div>
                     </div>
@@ -383,34 +383,34 @@ API Key: sk-your-api-key</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">2</span>
-                        配置环境变量
+                        Configure Environment Variables
                     </h2>
                     <div class="section-content">
-                        <p>设置 API 密钥和服务端点，使 Claude Code 连接到本服务：</p>
+                        <p>Set the API key and service endpoint to connect Claude Code to this service:</p>
                         <div class="tab-container">
                             <div class="tab-buttons">
                                 <button class="tab-btn active" data-tab="cli-mac">macOS / Linux</button>
                                 <button class="tab-btn" data-tab="cli-win">Windows</button>
                             </div>
                             <div class="tab-content active" id="tab-cli-mac">
-                                <p class="code-label">添加到 ~/.bashrc 或 ~/.zshrc</p>
+                                <p class="code-label">Add to ~/.bashrc or ~/.zshrc</p>
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                                     <pre>export ANTHROPIC_API_KEY="sk-your-api-key"
 export ANTHROPIC_BASE_URL="{BASE_URL}"</pre>
                                 </div>
-                                <p>保存后执行 <code>source ~/.bashrc</code> 或 <code>source ~/.zshrc</code> 使配置生效。</p>
+                                <p>After saving, run <code>source ~/.bashrc</code> or <code>source ~/.zshrc</code> to apply the configuration.</p>
                             </div>
                             <div class="tab-content" id="tab-cli-win">
-                                <p class="code-label">PowerShell - 添加到 $PROFILE</p>
+                                <p class="code-label">PowerShell - Add to $PROFILE</p>
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                                     <pre>$env:ANTHROPIC_API_KEY = "sk-your-api-key"
 $env:ANTHROPIC_BASE_URL = "{BASE_URL}"</pre>
                                 </div>
-                                <p>或者通过系统环境变量设置（永久生效）：</p>
+                                <p>Or set via system environment variables (permanent):</p>
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                                     <pre>[System.Environment]::SetEnvironmentVariable("ANTHROPIC_API_KEY", "sk-your-api-key", "User")
 [System.Environment]::SetEnvironmentVariable("ANTHROPIC_BASE_URL", "{BASE_URL}", "User")</pre>
                                 </div>
@@ -423,7 +423,7 @@ $env:ANTHROPIC_BASE_URL = "{BASE_URL}"</pre>
                                 <line x1="12" y1="17" x2="12.01" y2="17"/>
                             </svg>
                             <div class="warning-box-content">
-                                将 <code>{BASE_URL}</code> 替换为实际的服务地址，将 <code>sk-your-api-key</code> 替换为您的 API 密钥。
+                                Replace <code>{BASE_URL}</code> with the actual service address, and <code>sk-your-api-key</code> with your API key.
                             </div>
                         </div>
                     </div>
@@ -432,16 +432,16 @@ $env:ANTHROPIC_BASE_URL = "{BASE_URL}"</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">3</span>
-                        启动您的第一个会话
+                        Start Your First Session
                     </h2>
                     <div class="section-content">
-                        <p>在任何项目目录中打开终端并启动 Claude Code：</p>
+                        <p>Open a terminal in any project directory and start Claude Code:</p>
                         <div class="code-block">
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             <pre>cd /path/to/your/project
 claude</pre>
                         </div>
-                        <p>您将看到 Claude Code 欢迎屏幕，其中包含您的会话信息、最近的对话和最新更新。</p>
+                        <p>You will see the Claude Code welcome screen with your session info, recent conversations, and latest updates.</p>
                         <div class="info-box">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/>
@@ -449,7 +449,7 @@ claude</pre>
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                输入 <code>/help</code> 查看可用命令，或输入 <code>/resume</code> 继续之前的对话。
+                                Type <code>/help</code> to view available commands, or <code>/resume</code> to continue a previous conversation.
                             </div>
                         </div>
                     </div>
@@ -458,22 +458,22 @@ claude</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">4</span>
-                        基本使用
+                        Basic Usage
                     </h2>
                     <div class="section-content">
-                        <p>Claude Code 支持多种使用方式：</p>
+                        <p>Claude Code supports multiple usage methods:</p>
                         <div class="code-block">
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                            <pre># 启动交互式会话
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre># Start interactive session
 claude
 
-# 直接发送消息
-claude "你好，请介绍一下自己"
+# Send message directly
+claude "Hello, please introduce yourself"
 
-# 使用管道输入
-cat file.txt | claude "请分析这个文件"
+# Use pipe input
+cat file.txt | claude "Please analyze this file"
 
-# 继续上一次对话
+# Resume previous conversation
 claude --resume</pre>
                         </div>
                     </div>
@@ -482,44 +482,44 @@ claude --resume</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">5</span>
-                        常用命令
+                        Common Commands
                     </h2>
                     <div class="section-content">
                         <table class="model-table">
                             <thead>
                                 <tr>
-                                    <th>命令</th>
-                                    <th>说明</th>
+                                    <th>Command</th>
+                                    <th>Description</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td class="model-name">claude</td>
-                                    <td>启动交互式会话</td>
+                                    <td>Start interactive session</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">claude "message"</td>
-                                    <td>发送单条消息并获取回复</td>
+                                    <td>Send a single message and get a response</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">/help</td>
-                                    <td>查看所有可用命令</td>
+                                    <td>View all available commands</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">/resume</td>
-                                    <td>继续之前的对话</td>
+                                    <td>Resume previous conversation</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">/clear</td>
-                                    <td>清除当前会话</td>
+                                    <td>Clear current session</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">/login</td>
-                                    <td>重新登录或切换账户</td>
+                                    <td>Re-login or switch account</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">claude --version</td>
-                                    <td>查看版本信息</td>
+                                    <td>View version information</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -527,15 +527,15 @@ claude --resume</pre>
                 </div>
             </div>
 
-            <!-- opencode 接入内容 -->
+            <!-- opencode Integration Content -->
             <div class="integration-content" id="content-opencode">
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">1</span>
-                        什么是 opencode
+                        What is opencode
                     </h2>
                     <div class="section-content">
-                        <p>opencode 是一个开源的 AI 编程助手，支持多种 LLM 后端。通过配置，您可以使用本服务提供的 Claude 模型。</p>
+                        <p>opencode is an open-source AI programming assistant that supports multiple LLM backends. With configuration, you can use the Claude models provided by this service.</p>
                         <div class="info-box">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <circle cx="12" cy="12" r="10"/>
@@ -543,7 +543,7 @@ claude --resume</pre>
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                opencode 项目地址：<a href="https://github.com/opencode-ai/opencode" target="_blank" style="color: var(--accent-primary);">https://github.com/opencode-ai/opencode</a>
+                                opencode project: <a href="https://github.com/opencode-ai/opencode" target="_blank" style="color: var(--accent-primary);">https://github.com/opencode-ai/opencode</a>
                             </div>
                         </div>
                     </div>
@@ -552,10 +552,10 @@ claude --resume</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">2</span>
-                        安装 opencode
+                        Install opencode
                     </h2>
                     <div class="section-content">
-                        <p>使用包管理器安装 opencode：</p>
+                        <p>Install opencode using a package manager:</p>
                         <div class="tab-container">
                             <div class="tab-buttons">
                                 <button class="tab-btn active" data-tab="opencode-mac">macOS</button>
@@ -564,21 +564,21 @@ claude --resume</pre>
                             </div>
                             <div class="tab-content active" id="tab-opencode-mac">
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                                     <pre>brew install opencode-ai/tap/opencode</pre>
                                 </div>
                             </div>
                             <div class="tab-content" id="tab-opencode-linux">
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                        <pre># 下载最新版本
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                        <pre># Download latest version
 curl -fsSL https://github.com/opcode-ai/opencode/releases/latest/download/opencode_linux_amd64.tar.gz | tar xz
 sudo mv opencode /usr/local/bin/</pre>
                                 </div>
                             </div>
                             <div class="tab-content" id="tab-opencode-go">
                                 <div class="code-block">
-                                    <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                                    <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                                     <pre>go install github.com/opencode-ai/opencode@latest</pre>
                                 </div>
                             </div>
@@ -589,12 +589,12 @@ sudo mv opencode /usr/local/bin/</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">3</span>
-                        配置 opencode
+                        Configure opencode
                     </h2>
                     <div class="section-content">
-                        <p>创建或编辑配置文件 <code>~/.config/opencode/config.toml</code>：</p>
+                        <p>Create or edit the configuration file <code>~/.config/opencode/config.toml</code>:</p>
                         <div class="code-block">
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
                             <pre>[providers.anthropic]
 api_key = "sk-your-api-key"
 base_url = "{BASE_URL}"
@@ -614,7 +614,7 @@ max_tokens = 8192</pre>
                                 <line x1="12" y1="8" x2="12.01" y2="8"/>
                             </svg>
                             <div class="info-box-content">
-                                将 <code>{BASE_URL}</code> 替换为实际的服务地址，将 <code>sk-your-api-key</code> 替换为您的 API 密钥。
+                                Replace <code>{BASE_URL}</code> with the actual service address, and <code>sk-your-api-key</code> with your API key.
                             </div>
                         </div>
                     </div>
@@ -623,51 +623,51 @@ max_tokens = 8192</pre>
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">4</span>
-                        使用 opencode
+                        Use opencode
                     </h2>
                     <div class="section-content">
-                        <p>在项目目录中启动 opencode：</p>
+                        <p>Start opencode in your project directory:</p>
                         <div class="code-block">
-                            <button class="copy-btn" onclick="copyCode(this)">复制</button>
-                            <pre># 进入项目目录
+                            <button class="copy-btn" onclick="copyCode(this)">Copy</button>
+                            <pre># Enter project directory
 cd your-project
 
-# 启动 opencode
+# Start opencode
 opencode</pre>
                         </div>
-                        <p>opencode 会自动读取配置文件并连接到本服务。</p>
+                        <p>opencode will automatically read the configuration file and connect to this service.</p>
                     </div>
                 </div>
 
                 <div class="docs-section">
                     <h2 class="section-title">
                         <span class="step-number">5</span>
-                        常用快捷键
+                        Common Shortcuts
                     </h2>
                     <div class="section-content">
                         <table class="model-table">
                             <thead>
                                 <tr>
-                                    <th>快捷键</th>
-                                    <th>功能</th>
+                                    <th>Shortcut</th>
+                                    <th>Function</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <tr>
                                     <td class="model-name">Ctrl+C</td>
-                                    <td>取消当前操作</td>
+                                    <td>Cancel current operation</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">Ctrl+L</td>
-                                    <td>清屏</td>
+                                    <td>Clear screen</td>
                                 </tr>
                                 <tr>
                                     <td class="model-name">Tab</td>
-                                    <td>自动补全</td>
+                                    <td>Auto-complete</td>
                                 </tr>
                                 <tr>
-                                    <td class="model-name">↑/↓</td>
-                                    <td>浏览历史记录</td>
+                                    <td class="model-name">Up/Down</td>
+                                    <td>Browse history</td>
                                 </tr>
                             </tbody>
                         </table>

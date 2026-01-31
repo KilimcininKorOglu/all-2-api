@@ -1,6 +1,6 @@
-// ============ 对话测试页面 JS ============
+// ============ Chat Test Page JS ============
 
-// 状态变量
+// State variables
 let chatHistory = [];
 let isStreaming = false;
 let currentChatAccountId = null;
@@ -8,35 +8,35 @@ let currentGeminiAccountId = null;
 let chatApiEndpoint = localStorage.getItem('chatApiEndpoint') || '';
 let chatApiKey = localStorage.getItem('chatApiKey') || '';
 
-// DOM 元素
+// DOM elements
 let chatMessages, chatInput, chatSendBtn, chatModel, chatSettingsModal;
 
-// 判断是否为 Gemini 模型
+// Check if it's a Gemini model
 function isGeminiModel(model) {
     return model && model.startsWith('gemini-');
 }
 
-// 初始化
+// Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    // 获取 DOM 元素
+    // Get DOM elements
     chatMessages = document.getElementById('chat-messages');
     chatInput = document.getElementById('chat-input');
     chatSendBtn = document.getElementById('chat-send-btn');
     chatModel = document.getElementById('chat-model');
     chatSettingsModal = document.getElementById('chat-settings-modal');
 
-    // 先加载站点设置
+    // Load site settings first
     await loadSiteSettings();
 
-    // 注入侧边栏
+    // Inject sidebar
     document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
     initSidebar('chat');
 
-    // 更新页面标题和模型分组标签
+    // Update page title and model group labels
     const settings = window.siteSettings;
-    document.title = `对话测试 - ${settings.siteName} ${settings.siteSubtitle}`;
+    document.title = `Chat Test - ${settings.siteName} ${settings.siteSubtitle}`;
 
-    // 更新模型分组标签中的 "Kiro"
+    // Update "Kiro" in model group labels
     const kiroOptgroup = chatModel.querySelector('optgroup[label*="Kiro"]');
     if (kiroOptgroup) {
         kiroOptgroup.label = `Claude (${settings.siteName})`;
@@ -44,7 +44,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (!await checkAuth()) return;
 
-    // 检查 URL 参数
+    // Check URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     const accountId = urlParams.get('account');
     const geminiId = urlParams.get('gemini');
@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else if (geminiId) {
         currentGeminiAccountId = parseInt(geminiId);
         loadAccountInfo(currentGeminiAccountId, 'gemini');
-        // 自动选择 Gemini 模型
+        // Automatically select Gemini model
         chatModel.value = 'gemini-3-flash-preview';
     }
 
@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateSendButtonState();
 });
 
-// 加载账号信息
+// Load account info
 async function loadAccountInfo(id, type = 'kiro') {
     try {
         const apiPath = type === 'gemini' ? '/api/gemini/credentials/' : '/api/credentials/';
@@ -76,16 +76,16 @@ async function loadAccountInfo(id, type = 'kiro') {
             const accountName = result.data.email || result.data.name;
             const prefix = type === 'gemini' ? '[Gemini] ' : '';
             document.getElementById('chat-current-account').textContent = prefix + accountName;
-            document.getElementById('chat-subtitle').textContent = '使用账号: ' + prefix + accountName;
+            document.getElementById('chat-subtitle').textContent = 'Using account: ' + prefix + accountName;
         }
     } catch (err) {
         console.error('Load account info error:', err);
     }
 }
 
-// 事件监听器
+// Event listeners
 function setupEventListeners() {
-    // 输入框
+    // Input field
     chatInput.addEventListener('input', function() {
         this.style.height = 'auto';
         this.style.height = Math.min(this.scrollHeight, 150) + 'px';
@@ -99,16 +99,16 @@ function setupEventListeners() {
         }
     });
 
-    // 发送按钮
+    // Send button
     chatSendBtn.addEventListener('click', sendMessage);
 
-    // 模型切换时更新按钮状态
+    // Update button state when model changes
     chatModel.addEventListener('change', updateSendButtonState);
 
-    // 清空按钮
+    // Clear button
     document.getElementById('chat-clear-btn').addEventListener('click', clearChat);
 
-    // 设置按钮
+    // Settings button
     document.getElementById('chat-settings-btn').addEventListener('click', openChatSettings);
     document.getElementById('settings-modal-close').addEventListener('click', closeChatSettings);
     document.getElementById('settings-modal-cancel').addEventListener('click', closeChatSettings);
@@ -117,7 +117,7 @@ function setupEventListeners() {
         if (e.target === chatSettingsModal) closeChatSettings();
     });
 
-    // 键盘快捷键
+    // Keyboard shortcuts
     document.addEventListener('keydown', function(e) {
         if (e.key === 'Escape') {
             closeChatSettings();
@@ -125,13 +125,13 @@ function setupEventListeners() {
     });
 }
 
-// 更新发送按钮状态
+// Update send button state
 function updateSendButtonState() {
     const hasText = chatInput.value.trim().length > 0;
     const model = chatModel.value;
     const isGemini = isGeminiModel(model);
 
-    // Gemini 模型需要 Gemini 账号，Claude 模型需要 Kiro 账号或 API 端点
+    // Gemini models require Gemini account, Claude models require Kiro account or API endpoint
     let canChat = false;
     if (isGemini) {
         canChat = currentGeminiAccountId !== null;
@@ -142,21 +142,21 @@ function updateSendButtonState() {
     chatSendBtn.disabled = !hasText || isStreaming || !canChat;
 }
 
-// 发送消息
+// Send message
 async function sendMessage() {
     const message = chatInput.value.trim();
     if (!message || isStreaming) return;
 
-    // 添加用户消息到 UI
+    // Add user message to UI
     addMessageToUI('user', message);
     chatInput.value = '';
     chatInput.style.height = 'auto';
     updateSendButtonState();
 
-    // 添加到历史
+    // Add to history
     chatHistory.push({ role: 'user', content: message });
 
-    // 显示输入指示器
+    // Show typing indicator
     const typingEl = addTypingIndicator();
     isStreaming = true;
     updateSendButtonState();
@@ -167,7 +167,7 @@ async function sendMessage() {
         let response;
 
         if (isGemini && currentGeminiAccountId) {
-            // Gemini 模型使用 Gemini API
+            // Gemini models use Gemini API
             response = await fetch('/api/gemini/chat/' + currentGeminiAccountId, {
                 method: 'POST',
                 headers: {
@@ -209,17 +209,17 @@ async function sendMessage() {
                 })
             });
         } else {
-            throw new Error(isGemini ? '请先选择 Gemini 账号' : '请先设置 API 端点或选择账号');
+            throw new Error(isGemini ? 'Please select a Gemini account first' : 'Please set API endpoint or select an account first');
         }
 
         typingEl.remove();
 
         if (!response.ok) {
             const err = await response.json();
-            throw new Error(err.error || '请求失败');
+            throw new Error(err.error || 'Request failed');
         }
 
-        // 处理 SSE 流
+        // Process SSE stream
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let assistantMessage = '';
@@ -263,7 +263,7 @@ async function sendMessage() {
 
     } catch (err) {
         if (typingEl && typingEl.parentNode) typingEl.remove();
-        showToast('发送失败: ' + err.message, 'error');
+        showToast('Send failed: ' + err.message, 'error');
         chatHistory.pop();
     } finally {
         isStreaming = false;
@@ -271,7 +271,7 @@ async function sendMessage() {
     }
 }
 
-// 添加消息到 UI
+// Add message to UI
 function addMessageToUI(role, content) {
     const welcome = chatMessages.querySelector('.chat-welcome');
     if (welcome) welcome.remove();
@@ -289,7 +289,7 @@ function addMessageToUI(role, content) {
     return messageEl;
 }
 
-// 更新消息内容
+// Update message content
 function updateMessageContent(messageEl, content) {
     const contentEl = messageEl.querySelector('.chat-message-content');
     if (contentEl) {
@@ -297,53 +297,53 @@ function updateMessageContent(messageEl, content) {
     }
 }
 
-// 格式化消息内容
+// Format message content
 function formatMessageContent(content) {
-    // 简单的 Markdown 处理
+    // Simple Markdown processing
     let html = content
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
         .replace(/\n/g, '<br>');
 
-    // 代码块
+    // Code blocks
     html = html.replace(/```(\w*)\n?([\s\S]*?)```/g, '<pre><code>$2</code></pre>');
 
-    // 行内代码
+    // Inline code
     html = html.replace(/`([^`]+)`/g, '<code>$1</code>');
 
     return html;
 }
 
-// 添加输入指示器
+// Add typing indicator
 function addTypingIndicator() {
     const typingEl = document.createElement('div');
     typingEl.className = 'chat-typing';
-    typingEl.innerHTML = '<div class="chat-typing-dots"><span></span><span></span><span></span></div><span>正在思考...</span>';
+    typingEl.innerHTML = '<div class="chat-typing-dots"><span></span><span></span><span></span></div><span>Thinking...</span>';
     chatMessages.appendChild(typingEl);
     scrollToBottom();
     return typingEl;
 }
 
-// 滚动到底部
+// Scroll to bottom
 function scrollToBottom() {
     chatMessages.scrollTop = chatMessages.scrollHeight;
 }
 
-// 清空对话
+// Clear chat
 function clearChat() {
     chatHistory = [];
     chatMessages.innerHTML = '<div class="chat-welcome">' +
         '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">' +
         '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>' +
         '</svg>' +
-        '<h3>开始对话</h3>' +
-        '<p>输入消息开始与 Claude 对话</p>' +
+        '<h3>Start Conversation</h3>' +
+        '<p>Enter a message to start chatting with Claude</p>' +
         '</div>';
-    showToast('对话已清空', 'success');
+    showToast('Chat cleared', 'success');
 }
 
-// 设置模态框
+// Settings modal
 function openChatSettings() {
     document.getElementById('chat-api-endpoint').value = chatApiEndpoint;
     document.getElementById('chat-api-key').value = chatApiKey;
@@ -360,6 +360,6 @@ function saveChatSettings() {
     localStorage.setItem('chatApiEndpoint', chatApiEndpoint);
     localStorage.setItem('chatApiKey', chatApiKey);
     closeChatSettings();
-    showToast('API 设置已保存', 'success');
+    showToast('API settings saved', 'success');
     updateSendButtonState();
 }

@@ -169,7 +169,7 @@ async function loadKeyUsage(keyId) {
                 const usageCell = row.querySelector('.api-key-usage');
                 if (usageCell) {
                     usageCell.innerHTML = '<div class="usage-stats-mini">' +
-                        '<div class="usage-stat-item">' + (result.data.totalRequests || 0) + ' 请求</div>' +
+                        '<div class="usage-stat-item">' + (result.data.totalRequests || 0) + ' requests</div>' +
                         '</div>';
                 }
             }
@@ -539,7 +539,7 @@ async function startBatchCreate() {
                 resultsDiv.innerHTML += '<div class="batch-result-item success">' +
                     '<span class="batch-result-name">' + keyName + '</span>' +
                     '<span class="batch-result-key">' + result.data.key + '</span>' +
-                    '<button class="btn btn-sm" onclick="copyToClipboard(\'' + escapedKey + '\')">复制</button>' +
+                    '<button class="btn btn-sm" onclick="copyToClipboard(\'' + escapedKey + '\')">Copy</button>' +
                     '</div>';
             } else {
                 failCount++;

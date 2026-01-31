@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>申请试用</title>
+    <title>Apply for Trial</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -228,7 +228,7 @@
         .hidden-input {
             display: none;
         }
-        /* 步骤说明 */
+        /* Steps Guide */
         .steps-guide {
             background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
@@ -286,7 +286,7 @@
             margin: 0;
             line-height: 1.5;
         }
-        /* 成功结果卡片 */
+        /* Success Result Card */
         .success-card {
             background: var(--bg-tertiary);
             border: 1px solid var(--accent-success);
@@ -410,64 +410,64 @@
                 <span class="public-logo-text" id="logo-text">Kiro API</span>
             </div>
             <nav class="public-nav">
-                <a href="/pages/usage-query.html">用量查询</a>
-                <a href="/pages/trial-apply.html" class="active">试用申请</a>
-                <a href="/pages/docs.html">接入教程</a>
+                <a href="/pages/usage-query.html">Usage Query</a>
+                <a href="/pages/trial-apply.html" class="active">Trial Application</a>
+                <a href="/pages/docs.html">Documentation</a>
             </nav>
         </header>
 
         <main class="public-content">
             <div class="apply-card">
-                <h1 class="page-title">申请试用</h1>
-                <p class="page-subtitle">填写以下信息申请 API 试用资格</p>
+                <h1 class="page-title">Apply for Trial</h1>
+                <p class="page-subtitle">Fill in the following information to apply for API trial access</p>
 
                 <div class="message" id="message"></div>
 
-                <!-- 步骤说明 -->
+                <!-- Steps Guide -->
                 <div class="steps-guide">
                     <div class="steps-title">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
                             <path d="M9 12l2 2 4-4"/>
                         </svg>
-                        申请流程
+                        Application Process
                     </div>
                     <div class="steps-list">
                         <div class="step-item">
                             <div class="step-number">1</div>
                             <div class="step-content">
-                                <p><strong>填写信息</strong> - 填写咸鱼名称、邮箱等基本信息</p>
+                                <p><strong>Fill in Information</strong> - Enter your Xianyu name, email, and other basic info</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-number">2</div>
                             <div class="step-content">
-                                <p><strong>上传截图</strong> - 如有咸鱼订单，上传截图可加快审批</p>
+                                <p><strong>Upload Screenshot</strong> - If you have a Xianyu order, uploading a screenshot speeds up approval</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-number">3</div>
                             <div class="step-content">
-                                <p><strong>等待审核</strong> - 提交后等待管理员审核（通常 24 小时内）</p>
+                                <p><strong>Wait for Review</strong> - After submission, wait for admin review (usually within 24 hours)</p>
                             </div>
                         </div>
                         <div class="step-item">
                             <div class="step-number">4</div>
                             <div class="step-content">
-                                <p><strong>获取 Key</strong> - 审核通过后，在此页面或查询页面获取 API Key</p>
+                                <p><strong>Get API Key</strong> - After approval, get your API Key on this page or query page</p>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- 成功结果卡片 -->
+                <!-- Success Result Card -->
                 <div class="success-card" id="success-card">
                     <div class="success-header">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
-                        <span>申请已通过，以下是您的 API Key</span>
+                        <span>Application approved, here is your API Key</span>
                     </div>
                     <div class="api-key-box">
                         <div class="api-key-label">API Key</div>
@@ -478,38 +478,38 @@
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                                 </svg>
-                                复制
+                                Copy
                             </button>
                         </div>
-                        <div class="api-key-hint">请妥善保管您的 API Key，不要泄露给他人。如需帮助，请查看 <a href="/pages/docs.html">接入教程</a></div>
+                        <div class="api-key-hint">Please keep your API Key safe and do not share it with others. For help, see <a href="/pages/docs.html">Documentation</a></div>
                     </div>
                 </div>
 
                 <form id="apply-form">
                     <div class="form-group">
-                        <label class="form-label">咸鱼名称 <span class="required">*</span></label>
-                        <input type="text" class="form-input" id="xianyu-name" placeholder="请输入您的咸鱼用户名" required>
+                        <label class="form-label">Xianyu Name <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="xianyu-name" placeholder="Enter your Xianyu username" required>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">邮箱 <span class="required">*</span></label>
-                        <input type="email" class="form-input" id="email" placeholder="用于接收审批结果和 API Key" required>
+                        <label class="form-label">Email <span class="required">*</span></label>
+                        <input type="email" class="form-input" id="email" placeholder="Used to receive approval results and API Key" required>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">来源</label>
+                        <label class="form-label">Source</label>
                         <select class="form-select" id="source">
-                            <option value="">请选择</option>
-                            <option value="xianyu">咸鱼</option>
+                            <option value="">Please select</option>
+                            <option value="xianyu">Xianyu</option>
                             <option value="github">GitHub</option>
                             <option value="twitter">Twitter/X</option>
-                            <option value="friend">朋友推荐</option>
-                            <option value="other">其他</option>
+                            <option value="friend">Friend Referral</option>
+                            <option value="other">Other</option>
                         </select>
                     </div>
 
                     <div class="form-group">
-                        <label class="form-label">订单截图</label>
+                        <label class="form-label">Order Screenshot</label>
                         <div class="upload-area" id="upload-area">
                             <input type="file" class="hidden-input" id="screenshot-input" accept="image/*">
                             <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
@@ -517,24 +517,24 @@
                                 <polyline points="17 8 12 3 7 8"/>
                                 <line x1="12" y1="3" x2="12" y2="15"/>
                             </svg>
-                            <div class="upload-text">点击或拖拽上传截图</div>
-                            <div class="upload-hint">支持 JPG、PNG 格式，最大 5MB</div>
+                            <div class="upload-text">Click or drag to upload screenshot</div>
+                            <div class="upload-hint">Supports JPG, PNG formats, max 5MB</div>
                             <img class="upload-preview" id="preview" style="display: none;">
                         </div>
-                        <p class="form-hint">如有咸鱼订单，请上传订单截图以加快审批</p>
+                        <p class="form-hint">If you have a Xianyu order, upload the screenshot to speed up approval</p>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" id="submit-btn">提交申请</button>
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Submit Application</button>
                 </form>
 
                 <div class="links">
-                    <a href="/pages/trial-query.html">查询申请状态</a>
+                    <a href="/pages/trial-query.html">Check Application Status</a>
                 </div>
             </div>
         </main>
     </div>
 
-    <div class="copy-toast" id="copy-toast">已复制到剪贴板</div>
+    <div class="copy-toast" id="copy-toast">Copied to clipboard</div>
 
     <script>
         const uploadArea = document.getElementById('upload-area');
@@ -542,13 +542,13 @@
         const preview = document.getElementById('preview');
         let screenshotBase64 = null;
 
-        // 兼容性复制函数
+        // Cross-browser copy function
         function copyToClipboard(text) {
-            // 优先使用现代 API
+            // Prefer modern API
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 return navigator.clipboard.writeText(text);
             }
-            // 降级方案：使用 execCommand
+            // Fallback: use execCommand
             return new Promise((resolve, reject) => {
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
@@ -585,13 +585,13 @@
             if (!apiKey) return;
 
             copyToClipboard(apiKey)
-                .then(() => showToast('已复制到剪贴板'))
+                .then(() => showToast('Copied to clipboard'))
                 .catch(() => {
-                    // 如果复制失败，选中文本让用户手动复制
+                    // If copy fails, select text for manual copying
                     const input = document.getElementById('api-key-input');
                     input.select();
                     input.setSelectionRange(0, 99999);
-                    showToast('请按 Ctrl+C 手动复制', true);
+                    showToast('Please press Ctrl+C to copy', true);
                 });
         }
 
@@ -606,10 +606,10 @@
             document.getElementById('apply-form').style.display = 'block';
         }
 
-        // 点击上传区域触发文件选择
+        // Click upload area to trigger file selection
         uploadArea.addEventListener('click', () => screenshotInput.click());
 
-        // 拖拽上传
+        // Drag and drop upload
         uploadArea.addEventListener('dragover', (e) => {
             e.preventDefault();
             uploadArea.style.borderColor = 'var(--accent-primary)';
@@ -628,7 +628,7 @@
             }
         });
 
-        // 文件选择
+        // File selection
         screenshotInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -638,7 +638,7 @@
 
         function handleFile(file) {
             if (file.size > 5 * 1024 * 1024) {
-                showMessage('图片大小不能超过 5MB', 'error');
+                showMessage('Image size cannot exceed 5MB', 'error');
                 return;
             }
 
@@ -648,7 +648,7 @@
                 preview.src = screenshotBase64;
                 preview.style.display = 'block';
                 uploadArea.classList.add('has-file');
-                uploadArea.querySelector('.upload-text').textContent = '已选择图片，点击更换';
+                uploadArea.querySelector('.upload-text').textContent = 'Image selected, click to change';
             };
             reader.readAsDataURL(file);
         }
@@ -672,13 +672,13 @@
             const source = document.getElementById('source').value;
 
             if (!xianyuName || !email) {
-                showMessage('请填写必填项', 'error');
+                showMessage('Please fill in required fields', 'error');
                 return;
             }
 
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
-            btn.textContent = '提交中...';
+            btn.textContent = 'Submitting...';
 
             try {
                 const res = await fetch('/api/trial/apply', {
@@ -695,48 +695,48 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    // 检查是否返回了 API Key（已通过的申请）
+                    // Check if API Key is returned (approved application)
                     if (data.data && data.data.apiKey) {
                         showSuccessCard(data.data.apiKey);
-                        showMessage('您的申请已通过，API Key 如下', 'success');
+                        showMessage('Your application has been approved, API Key below', 'success');
                     } else {
-                        showMessage('申请提交成功！请等待审核，审核结果将通过邮箱通知。', 'success');
+                        showMessage('Application submitted successfully! Please wait for review, results will be sent via email.', 'success');
                         document.getElementById('apply-form').reset();
                         preview.style.display = 'none';
                         uploadArea.classList.remove('has-file');
-                        uploadArea.querySelector('.upload-text').textContent = '点击或拖拽上传截图';
+                        uploadArea.querySelector('.upload-text').textContent = 'Click or drag to upload screenshot';
                         screenshotBase64 = null;
                     }
                 } else {
-                    // 检查是否是已存在且已通过的申请
+                    // Check if it's an existing approved application
                     if (data.data && data.data.apiKey) {
                         showSuccessCard(data.data.apiKey);
-                        showMessage('您已有通过的申请，API Key 如下', 'success');
+                        showMessage('You already have an approved application, API Key below', 'success');
                     } else {
-                        showMessage(data.error || '提交失败，请重试', 'error');
+                        showMessage(data.error || 'Submission failed, please try again', 'error');
                     }
                 }
             } catch (error) {
-                showMessage('网络错误，请重试', 'error');
+                showMessage('Network error, please try again', 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '提交申请';
+                btn.textContent = 'Submit Application';
             }
         });
 
-        // 加载站点设置
+        // Load site settings
         (async function() {
-            // 先从缓存加载（避免闪烁）
+            // Load from cache first (avoid flashing)
             const cached = localStorage.getItem('siteSettings');
             if (cached) {
                 try {
                     const settings = JSON.parse(cached);
                     document.getElementById('logo-icon').textContent = settings.siteLogo || 'K';
                     document.getElementById('logo-text').textContent = `${settings.siteName || 'Kiro'} API`;
-                    document.title = `申请试用 - ${settings.siteName || 'Kiro'} API`;
+                    document.title = `Apply for Trial - ${settings.siteName || 'Kiro'} API`;
                 } catch (e) {}
             }
-            // 再从服务器获取最新
+            // Then fetch latest from server
             try {
                 const res = await fetch('/api/site-settings');
                 const data = await res.json();
@@ -745,7 +745,7 @@
                     localStorage.setItem('siteSettings', JSON.stringify(settings));
                     document.getElementById('logo-icon').textContent = settings.siteLogo || 'K';
                     document.getElementById('logo-text').textContent = `${settings.siteName || 'Kiro'} API`;
-                    document.title = `申请试用 - ${settings.siteName || 'Kiro'} API`;
+                    document.title = `Apply for Trial - ${settings.siteName || 'Kiro'} API`;
                 }
             } catch (e) {
                 console.error('Load site settings error:', e);

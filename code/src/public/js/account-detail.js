@@ -1,15 +1,15 @@
-// ============ 账号详情页面 JS ============
+// ============ Account Detail Page JS ============
 
 let currentCredential = null;
 let accountId = null;
 let tokenVisible = { access: false, refresh: false };
 
-// 页面初始化
+// Page initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    // 检查认证
+    // Check authentication
     if (!await checkAuth()) return;
 
-    // 注入侧边栏
+    // Inject sidebar
     const sidebarContainer = document.getElementById('sidebar-container');
     if (sidebarContainer) {
         sidebarContainer.innerHTML = getSidebarHTML();
@@ -17,26 +17,26 @@ document.addEventListener('DOMContentLoaded', async () => {
         updateSidebarStats();
     }
 
-    // 获取 URL 参数中的账号 ID
+    // Get account ID from URL parameters
     const urlParams = new URLSearchParams(window.location.search);
     accountId = urlParams.get('id');
 
     if (!accountId) {
-        showToast('未指定账号 ID', 'error');
+        showToast('Account ID not specified', 'error');
         setTimeout(() => goBack(), 1500);
         return;
     }
 
-    // 加载账号详情
+    // Load account details
     await loadAccountDetail();
 });
 
-// 返回列表
+// Go back to list
 function goBack() {
     window.location.href = '/pages/accounts.html';
 }
 
-// 加载账号详情
+// Load account details
 async function loadAccountDetail() {
     try {
         const res = await fetch(`/api/credentials/${accountId}?full=true`, {
@@ -46,7 +46,7 @@ async function loadAccountDetail() {
         const result = await res.json();
 
         if (!result.success) {
-            showToast(result.error || '加载失败', 'error');
+            showToast(result.error || 'Loading failed', 'error');
             setTimeout(() => goBack(), 1500);
             return;
         }
@@ -55,32 +55,32 @@ async function loadAccountDetail() {
         renderAccountDetail();
 
     } catch (error) {
-        showToast('加载账号详情失败: ' + error.message, 'error');
+        showToast('Failed to load account details: ' + error.message, 'error');
         setTimeout(() => goBack(), 1500);
     }
 }
 
-// 渲染账号详情
+// Render account details
 function renderAccountDetail() {
     const cred = currentCredential;
 
-    // 隐藏加载状态，显示内容
+    // Hide loading state, show content
     document.getElementById('loading-state').style.display = 'none';
     document.getElementById('detail-content').style.display = 'block';
 
-    // 更新页面标题
-    document.getElementById('account-subtitle').textContent = cred.email || cred.name || '账号详情';
+    // Update page title
+    document.getElementById('account-subtitle').textContent = cred.email || cred.name || 'Account Details';
 
-    // 基本信息
+    // Basic information
     document.getElementById('detail-name').textContent = cred.name || '-';
     document.getElementById('detail-email').textContent = cred.email || '-';
 
-    // 提供商
+    // Provider
     const providerEl = document.getElementById('detail-provider');
     const provider = cred.provider || 'Unknown';
     providerEl.innerHTML = `<span class="pder-badge ${provider.toLowerCase()}">${provider}</span>`;
 
-    // 认证方式
+    // Auth method
     const authMethodMap = {
         'social': 'Social (Google/GitHub)',
         'builder-id': 'AWS Builder ID',
@@ -88,37 +88,37 @@ function renderAccountDetail() {
     };
     document.getElementById('detail-auth-method').textContent = authMethodMap[cred.authMethod] || cred.authMethod || '-';
 
-    // 区域
+    // Region
     document.getElementById('detail-region').textContent = cred.region || 'us-east-1';
 
-    // 状态
+    // Status
     const statusEl = document.getElementById('detail-status');
     const statusClass = cred.status === 'error' ? 'error' : cred.status === 'warning' ? 'warning' : 'normal';
-    const statusText = statusClass === 'normal' ? '正常' : statusClass === 'warning' ? '警告' : '异常';
+    const statusText = statusClass === 'normal' ? 'Normal' : statusClass === 'warning' ? 'Warning' : 'Error';
     statusEl.innerHTML = `<span class="status-badge ${statusClass}">${statusText}</span>`;
     if (cred.isActive) {
-        statusEl.innerHTML += ` <span class="status-badge active">活跃</span>`;
+        statusEl.innerHTML += ` <span class="status-badge active">Active</span>`;
     }
 
-    // 时间
+    // Time
     document.getElementById('detail-created').textContent = formatDateTime(cred.createdAt);
     document.getElementById('detail-expires').textContent = formatExpireTime(cred.expiresAt);
 
-    // Token 信息（默认隐藏）
+    // Token info (hidden by default)
     document.getElementById('detail-accken').textContent = maskToken(cred.accessToken);
     document.getElementById('detail-access-token').dataset.token = cred.accessToken || '';
 
     document.getElementById('detail-refresh-token').textContent = maskToken(cred.refreshToken);
     document.getElementById('detail-refresh-token').dataset.token = cred.refreshToken || '';
 
-    // Profile ARN（仅 Social Auth 显示）
+    // Profile ARN (only shown for Social Auth)
     if (cred.profileArn) {
         document.getElementById('profile-arn-section').style.display = 'block';
         document.getElementById('detail-profile-arn').textContent = cred.profileArn;
     }
 }
 
-// 格式化过期时间
+// Format expiration time
 function formatExpireTime(dateStr) {
     if (!dateStr) re
     const date = new Date(dateStr);
@@ -126,30 +126,30 @@ function formatExpireTime(dateStr) {
     const diff = date - now;
 
     if (diff < 0) {
-        return `已过期 (${formatDateTime(dateStr)})`;
+        return `Expired (${formatDateTime(dateStr)})`;
     }
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
 
     if (hours < 1) {
-        return `${minutes} 分钟后过期`;
+        return `Expires in ${minutes} minutes`;
     } else if (hours < 24) {
-        return `${hours} 小时 ${minutes} 分钟后过期`;
+        return `Expires in ${hours} hours ${minutes} minutes`;
     } else {
         const days = Math.floor(hours / 24);
-        return `${days} 天后过期 (${formatDateTime(dateStr)})`;
+        return `Expires in ${days} days (${formatDateTime(dateStr)})`;
     }
 }
 
-// 遮蔽 Token
+// Mask Token
 function maskToken(token) {
     if (!token) return '-';
     if (token.length <= 20) return '••••••••••••••••';
     return token.substring(0, 10) + '••••••••••••••••' + token.substring(token.length - 10);
 }
 
-// 切换 Token 显示
+// Toggle Token visibility
 function toggleToken(type) {
     tokenVisible[type] = !tokenVisible[type];
     const el = document.getElementById(`detail-${type}-token`);
@@ -162,18 +162,18 @@ function toggleToken(type) {
     }
 }
 
-// 复制 Token
+// Copy Token
 function copyToken(type) {
     const el = document.getElementById(`detail-${type}-token`);
     const ken = el.dataset.token;
     if (token) {
         copyToClipboard(token);
     } else {
-        showToast('Token 为空', 'warning');
+        showToast('Token is empty', 'warning');
     }
 }
 
-// 复制 Profile ARN
+// Copy Profile ARN
 function copyProfileArn() {
     const arn = document.getElementById('detail-profile-arn').textContent;
     if (arn && arn !== '-') {
@@ -181,9 +181,9 @@ function copyProfileArn() {
     }
 }
 
-// 刷新 Token
+// Refresh Token
 async function refreshToken() {
-    showToast('正在刷新 Token...', 'warning');
+    showToast('Refreshing Token...', 'warning');
 
     try {
         const res = await fetch(`/api/credentials/${accountId}/refresh`, {
@@ -194,19 +194,19 @@ async function refreshToken() {
         const result = await res.json();
 
         if (result.success) {
-            showToast('Token 刷新成功', 'success');
+            showToast('Token refreshed successfully', 'success');
             await loadAccountDetail();
         } else {
-            showToast('Token 刷新失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Token refresh failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (error) {
-        showToast('Token 刷新失败: ' + error.message, 'error');
+        showToast('Token refresh failed: ' + error.message, 'error');
     }
 }
 
-// 测试连接
+// Test connection
 async function testConnection() {
-    showToast('正在测试连接...', 'warning');
+    showToast('Testing connection...', 'warning');
 
     try {
         const res = await fetch(`/api/credentials/${accountId}/test`, {
@@ -217,19 +217,19 @@ async function testConnection() {
         const result = await res.json();
 
         if (result.success) {
-            showToast('连接测试成功', 'success');
+            showToast('Connection test successful', 'success');
         } else {
-            showToast('连接测试失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Connection test failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (error) {
-        showToast('连接测试失败: ' + error.message, 'error');
+        showToast('Connection test failed: ' + error.message, 'error');
     }
 }
 
-// 刷新用量
+// Refresh usage
 async function refreshUsage() {
     const usageContent = document.getElementById('usage-content');
-    usageContent.innerHTML = '<p style="color: var(--text-muted);">加载中...</p>';
+    usageContent.innerHTML = '<p style="color: var(--text-muted);">Loading...</p>';
 
     try {
         const res = await fetch(`/api/credentials/${accountId}/usage`, {
@@ -241,19 +241,19 @@ async function refreshUsage() {
         if (result.success && result.data) {
             renderUsage(result.data);
         } else {
-            usageContent.innerHTML = `<p style="color: var(--accent-danger);">获取用量失败: ${result.error || '未知错误'}</p>`;
+            usageContent.innerHTML = `<p style="color: var(--accent-danger);">Failed to get usage: ${result.error || 'Unknown error'}</p>`;
         }
     } catch (error) {
-        usageContent.innerHTML = `<p style="color: var(--accent-danger);">获取用量失败: ${error.message}</p>`;
+        usageContent.innerHTML = `<p style="color: var(--accent-danger);">Failed to get usage: ${error.message}</p>`;
     }
 }
 
-// 渲染用量信息
+// Render usage info
 function renderUsage(usage) {
     const usageContent = document.getElementById('usage-content');
 
     if (!usage.usageBreakdownList || usage.usageBreakdownList.length === 0) {
-        usageContent.innerHTML = '<p style="color: var(--text-muted);">暂无用量数据</p>';
+        usageContent.innerHTML = '<p style="color: var(--text-muted);">No usage data available</p>';
         return;
     }
 
@@ -280,10 +280,10 @@ function renderUsage(usage) {
         let resetText = '';
         if (breakdown.nextDateReset) {
             const resetDate = new Date(breakdown.nextDateReset * 1000);
-            resetText = `重置时间: ${formatDateTime(resetDate.toISOString())}`;
+            resetText = `Reset time: ${formatDateTime(resetDate.toISOString())}`;
         }
 
-        const trialBadge = isFreeTrialActive ? '<span style="background: var(--accent-success-bg); color: var(--accent-success); padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px;">试用中</span>' : '';
+        const trialBadge = isFreeTrialActive ? '<span style="background: var(--accent-success-bg); color: var(--accent-success); padding: 2px 8px; border-radius: 4px; font-size: 11px; margin-left: 8px;">Trial</span>' : '';
 
         html += `
             <div class="usage-section">
@@ -296,8 +296,8 @@ function renderUsage(usage) {
                         <div class="usage-bar-fill ${barClass}" style="width: ${Math.min(usagePercent, 100)}%"></div>
                     </div>
                     <div class="usage-stats">
-                        <span>已用 ${usedCount.toFixed(2)} / ${totalCount}</span>
-                        <span>${resetText || '剩余 ' + (totalCount - usedCount).toFixed(2)}</span>
+                        <span>Used ${usedCount.toFixed(2)} / ${totalCount}</span>
+                        <span>${resetText || 'Remaining ' + (totalCount - usedCount).toFixed(2)}</span>
                     </div>
                 </div>
             </div>
@@ -307,14 +307,14 @@ function renderUsage(usage) {
     usageContent.innerHTML = html;
 }
 
-// 开始对话
+// Start chat
 function startChat() {
     window.location.href = `/pages/chat.html?account=${accountId}`;
 }
 
-// 删除账号
+// Delete account
 async function deleteAccount() {
-    if (!confirm('确定要删除此账号吗？此操作不可恢复。')) {
+    if (!confirm('Are you sure you want to delete this account? This action cannot be undone.')) {
         return;
     }
 
@@ -327,12 +327,12 @@ async function deleteAccount() {
         const result = await res.json();
 
         if (result.success) {
-            showToast('账号已删除', 'success');
+            showToast('Account deleted', 'success');
             setTimeout(() => goBack(), 1000);
         } else {
-            showToast('删除失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Delete failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (error) {
-        showToast('删除失败: ' + error.message, 'error');
+        showToast('Delete failed: ' + error.message, 'error');
     }
 }

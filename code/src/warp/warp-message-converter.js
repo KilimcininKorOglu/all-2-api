@@ -1,6 +1,6 @@
 /**
- * Warp 消息转换器
- * 处理 Claude API 消息 <-> Warp 协议消息的双向转换
+ * Warp Message Converter
+ * Handles bidirectional conversion between Claude API messages and Warp protocol messages
  */
 
 import crypto from 'crypto';
@@ -14,10 +14,10 @@ import {
 } from './warp-tool-mapper.js';
 
 /**
- * 将 Claude API 请求转换为 Warp Request 对象
- * @param {Object} claudeRequest - Claude API 请求
- * @param {Object} context - 上下文信息
- * @returns {Object} Warp Request 对象
+ * Convert Claude API request to Warp Request object
+ * @param {Object} claudeRequest - Claude API request
+ * @param {Object} context - Context information
+ * @returns {Object} Warp Request object
  */
 export function buildWarpRequest(claudeRequest, context = {}) {
     const { model, messages, system, tools, metadata } = claudeRequest;
@@ -30,13 +30,13 @@ export function buildWarpRequest(claudeRequest, context = {}) {
     const taskId = crypto.randomUUID();
     const convId = conversationId || metadata?.session_id || crypto.randomUUID();
 
-    // 构建 InputContext
+    // Build InputContext
     const inputContext = createInputContext({
         pwd: workingDir,
         home: homeDir
     });
 
-    // 添加 system 作为 project_rules
+    // Add system as project_rules
     if (system) {
         const systemText = typeof system === 'string'
             ? system
@@ -54,13 +54,13 @@ export function buildWarpRequest(claudeRequest, context = {}) {
         }
     }
 
-    // 转换消息
+    // Convert messages
     const { taskMessages, userInputs } = convertClaudeMessages(messages, inputContext);
 
-    // 构建 Settings
+    // Build Settings
     const supportedTools = getWarpSupportedTools(tools);
 
-    // 构建请求对象
+    // Build request object
     const request = {
         task_context: {
             tasks: [{
@@ -105,16 +105,16 @@ export function buildWarpRequest(claudeRequest, context = {}) {
 }
 
 /**
- * 转换 Claude 消息数组为 Warp 格式
- * @param {Array} messages - Claude 消息数组
- * @param {Object} inputContext - 输入上下文
+ * Convert Claude message array to Warp format
+ * @param {Array} messages - Claude message array
+ * @param {Object} inputContext - Input context
  * @returns {Object} { taskMessages, userInputs }
  */
 function convertClaudeMessages(messages, inputContext) {
     const taskMessages = [];
     const userInputs = [];
 
-    // 用于跟踪工具调用，以便在 tool_result 中查找对应的工具名称
+    // Used to track tool calls so we can look up the corresponding tool name in tool_result
     const toolCallMap = new Map();
 
     for (let i = 0; i < messages.length; i++) {
@@ -140,18 +140,18 @@ function convertClaudeMessages(messages, inputContext) {
 }
 
 /**
- * 转换用户消息
- * @param {Object} msg - Claude 用户消息
- * @param {Object} inputContext - 输入上下文
- * @param {boolean} isLastMessage - 是否是最后一条消息
- * @param {Map} toolCallMap - 工具调用映射
+ * Convert user message
+ * @param {Object} msg - Claude user message
+ * @param {Object} inputContext - Input context
+ * @param {boolean} isLastMessage - Whether this is the last message
+ * @param {Map} toolCallMap - Tool call mapping
  * @returns {Object} { taskMessages, userInputs }
  */
 function convertUserMessage(msg, inputContext, isLastMessage, toolCallMap) {
     const result = { taskMessages: [], userInputs: [] };
 
     if (typeof msg.content === 'string') {
-        // 简单文本消息
+        // Simple text message
         const userQuery = {
             user_query: {
                 query: msg.content,
@@ -169,7 +169,7 @@ function convertUserMessage(msg, inputContext, isLastMessage, toolCallMap) {
             });
         }
     } else if (Array.isArray(msg.content)) {
-        // 复合内容（可能包含 text 和 tool_result）
+        // Compound content (may contain text and tool_result)
         let textContent = '';
         const toolResults = [];
 
@@ -177,7 +177,7 @@ function convertUserMessage(msg, inputContext, isLastMessage, toolCallMap) {
             if (block.type === 'text') {
                 textContent += block.text;
             } else if (block.type === 'tool_result') {
-                // 查找对应的工具名称
+                // Find corresponding tool name
                 const toolName = toolCallMap.get(block.tool_use_id) || 'Bash';
                 const warpResult = claudeToolResultToWarpResult(block, toolName);
                 toolResults.push({
@@ -186,7 +186,7 @@ function convertUserMessage(msg, inputContext, isLastMessage, toolCallMap) {
             }
         }
 
-        // 添加文本内容
+        // Add text content
         if (textContent) {
             const userQuery = {
                 user_query: {
@@ -206,7 +206,7 @@ function convertUserMessage(msg, inputContext, isLastMessage, toolCallMap) {
             }
         }
 
-        // 添加工具结果
+        // Add tool results
         if (toolResults.length > 0) {
             if (isLastMessage) {
                 result.userInputs.push(...toolResults);
@@ -225,10 +225,10 @@ function convertUserMessage(msg, inputContext, isLastMessage, toolCallMap) {
 }
 
 /**
- * 转换助手消息
- * @param {Object} msg - Claude 助手消息
- * @param {Map} toolCallMap - 工具调用映射（用于记录工具调用）
- * @returns {Array} Warp Message 数组
+ * Convert assistant message
+ * @param {Object} msg - Claude assistant message
+ * @param {Map} toolCallMap - Tool call mapping (used to record tool calls)
+ * @returns {Array} Warp Message array
  */
 function convertAssistantMessage(msg, toolCallMap) {
     const messages = [];
@@ -252,7 +252,7 @@ function convertAssistantMessage(msg, toolCallMap) {
                     }
                 });
             } else if (block.type === 'tool_use') {
-                // 记录工具调用以便后续查找
+                // Record tool call for later lookup
                 toolCallMap.set(block.id, block.name);
 
                 const warpToolCall = claudeToolUseToWarpToolCall(block);
@@ -268,14 +268,14 @@ function convertAssistantMessage(msg, toolCallMap) {
 }
 
 /**
- * 解析 Warp ResponseEvent 并转换为 Claude API 格式的事件
- * @param {Object} responseEvent - Warp ResponseEvent 对象
- * @returns {Array} Claude 格式事件数组
+ * Parse Warp ResponseEvent and convert to Claude API format events
+ * @param {Object} responseEvent - Warp ResponseEvent object
+ * @returns {Array} Claude format event array
  */
 export function parseWarpResponseEvent(responseEvent) {
     const events = [];
 
-    // StreamInit 事件
+    // StreamInit event
     if (responseEvent.init) {
         events.push({
             type: 'stream_init',
@@ -284,12 +284,12 @@ export function parseWarpResponseEvent(responseEvent) {
         });
     }
 
-    // ClientActions 事件
+    // ClientActions event
     if (responseEvent.client_actions) {
         const actions = responseEvent.client_actions.actions || [];
 
         for (const action of actions) {
-            // AppendToMessageContent - 流式文本增量
+            // AppendToMessageContent - streaming text delta
             if (action.append_to_message_content) {
                 const msg = action.append_to_message_content.message;
                 if (msg?.agent_output?.text) {
@@ -306,7 +306,7 @@ export function parseWarpResponseEvent(responseEvent) {
                 }
             }
 
-            // AddMessagesToTask - 完整消息
+            // AddMessagesToTask - complete message
             if (action.add_messages_to_task) {
                 const taskMessages = action.add_messages_to_task.messages || [];
 
@@ -330,7 +330,7 @@ export function parseWarpResponseEvent(responseEvent) {
                 }
             }
 
-            // UpdateTaskMessage - 消息更新
+            // UpdateTaskMessage - message update
             if (action.update_task_message) {
                 const msg = action.update_task_message.message;
                 if (msg?.agent_output?.text) {
@@ -341,7 +341,7 @@ export function parseWarpResponseEvent(responseEvent) {
                 }
             }
 
-            // CreateTask - 新任务创建
+            // CreateTask - new task creation
             if (action.create_task) {
                 events.push({
                     type: 'task_created',
@@ -350,7 +350,7 @@ export function parseWarpResponseEvent(responseEvent) {
                 });
             }
 
-            // UpdateTaskStatus - 任务状态更新
+            // UpdateTaskStatus - task status update
             if (action.update_task_status) {
                 events.push({
                     type: 'task_status',
@@ -361,11 +361,11 @@ export function parseWarpResponseEvent(responseEvent) {
         }
     }
 
-    // StreamFinished 事件
+    // StreamFinished event
     if (responseEvent.finished) {
         const finished = responseEvent.finished;
 
-        // 确定停止原因
+        // Determine stop reason
         let stopReason = 'end_turn';
         if (finished.done) {
             stopReason = 'end_turn';
@@ -381,7 +381,7 @@ export function parseWarpResponseEvent(responseEvent) {
             stopReason = 'internal_error';
         }
 
-        // 提取 token 使用量
+        // Extract token usage
         let inputTokens = 0;
         let outputTokens = 0;
         let cacheReadTokens = 0;
@@ -413,10 +413,10 @@ export function parseWarpResponseEvent(responseEvent) {
 }
 
 /**
- * 将 Warp 响应事件流转换为 Claude API SSE 格式
- * @param {Array} events - parseWarpResponseEvent 返回的事件数组
- * @param {Object} state - 状态对象 { messageId, model, blockIndex, contentBlocks }
- * @returns {Array} SSE 数据数组
+ * Convert Warp response event stream to Claude API SSE format
+ * @param {Array} events - Event array returned by parseWarpResponseEvent
+ * @param {Object} state - State object { messageId, model, blockIndex, contentBlocks }
+ * @returns {Array} SSE data array
  */
 export function convertToClaudeSSE(events, state) {
     const sseData = [];
@@ -424,7 +424,7 @@ export function convertToClaudeSSE(events, state) {
     for (const event of events) {
         switch (event.type) {
             case 'text_delta':
-                // 确保有文本块
+                // Ensure there is a text block
                 if (state.blockIndex === 0 && !state.textBlockStarted) {
                     sseData.push({
                         event: 'content_block_start',
@@ -449,7 +449,7 @@ export function convertToClaudeSSE(events, state) {
                 break;
 
             case 'tool_use':
-                // 结束之前的文本块
+                // End the previous text block
                 if (state.textBlockStarted) {
                     sseData.push({
                         event: 'content_block_stop',
@@ -459,7 +459,7 @@ export function convertToClaudeSSE(events, state) {
                     state.textBlockStarted = false;
                 }
 
-                // 开始工具使用块
+                // Start tool use block
                 sseData.push({
                     event: 'content_block_start',
                     data: {
@@ -474,7 +474,7 @@ export function convertToClaudeSSE(events, state) {
                     }
                 });
 
-                // 发送工具输入
+                // Send tool input
                 sseData.push({
                     event: 'content_block_delta',
                     data: {
@@ -487,7 +487,7 @@ export function convertToClaudeSSE(events, state) {
                     }
                 });
 
-                // 结束工具使用块
+                // End tool use block
                 sseData.push({
                     event: 'content_block_stop',
                     data: { type: 'content_block_stop', index: state.blockIndex }
@@ -499,7 +499,7 @@ export function convertToClaudeSSE(events, state) {
                 break;
 
             case 'stream_finished':
-                // 结束任何打开的块
+                // End any open blocks
                 if (state.textBlockStarted) {
                     sseData.push({
                         event: 'content_block_stop',
@@ -507,7 +507,7 @@ export function convertToClaudeSSE(events, state) {
                     });
                 }
 
-                // 确定停止原因
+                // Determine stop reason
                 const stopReason = (state.toolCalls && state.toolCalls.length > 0)
                     ? 'tool_use'
                     : (event.reason === 'end_turn' ? 'end_turn' : event.reason);
@@ -537,15 +537,15 @@ export function convertToClaudeSSE(events, state) {
 }
 
 /**
- * 构建 Claude API 非流式响应
- * @param {Object} state - 状态对象
- * @param {string} model - 模型名称
- * @returns {Object} Claude API 响应对象
+ * Build Claude API non-streaming response
+ * @param {Object} state - State object
+ * @param {string} model - Model name
+ * @returns {Object} Claude API response object
  */
 export function buildClaudeResponse(state, model) {
     const content = [];
 
-    // 添加文本内容
+    // Add text content
     if (state.fullText) {
         content.push({
             type: 'text',
@@ -553,14 +553,14 @@ export function buildClaudeResponse(state, model) {
         });
     }
 
-    // 添加工具调用
+    // Add tool calls
     if (state.toolCalls && state.toolCalls.length > 0) {
         for (const toolUse of state.toolCalls) {
             content.push(toolUse);
         }
     }
 
-    // 如果没有内容，添加默认文本
+    // If no content, add default text
     if (content.length === 0) {
         content.push({
             type: 'text',
@@ -584,11 +584,11 @@ export function buildClaudeResponse(state, model) {
 }
 
 /**
- * 创建初始 SSE 状态
- * @param {string} messageId - 消息 ID
- * @param {string} model - 模型名称
- * @param {number} inputTokens - 输入 token 数
- * @returns {Object} 状态对象
+ * Create initial SSE state
+ * @param {string} messageId - Message ID
+ * @param {string} model - Model name
+ * @param {number} inputTokens - Input token count
+ * @returns {Object} State object
  */
 export function createSSEState(messageId, model, inputTokens = 0) {
     return {
@@ -606,9 +606,9 @@ export function createSSEState(messageId, model, inputTokens = 0) {
 }
 
 /**
- * 生成 message_start SSE 事件
- * @param {Object} state - SSE 状态
- * @returns {Object} SSE 数据
+ * Generate message_start SSE event
+ * @param {Object} state - SSE state
+ * @returns {Object} SSE data
  */
 export function createMessageStartSSE(state) {
     return {

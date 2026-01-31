@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>查询申请状态</title>
+    <title>Check Application Status</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -334,56 +334,56 @@
                 <span class="public-logo-text" id="logo-text">Kiro API</span>
             </div>
             <nav class="public-nav">
-                <a href="/pages/usage-query.html">用量查询</a>
-                <a href="/pages/trial-apply.html">试用申请</a>
-                <a href="/pages/docs.html">接入教程</a>
+                <a href="/pages/usage-query.html">Usage Query</a>
+                <a href="/pages/trial-apply.html">Trial Application</a>
+                <a href="/pages/docs.html">Documentation</a>
             </nav>
         </header>
 
         <main class="public-content">
             <div class="query-card">
-                <h1 class="page-title">查询申请状态</h1>
-                <p class="page-subtitle">输入邮箱查询您的试用申请状态</p>
+                <h1 class="page-title">Check Application Status</h1>
+                <p class="page-subtitle">Enter your email to check your trial application status</p>
 
                 <div class="message" id="message"></div>
 
                 <form id="query-form">
                     <div class="form-group">
-                        <label class="form-label">邮箱地址</label>
-                        <input type="email" class="form-input" id="email" placeholder="请输入申请时使用的邮箱" required>
+                        <label class="form-label">Email Address</label>
+                        <input type="email" class="form-input" id="email" placeholder="Enter the email used for application" required>
                     </div>
 
-                    <button type="submit" class="btn btn-primary" id="submit-btn">查询</button>
+                    <button type="submit" class="btn btn-primary" id="submit-btn">Query</button>
                 </form>
 
                 <div class="result-card" id="result-card">
                     <div class="result-header">
-                        <span>申请状态：</span>
+                        <span>Application Status:</span>
                         <span class="status-badge" id="status-badge"></span>
                     </div>
                     <div class="result-row">
-                        <span class="result-label">咸鱼名称</span>
+                        <span class="result-label">Xianyu Name</span>
                         <span class="result-value" id="result-xianyu"></span>
                     </div>
                     <div class="result-row">
-                        <span class="result-label">邮箱</span>
+                        <span class="result-label">Email</span>
                         <span class="result-value" id="result-email"></span>
                     </div>
                     <div class="result-row">
-                        <span class="result-label">来源</span>
+                        <span class="result-label">Source</span>
                         <span class="result-value" id="result-source"></span>
                     </div>
                     <div class="result-row">
-                        <span class="result-label">申请时间</span>
+                        <span class="result-label">Applied At</span>
                         <span class="result-value" id="result-time"></span>
                     </div>
                     <div class="result-row" id="reject-row" style="display: none;">
-                        <span class="result-label">拒绝原因</span>
+                        <span class="result-label">Rejection Reason</span>
                         <span class="result-value" id="result-reject-reason"></span>
                     </div>
 
                     <div class="api-key-box" id="api-key-box" style="display: none;">
-                        <div class="api-key-label">您的 API Key</div>
+                        <div class="api-key-label">Your API Key</div>
                         <div class="api-key-wrapper">
                             <input type="text" class="api-key-value" id="api-key-value" readonly>
                             <button type="button" class="btn-copy" onclick="copyApiKey()">
@@ -391,31 +391,31 @@
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>
                                 </svg>
-                                复制
+                                Copy
                             </button>
                         </div>
-                        <div class="api-key-hint">请妥善保管您的 API Key</div>
+                        <div class="api-key-hint">Please keep your API Key safe</div>
                         <div class="expire-warning" id="expire-warning"></div>
                     </div>
                 </div>
 
                 <div class="links">
-                    <a href="/pages/trial-apply.html">申请试用</a>
+                    <a href="/pages/trial-apply.html">Apply for Trial</a>
                 </div>
             </div>
         </main>
     </div>
 
-    <div class="copy-toast" id="copy-toast">已复制到剪贴板</div>
+    <div class="copy-toast" id="copy-toast">Copied to clipboard</div>
 
     <script>
-        // 兼容性复制函数
+        // Cross-browser copy function
         function copyToClipboard(text) {
-            // 优先使用现代 API
+            // Prefer modern API
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 return navigator.clipboard.writeText(text);
             }
-            // 降级方案：使用 execCommand
+            // Fallback: use execCommand
             return new Promise((resolve, reject) => {
                 const textArea = document.createElement('textarea');
                 textArea.value = text;
@@ -471,11 +471,11 @@
 
         function getSourceText(source) {
             const map = {
-                'xianyu': '咸鱼',
+                'xianyu': 'Xianyu',
                 'github': 'GitHub',
                 'twitter': 'Twitter/X',
-                'friend': '朋友推荐',
-                'other': '其他'
+                'friend': 'Friend Referral',
+                'other': 'Other'
             };
             return map[source] || source || '-';
         }
@@ -485,13 +485,13 @@
             if (!apiKey) return;
 
             copyToClipboard(apiKey)
-                .then(() => showToast('已复制到剪贴板'))
+                .then(() => showToast('Copied to clipboard'))
                 .catch(() => {
-                    // 如果复制失败，选中文本让用户手动复制
+                    // If copy fails, select text for manual copying
                     const input = document.getElementById('api-key-value');
                     input.select();
                     input.setSelectionRange(0, 99999);
-                    showToast('请按 Ctrl+C 手动复制', true);
+                    showToast('Please press Ctrl+C to copy', true);
                 });
         }
 
@@ -502,13 +502,13 @@
 
             const email = document.getElementById('email').value.trim();
             if (!email) {
-                showMessage('请输入邮箱地址', 'error');
+                showMessage('Please enter email address', 'error');
                 return;
             }
 
             const btn = document.getElementById('submit-btn');
             btn.disabled = true;
-            btn.textContent = '查询中...';
+            btn.textContent = 'Querying...';
 
             try {
                 const res = await fetch(`/api/trial/query?email=${encodeURIComponent(email)}`);
@@ -517,24 +517,24 @@
                 if (data.success && data.data) {
                     const app = data.data;
 
-                    // 显示状态
+                    // Display status
                     const statusBadge = document.getElementById('status-badge');
                     const statusMap = {
-                        'pending': { text: '审核中', class: 'status-pending' },
-                        'approved': { text: '已通过', class: 'status-approved' },
-                        'rejected': { text: '已拒绝', class: 'status-rejected' }
+                        'pending': { text: 'Under Review', class: 'status-pending' },
+                        'approved': { text: 'Approved', class: 'status-approved' },
+                        'rejected': { text: 'Rejected', class: 'status-rejected' }
                     };
                     const status = statusMap[app.status] || statusMap.pending;
                     statusBadge.textContent = status.text;
                     statusBadge.className = `status-badge ${status.class}`;
 
-                    // 填充信息
+                    // Fill information
                     document.getElementById('result-xianyu').textContent = app.xianyuName || '-';
                     document.getElementById('result-email').textContent = app.email || '-';
                     document.getElementById('result-source').textContent = getSourceText(app.source);
                     document.getElementById('result-time').textContent = formatDate(app.createdAt);
 
-                    // 拒绝原因
+                    // Rejection reason
                     const rejectRow = document.getElementById('reject-row');
                     if (app.status === 'rejected' && app.rejectReason) {
                         document.getElementById('result-reject-reason').textContent = app.rejectReason;
@@ -548,17 +548,17 @@
                     if (app.status === 'approved' && app.apiKey) {
                         document.getElementById('api-key-value').value = app.apiKey;
 
-                        // 过期时间
+                        // Expiration time
                         const expireWarning = document.getElementById('expire-warning');
                         if (app.apiKeyExpiresAt) {
                             const expireDate = new Date(app.apiKeyExpiresAt);
                             const now = new Date();
                             if (expireDate < now) {
-                                expireWarning.textContent = '此 API Key 已过期';
+                                expireWarning.textContent = 'This API Key has expired';
                                 expireWarning.style.color = 'var(--accent-danger)';
                             } else {
                                 const hours = Math.ceil((expireDate - now) / (1000 * 60 * 60));
-                                expireWarning.textContent = `有效期至: ${formatDate(app.apiKeyExpiresAt)} (剩余 ${hours} 小时)`;
+                                expireWarning.textContent = `Valid until: ${formatDate(app.apiKeyExpiresAt)} (${hours} hours remaining)`;
                             }
                         }
                         apiKeyBox.style.display = 'block';
@@ -568,29 +568,29 @@
 
                     document.getElementById('result-card').classList.add('show');
                 } else {
-                    showMessage(data.error || '未找到相关申请记录', 'error');
+                    showMessage(data.error || 'No application record found', 'error');
                 }
             } catch (error) {
-                showMessage('网络错误，请重试', 'error');
+                showMessage('Network error, please try again', 'error');
             } finally {
                 btn.disabled = false;
-                btn.textContent = '查询';
+                btn.textContent = 'Query';
             }
         });
 
-        // 加载站点设置
+        // Load site settings
         (async function() {
-            // 先从缓存加载（避免闪烁）
+            // Load from cache first (avoid flashing)
             const cached = localStorage.getItem('siteSettings');
             if (cached) {
                 try {
                     const settings = JSON.parse(cached);
                     document.getElementById('logo-icon').textContent = settings.siteLogo || 'K';
                     document.getElementById('logo-text').textContent = `${settings.siteName || 'Kiro'} API`;
-                    document.title = `查询申请状态 - ${settings.siteName || 'Kiro'} API`;
+                    document.title = `Check Application Status - ${settings.siteName || 'Kiro'} API`;
                 } catch (e) {}
             }
-            // 再从服务器获取最新
+            // Then fetch latest from server
             try {
                 const res = await fetch('/api/site-settings');
                 const data = await res.json();
@@ -599,7 +599,7 @@
                     localStorage.setItem('siteSettings', JSON.stringify(settings));
                     document.getElementById('logo-icon').textContent = settings.siteLogo || 'K';
                     document.getElementById('logo-text').textContent = `${settings.siteName || 'Kiro'} API`;
-                    document.title = `查询申请状态 - ${settings.siteName || 'Kiro'} API`;
+                    document.title = `Check Application Status - ${settings.siteName || 'Kiro'} API`;
                 }
             } catch (e) {
                 console.error('Load site settings error:', e);

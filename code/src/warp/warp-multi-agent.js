@@ -1,13 +1,13 @@
 /**
- * Warp 多代理循环系统
- * 
- * 基于 Warp API 实现的多代理循环，模拟 Warp 终端的 AI 代理行为
- * 
- * 工作流程：
- * 1. 用户提问 → 发送到 Warp AI
- * 2. AI 返回响应（可能包含工具调用请求）
- * 3. 本地执行工具 → 将结果回传给 AI
- * 4. 循环直到 AI 返回最终答案
+ * Warp Multi-Agent Loop System
+ *
+ * Multi-agent loop implementation based on Warp API, simulating Warp terminal's AI agent behavior
+ *
+ * Workflow:
+ * 1. User asks a question -> Send to Warp AI
+ * 2. AI returns response (may contain tool call requests)
+ * 3. Execute tool locally -> Send result back to AI
+ * 4. Loop until AI returns final answer
  */
 
 import { v4 as uuidv4 } from 'uuid';
@@ -24,7 +24,7 @@ import {
 
 const execAsync = promisify(exec);
 
-// ==================== Protobuf 编码工具 ====================
+// ==================== Protobuf Encoding Utilities ====================
 
 function encodeVarint(value) {
     const bytes = [];
@@ -65,12 +65,12 @@ function encodeFixed32(fieldNum, value) {
     return encodeField(fieldNum, 5, buf);
 }
 
-// ==================== 工具定义 ====================
+// ==================== Tool Definitions ====================
 
 const TOOLS = {
     list_dir: {
         name: 'list_dir',
-        description: '列出目录内容',
+        description: 'List directory contents',
         handler: async (params) => {
             const targetPath = params.path || params.DirectoryPath || '.';
             const files = await fs.readdir(targetPath, { withFileTypes: true });
@@ -80,14 +80,14 @@ const TOOLS = {
     
     read_file: {
         name: 'read_file',
-        description: '读取文件内容',
+        description: 'Read file contents',
         handler: async (params) => {
             const filePath = params.path || params.file_path;
             const content = await fs.readFile(filePath, 'utf-8');
             const lines = content.split('\n');
             const limit = params.limit || 100;
             if (lines.length > limit) {
-                return lines.slice(0, limit).join('\n') + `\n... (共 ${lines.length} 行)`;
+                return lines.slice(0, limit).join('\n') + `\n... (${lines.length} lines total)`;
             }
             return content;
         }
@@ -96,7 +96,7 @@ const TOOLS = {
     run_command: {
         name: 'run_command',
         aliases: ['run_shell_command', 'ls', 'cat', 'grep'],
-        description: '执行 shell 命令',
+        description: 'Execute shell command',
         handler: async (params) => {
             const command = params.command || params.CommandLine || params.cmd || 'ls';
             const cwd = params.cwd || params.Cwd || process.cwd();
@@ -107,16 +107,16 @@ const TOOLS = {
                     maxBuffer: 1024 * 1024,
                     env: { ...process.env, PAGER: 'cat' }
                 });
-                return stdout || stderr || '(无输出)';
+                return stdout || stderr || '(no output)';
             } catch (error) {
-                return `错误: ${error.message}\n${error.stderr || ''}`;
+                return `Error: ${error.message}\n${error.stderr || ''}`;
             }
         }
     },
     
     grep_search: {
         name: 'grep_search',
-        description: '搜索文件内容',
+        description: 'Search file contents',
         handler: async (params) => {
             const pattern = params.pattern || params.Query;
             const searchPath = params.path || params.SearchPath || '.';
@@ -125,16 +125,16 @@ const TOOLS = {
                     `grep -rn "${pattern}" "${searchPath}" 2>/dev/null | head -30`,
                     { maxBuffer: 1024 * 1024 }
                 );
-                return stdout || '未找到匹配';
+                return stdout || 'No matches found';
             } catch {
-                return '未找到匹配';
+                return 'No matches found';
             }
         }
     },
-    
+
     find_by_name: {
         name: 'find_by_name',
-        description: '按名称查找文件',
+        description: 'Find files by name',
         handler: async (params) => {
             const pattern = params.pattern || params.Pattern || '*';
             const searchDir = params.path || params.SearchDirectory || '.';
@@ -143,15 +143,15 @@ const TOOLS = {
                     `find "${searchDir}" -name "${pattern}" 2>/dev/null | head -30`,
                     { maxBuffer: 1024 * 1024 }
                 );
-                return stdout || '未找到文件';
+                return stdout || 'No files found';
             } catch {
-                return '未找到文件';
+                return 'No files found';
             }
         }
     }
 };
 
-// ==================== 会话管理 ====================
+// ==================== Session Management ====================
 
 class ConversationSession {
     constructor(id, workingDir = process.cwd()) {
@@ -203,7 +203,7 @@ class ConversationSession {
     }
 }
 
-// ==================== Warp 多代理服务 ====================
+// ==================== Warp Multi-Agent Service ====================
 
 export class WarpMultiAgentService {
     constructor(warpStore, options = {}) {
@@ -212,15 +212,15 @@ export class WarpMultiAgentService {
         this.maxIterations = options.maxIterations || 15;
         this.tools = { ...TOOLS, ...options.customTools };
         
-        // 回调函数
-        this.onThinking = options.onThinking;      // AI 思考中
-        this.onToolCall = options.onToolCall;      // 工具调用
-        this.onContent = options.onContent;        // 内容输出
-        this.onComplete = options.onComplete;      // 完成
+        // Callback functions
+        this.onThinking = options.onThinking;      // AI thinking
+        this.onToolCall = options.onToolCall;      // Tool call
+        this.onContent = options.onContent;        // Content output
+        this.onComplete = options.onComplete;      // Complete
     }
     
     /**
-     * 创建新会话
+     * Create new session
      */
     createSession(workingDir = process.cwd()) {
         const sessionId = uuidv4();
@@ -230,14 +230,14 @@ export class WarpMultiAgentService {
     }
     
     /**
-     * 获取会话
+     * Get session
      */
     getSession(sessionId) {
         return this.sessions.get(sessionId);
     }
     
     /**
-     * 获取有效的 access token
+     * Get valid access token
      */
     async getValidAccessToken(credential) {
         if (credential.accessToken && !isTokenExpired(credential.accessToken)) {
@@ -251,13 +251,13 @@ export class WarpMultiAgentService {
     }
     
     /**
-     * 构建 Warp 请求体（包含对话历史）
+     * Build Warp request body (including conversation history)
      */
     buildRequestBody(session, model = 'claude-4.1-opus') {
         const timestamp = Math.floor(Date.now() / 1000);
         const nanos = (Date.now() % 1000) * 1000000;
         
-        // 基础路径信息
+        // Basic path information
         const pathInfo = Buffer.concat([
             encodeString(1, session.workingDir),
             encodeString(2, process.env.HOME || '/tmp')
@@ -270,7 +270,7 @@ export class WarpMultiAgentService {
             encodeVarintField(2, nanos)
         ]);
         
-        // 构建对话历史
+        // Build conversation history
         const conversationParts = [];
         
         for (const msg of session.messages) {
@@ -282,15 +282,15 @@ export class WarpMultiAgentService {
                 ]);
                 conversationParts.push(encodeMessage(1, encodeMessage(1, queryContent)));
             } else if (msg.role === 'tool') {
-                // 工具结果作为上下文
+                // Tool result as context
                 const toolResult = Buffer.concat([
-                    encodeString(1, `[工具 ${msg.name} 结果]\n${msg.content}`)
+                    encodeString(1, `[Tool ${msg.name} result]\n${msg.content}`)
                 ]);
                 conversationParts.push(encodeMessage(2, toolResult));
             }
         }
         
-        // 环境信息
+        // Environment information
         const field2_1 = Buffer.concat([
             encodeMessage(1, pathInfo),
             encodeMessage(2, osInfo),
@@ -298,7 +298,7 @@ export class WarpMultiAgentService {
             encodeMessage(4, timestampInfo)
         ]);
         
-        // 最新用户消息
+        // Latest user message
         const lastUserMsg = session.messages.filter(m => m.role === 'user').pop();
         const queryContent = Buffer.concat([
             encodeString(1, lastUserMsg?.content || ''),
@@ -312,7 +312,7 @@ export class WarpMultiAgentService {
             encodeMessage(6, field2_6)
         ]);
         
-        // 模型配置
+        // Model configuration
         const modelConfig = Buffer.concat([
             encodeString(1, model),
             encodeString(4, "cli-agent-auto")
@@ -336,7 +336,7 @@ export class WarpMultiAgentService {
             encodeBytes(22, capabilities2), encodeVarintField(23, 1)
         ]);
         
-        // 元数据
+        // Metadata
         const entrypoint = Buffer.concat([
             encodeString(1, "entrypoint"),
             encodeMessage(2, encodeMessage(3, encodeString(1, "USER_INITIATED")))
@@ -364,7 +364,7 @@ export class WarpMultiAgentService {
     }
     
     /**
-     * 解析 Warp 响应，提取文本和工具调用
+     * Parse Warp response, extract text and tool calls
      */
     parseWarpResponse(buffer) {
         const result = {
@@ -374,7 +374,7 @@ export class WarpMultiAgentService {
             isComplete: false
         };
         
-        // 提取文本内容
+        // Extract text content
         for (let i = 0; i < buffer.length - 4; i++) {
             if (buffer[i] === 0x1a) {
                 const outerLen = buffer[i + 1];
@@ -387,7 +387,7 @@ export class WarpMultiAgentService {
                         if (text.includes('agent_') || text.includes('server_') ||
                             text.includes('USER_') || text.includes('primary_')) continue;
                         
-                        // 检查是否有中文或英文
+                        // Check if contains Chinese or English
                         const hasChinese = /[\u4e00-\u9fff]/.test(text);
                         const hasAlpha = /[a-zA-Z]/.test(text);
                         
@@ -401,7 +401,7 @@ export class WarpMultiAgentService {
             }
         }
         
-        // 检测工具调用模式（简化版）
+        // Detect tool call patterns (simplified)
         const toolPatterns = [
             /run_command|run_shell_command/i,
             /list_dir|read_file|grep_search/i,
@@ -411,7 +411,7 @@ export class WarpMultiAgentService {
         const bufferStr = buffer.toString('utf8');
         for (const pattern of toolPatterns) {
             if (pattern.test(bufferStr)) {
-                // 尝试提取命令
+                // Try to extract command
                 const cmdMatch = bufferStr.match(/"command"\s*:\s*"([^"]+)"/);
                 if (cmdMatch) {
                     result.toolCalls.push({
@@ -426,7 +426,7 @@ export class WarpMultiAgentService {
     }
     
     /**
-     * 发送请求到 Warp
+     * Send request to Warp
      */
     sendRequest(body, accessToken) {
         return new Promise((resolve, reject) => {
@@ -496,10 +496,10 @@ export class WarpMultiAgentService {
     }
     
     /**
-     * 执行工具
+     * Execute tool
      */
     async executeTool(toolName, params) {
-        // 查找工具（支持别名）
+        // Find tool (supports aliases)
         let tool = this.tools[toolName];
         if (!tool) {
             for (const t of Object.values(this.tools)) {
@@ -511,7 +511,7 @@ export class WarpMultiAgentService {
         }
         
         if (!tool) {
-            return { success: false, error: `未知工具: ${toolName}` };
+            return { success: false, error: `Unknown tool: ${toolName}` };
         }
         
         try {
@@ -523,22 +523,22 @@ export class WarpMultiAgentService {
     }
     
     /**
-     * 核心：多代理循环处理
+     * Core: Multi-agent loop processing
      */
     async *processQuery(userQuery, options = {}) {
-        // 获取或创建会话
+        // Get or create session
         let session = options.sessionId ? this.getSession(options.sessionId) : null;
         if (!session) {
             session = this.createSession(options.workingDir);
         }
         
-        // 添加用户消息
+        // Add user message
         session.addUserMessage(userQuery);
         
-        // 获取凭证
+        // Get credentials
         const credential = await this.warpStore.getRandomActive();
         if (!credential) {
-            yield { type: 'error', error: '没有可用的 Warp 账号' };
+            yield { type: 'error', error: 'No available Warp accounts' };
             return;
         }
         
@@ -555,27 +555,27 @@ export class WarpMultiAgentService {
             };
             
             try {
-                // 获取有效 token
+                // Get valid token
                 const accessToken = await this.getValidAccessToken(credential);
                 
-                // 发送请求 - 使用已有的 sendWarpRequest 函数
+                // Send request - using existing sendWarpRequest function
                 yield { type: 'thinking', iteration: session.iteration };
                 
-                // 构建查询（包含历史上下文）
+                // Build query (including historical context)
                 let fullQuery = userQuery;
                 if (session.toolCalls.length > 0) {
                     const lastToolCall = session.toolCalls[session.toolCalls.length - 1];
-                    fullQuery = `${userQuery}\n\n[工具执行结果]\n命令: ${lastToolCall.name}\n输出:\n${lastToolCall.result}`;
+                    fullQuery = `${userQuery}\n\n[Tool execution result]\nCommand: ${lastToolCall.name}\nOutput:\n${lastToolCall.result}`;
                 }
                 
                 const warpResponse = await sendWarpRequest(fullQuery, accessToken, model);
                 const responseText = warpResponse.text;
                 const toolCalls = warpResponse.toolCalls || [];
                 
-                // 更新使用计数
+                // Update usage count
                 await this.warpStore.incrementUseCount(credential.id);
                 
-                // 解析响应
+                // Parse response
                 if (responseText) {
                     session.addAssistantMessage(responseText);
                     
@@ -586,13 +586,13 @@ export class WarpMultiAgentService {
                     };
                 }
                 
-                // 检查是否有工具调用（从 Warp 响应中检测）
+                // Check if there are tool calls (detected from Warp response)
                 const hasToolCall = toolCalls.length > 0 || (responseText && responseText.includes('```') && 
                     (responseText.includes('ls') || responseText.includes('cat') || 
                      responseText.includes('grep') || responseText.includes('find')));
                 
                 if (hasToolCall) {
-                    // 提取命令
+                    // Extract command
                     const cmdMatch = responseText.match(/```(?:bash|sh|shell)?\n?([\s\S]*?)```/);
                     if (cmdMatch) {
                         const command = cmdMatch[1].trim();
@@ -604,7 +604,7 @@ export class WarpMultiAgentService {
                             command
                         };
                         
-                        // 执行命令
+                        // Execute command
                         const toolResult = await this.executeTool('run_command', {
                             command,
                             cwd: session.workingDir
@@ -620,12 +620,12 @@ export class WarpMultiAgentService {
                             result: toolResult
                         };
                         
-                        // 继续循环
+                        // Continue loop
                         continue;
                     }
                 }
                 
-                // 没有工具调用，完成
+                // No tool calls, complete
                 isComplete = true;
                 
                 yield {
@@ -644,7 +644,7 @@ export class WarpMultiAgentService {
                     error: error.message
                 };
                 
-                // 尝试切换凭证继续
+                // Try switching credentials and continue
                 break;
             }
         }
@@ -659,7 +659,7 @@ export class WarpMultiAgentService {
     }
     
     /**
-     * 简化的同步调用
+     * Simplified synchronous call
      */
     async chat(userQuery, options = {}) {
         let finalResponse = '';
@@ -685,12 +685,12 @@ export class WarpMultiAgentService {
     }
 }
 
-// ==================== 路由设置 ====================
+// ==================== Route Setup ====================
 
 export function setupWarpMultiAgentRoutes(app, warpStore) {
     const service = new WarpMultiAgentService(warpStore);
     
-    // 流式对话
+    // Streaming conversation
     app.post('/api/warp/agent/stream', async (req, res) => {
         const { query, sessionId, model, workingDir } = req.body;
         
@@ -713,7 +713,7 @@ export function setupWarpMultiAgentRoutes(app, warpStore) {
         }
     });
     
-    // 非流式对话
+    // Non-streaming conversation
     app.post('/api/warp/agent/chat', async (req, res) => {
         const { query, sessionId, model, workingDir } = req.body;
         

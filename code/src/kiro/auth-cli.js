@@ -1,6 +1,6 @@
 /**
- * Kiro 认证 CLI 工具
- * 用于获取 OAuth 凭据
+ * Kiro Authentication CLI Tool
+ * Used to obtain OAuth credentials
  */
 import { KiroAuth } from './auth.js';
 import readline from 'readline';
@@ -15,70 +15,70 @@ function question(prompt) {
 }
 
 async function main() {
-    console.log('=== Kiro OAuth 认证工具 ===\n');
+    console.log('=== Kiro OAuth Authentication Tool ===\n');
 
-    // 选择存储位置
-    console.log('请选择凭据存储位置:');
-    console.log('1. 默认位置 (~/.kiro/oauth_creds.json)');
-    console.log('2. 项目 configs 目录 (configs/kiro/)');
+    // Choose storage location
+    console.log('Please select credential storage location:');
+    console.log('1. Default location (~/.kiro/oauth_creds.json)');
+    console.log('2. Project configs directory (configs/kiro/)');
     console.log('');
 
-    const storageChoice = await question('请输入选项 (1/2): ');
+    const storageChoice = await question('Please enter option (1/2): ');
     const saveToConfigs = storageChoice.trim() === '2';
 
-    console.log('\n请选择认证方式:');
-    console.log('1. Google 账号登录 (推荐)');
-    console.log('2. GitHub 账号登录');
+    console.log('\nPlease select authentication method:');
+    console.log('1. Google account login (recommended)');
+    console.log('2. GitHub account login');
     console.log('3. AWS Builder ID');
     console.log('');
 
-    const choice = await question('请输入选项 (1/2/3): ');
+    const choice = await question('Please enter option (1/2/3): ');
 
     const auth = new KiroAuth({ saveToConfigs });
 
     try {
         switch (choice.trim()) {
             case '1':
-                console.log('\n正在启动 Google 登录...');
+                console.log('\nStarting Google login...');
                 const googleResult = await auth.startSocialAuth('Google');
-                console.log('\n请在浏览器中打开以下链接完成授权:');
+                console.log('\nPlease open the following link in your browser to authorize:');
                 console.log(googleResult.authUrl);
-                console.log('\n等待授权完成...');
+                console.log('\nWaiting for authorization...');
                 break;
 
             case '2':
-                console.log('\n正在启动 GitHub 登录...');
+                console.log('\nStarting GitHub login...');
                 const githubResult = await auth.startSocialAuth('Github');
-                console.log('\n请在浏览器中打开以下链接完成授权:');
+                console.log('\nPlease open the following link in your browser to authorize:');
                 console.log(githubResult.authUrl);
-                console.log('\n等待授权完成...');
+                console.log('\nWaiting for authorization...');
                 break;
 
             case '3':
-                console.log('\n正在启动 AWS Builder ID 登录...');
+                console.log('\nStarting AWS Builder ID login...');
                 const builderResult = await auth.startBuilderIDAuth();
-                console.log('\n请在浏览器中打开以下链接:');
+                console.log('\nPlease open the following link in your browser:');
                 console.log(builderResult.verificationUriComplete);
-                console.log(`\n或访问 ${builderResult.verificationUri} 并输入代码: ${builderResult.userCode}`);
-                console.log('\n等待授权完成...');
+                console.log(`\nOr visit ${builderResult.verificationUri} and enter code: ${builderResult.userCode}`);
+                console.log('\nWaiting for authorization...');
                 break;
 
             default:
-                console.log('无效选项');
+                console.log('Invalid option');
                 rl.close();
                 return;
         }
 
-        // 等待用户完成授权
+        // Wait for user to complete authorization
         if (saveToConfigs) {
-            console.log('\n授权完成后，凭据将保存到项目 configs/kiro/ 目录');
+            console.log('\nAfter authorization, credentials will be saved to project configs/kiro/ directory');
         } else {
-            console.log('\n授权完成后，凭据将自动保存到 ~/.kiro/oauth_creds.json');
+            console.log('\nAfter authorization, credentials will be automatically saved to ~/.kiro/oauth_creds.json');
         }
-        console.log('按 Ctrl+C 取消\n');
+        console.log('Press Ctrl+C to cancel\n');
 
     } catch (error) {
-        console.error('认证失败:', error.message);
+        console.error('Authentication failed:', error.message);
         auth.close();
         rl.close();
     }

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>异常账号 - Kiro Account Manager</title>
+    <title>Error Accounts - Kiro Account Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -26,8 +26,8 @@
                             </svg>
                         </div>
                         <div>
-                            <h1 class="page-title">异常账号</h1>
-                            <p class="page-subtitle">管理 Token 刷新失败的账号</p>
+                            <h1 class="page-title">Error Accounts</h1>
+                            <p class="page-subtitle">Manage accounts with failed token refresh</p>
                         </div>
                     </div>
                 </div>
@@ -41,14 +41,14 @@
                                 <polyline points="23 4 23 10 17 10"/>
                                 <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
                             </svg>
-                            批量刷新
+                            Batch Refresh
                         </button>
                         <button class="btn btn-danger btn-sm" id="delete-all-btn">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="3 6 5 6 21 6"/>
                                 <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
                             </svg>
-                            清空全部
+                            Clear All
                         </button>
                     </div>
                 </div>
@@ -57,12 +57,12 @@
                     <table class="logs-table">
                         <thead>
                             <tr>
-                                <th style="width: 200px;">邮箱</th>
-                                <th style="width: 100px;">认证方式</th>
-                                <th style="width: 100px;">区域</th>
-                                <th style="width: 180px;">失败时间</th>
-                                <th>错误原因</th>
-                                <th style="width: 180px;">操作</th>
+                                <th style="width: 200px;">Email</th>
+                                <th style="width: 100px;">Auth Method</th>
+                                <th style="width: 100px;">Region</th>
+                                <th style="width: 180px;">Failed At</th>
+                                <th>Error Reason</th>
+                                <th style="width: 180px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody id="error-accounts-list"></tbody>
@@ -74,8 +74,8 @@
                         <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                         <polyline points="22 4 12 14.01 9 11.01"/>
                     </svg>
-                    <h3 class="empty-title">没有异常账号</h3>
-                    <p class="empty-description">所有账号运行正常</p>
+                    <h3 class="empty-title">No Error Accounts</h3>
+                    <p class="empty-description">All accounts are running normally</p>
                 </div>
             </div>
         </main>

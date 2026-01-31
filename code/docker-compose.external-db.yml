@@ -1,7 +1,7 @@
 version: '3.8'
 
-# 使用外部数据库的配置（不启动内置 MySQL）
-# 使用方法: docker-compose -f docker-compose.external-db.yml up -d
+# Configuration for external database (does not start built-in MySQL)
+# Usage: docker-compose -f docker-compose.external-db.yml up -d
 
 services:
   kiro-api:
