@@ -4261,13 +4261,19 @@ app.post('/api/anthropic/credentials', authMiddleware, async (req, res) => {
             return res.status(400).json({ success: false, error: 'Name and access token are required' });
         }
 
-        // Verify credentials
-        const verification = await verifyAnthropicCredentials(accessToken, apiBaseUrl);
-        if (!verification.valid) {
-            return res.status(400).json({
-                success: false,
-                error: `Credential verification failed: ${verification.error}`
-            });
+        // Skip verification for OAuth tokens (sk-ant-oat01-...) as they don't support API calls
+        const isOAuthToken = accessToken.startsWith('sk-ant-oat');
+        let verification = { valid: true, rateLimits: null };
+
+        if (!isOAuthToken) {
+            // Verify credentials for regular API keys
+            verification = await verifyAnthropicCredentials(accessToken, apiBaseUrl);
+            if (!verification.valid) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Credential verification failed: ${verification.error}`
+                });
+            }
         }
 
         const id = await anthropicStore.add({
