@@ -2445,3 +2445,184 @@ body {
 #anthropic-page .empty-state .btn-primary:hover {
     box-shadow: 0 4px 16px rgba(217, 119, 6, 0.4);
 }
+
+/* ============ Warp Page Styles ============ */
+
+.page-icon.warp {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    box-shadow: 0 0 30px rgba(99, 102, 241, 0.3);
+}
+
+/* Warp Card Styles */
+.warp-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    transition: all var(--transition-normal);
+    position: relative;
+    overflow: hidden;
+    cursor: pointer;
+}
+
+.warp-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+    opacity: 0;
+    transition: opacity var(--transition-fast);
+}
+
+.warp-card:hover {
+    border-color: var(--border-light);
+    background: var(--bg-card-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.warp-card:hover::before {
+    opacity: 1;
+}
+
+.warp-card.selected {
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+.warp-card.selected::before {
+    opacity: 1;
+}
+
+.warp-card .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.warp-card .card-title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+}
+
+.warp-card .card-email {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.warp-card .pro-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+    color: white;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 12px;
+    flex-shrink: 0;
+}
+
+.warp-card .pro-badge.inactive {
+    background: linear-gradient(135deg, #6b7280, #9ca3af);
+}
+
+.warp-card .card-usage {
+    background: var(--bg-tertiary);
+    border-radius: var(--radius-md);
+    padding: 14px;
+    margin-bottom: 16px;
+}
+
+.warp-card .card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 16px;
+    border-top: 1px solid var(--border-color);
+}
+
+.warp-card .card-date {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.warp-card .card-date svg {
+    opacity: 0.7;
+}
+
+.warp-card .card-actions {
+    display: flex;
+    gap: 4px;
+}
+
+.warp-card .action-btn {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all var(--transition-fast);
+}
+
+.warp-card .action-btn:hover {
+    background: var(--bg-tertiary);
+    color: var(--accent-primary);
+}
+
+.warp-card .action-btn.danger:hover {
+    background: var(--accent-danger-bg);
+    color: var(--accent-danger);
+}
+
+.warp-card .action-btn svg {
+    width: 16px;
+    height: 16px;
+}
+
+/* Warp page specific styles */
+#warp-page .account-card::before {
+    background: linear-gradient(90deg, #6366f1, #8b5cf6);
+}
+
+#warp-page .account-card:hover {
+    border-color: rgba(99, 102, 241, 0.4);
+}
+
+#warp-page .account-card.selected {
+    border-color: var(--accent-primary);
+    background: rgba(99, 102, 241, 0.05);
+}
+
+#warp-page .empty-state .empty-icon {
+    color: var(--accent-primary);
+    opacity: 0.6;
+}
+
+#warp-page .empty-state .btn-primary {
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    box-shadow: 0 2px 8px rgba(99, 102, 241, 0.3);
+}
+
+#warp-page .empty-state .btn-primary:hover {
+    box-shadow: 0 4px 16px rgba(99, 102, 241, 0.4);
+}

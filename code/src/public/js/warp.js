@@ -11,6 +11,17 @@ const DOM = {};
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
+    // Check login status
+    if (!authToken) {
+        window.location.href = '/login.html';
+        return;
+    }
+
+    // Initialize sidebar
+    document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
+    initSidebar('warp');
+    updateSidebarStats();
+
     initDOMReferences();
     setupEventListeners();
     await loadCredentials();
@@ -85,6 +96,12 @@ function setupEventListeners() {
         }
     });
 
+    // Select all
+    document.getElementById('select-all')?.addEventListener('change', handleSelectAll);
+
+    // Batch delete
+    document.getElementById('batch-delete-btn')?.addEventListener('click', handleBatchDelete);
+
     // Context menu
     document.querySelectorAll('.context-menu-item').forEach(item => {
         item.addEventListener('click', handleContextMenuAction);
@@ -142,13 +159,13 @@ function renderCredentials() {
 }
 
 function createCardHTML(cred) {
-    const initial = (cred.name || cred.email || 'W')[0].toUpperCase();
-    const statusClass = cred.errorCount >= 3 ? 'error' : (cred.isActive ? 'healthy' : 'disabled');
-    const statusText = cred.errorCount >= 3 ? 'Error' : (cred.isActive ? 'Normal' : 'Disabled');
-    const expiresAt = cred.tokenExpiresAt ? new Date(cred.tokenExpiresAt).toLocaleString() : 'Unknown';
+    const isSelected = selectedIds.has(cred.id);
+    const displayName = cred.name || cred.email || 'Unnamed';
+    const statusBadge = cred.errorCount >= 3 ? '<span class="pro-badge inactive">Error</span>' :
+                        (cred.isActive ? '<span class="pro-badge">Active</span>' : '<span class="pro-badge inactive">Disabled</span>');
 
     // Quota display
-    let quotaText = 'Click to refresh';
+    let quotaText = 'Not checked';
     let quotaClass = '';
     if (cred.quotaLimit === -1) {
         quotaText = 'Unlimited';
@@ -156,35 +173,103 @@ function createCardHTML(cred) {
     } else if (cred.quotaLimit > 0) {
         const remaining = cred.quotaLimit - (cred.quotaUsed || 0);
         quotaText = `${cred.quotaUsed || 0}/${cred.quotaLimit}`;
-        quotaClass = remaining < 50 ? 'error' : (remaining < 100 ? 'warning' : 'success');
+        quotaClass = remaining < 50 ? 'danger' : (remaining < 100 ? 'warning' : 'success');
     }
 
+    const expiresAt = cred.tokenExpiresAt ? formatDateShort(cred.tokenExpiresAt) : '-';
+
     return `
-        <div class="account-card ${statusClass}" data-id="${cred.id}" onclick="openDetailModal(${cred.id})" oncontextmenu="showContextMenu(event, ${cred.id})">
+        <div class="account-card warp-card ${isSelected ? 'selected' : ''}" data-id="${cred.id}" onclick="openDetailModal(${cred.id})" oncontextmenu="showContextMenu(event, ${cred.id})">
             <div class="card-header">
-                <div class="card-avatar">${initial}</div>
-                <div class="card-info">
-                    <div class="card-name">${cred.name || 'Unnamed'}</div>
-                    <div class="card-email">${cred.email || 'No email'}</div>
+                <div class="card-checkbox">
+                    <input type="checkbox" class="checkbox-custom" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelect(${cred.id}, this.checked)">
                 </div>
-                <span class="status-badge ${statusClass}">${statusText}</span>
+                <div class="card-title">
+                    <span class="card-email" title="${escapeHtml(displayName)}">${escapeHtml(displayName)}</span>
+                    ${statusBadge}
+                </div>
             </div>
-            <div class="card-body">
-                <div class="card-row">
-                    <span class="card-label">Use Count</span>
-                    <span class="card-value">${cred.useCount || 0}</span>
+            <div class="card-usage">
+                <div class="usage-header">
+                    <span class="usage-label">Quota</span>
+                    <span class="usage-value ${quotaClass}">${quotaText}</span>
                 </div>
-                <div class="card-row">
-                    <span class="card-label">Quota</span>
-                    <span class="card-value ${quotaClass}">${quotaText}</span>
+                <div class="usage-details">
+                    <span class="usage-used">Use Count: ${cred.useCount || 0}</span>
+                    <span class="usage-remaining">Errors: ${cred.errorCount || 0}</span>
                 </div>
-                <div class="card-row">
-                    <span class="card-label">Token Expires</span>
-                    <span class="card-value">${expiresAt}</span>
+            </div>
+            <div class="card-footer">
+                <span class="card-date">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    Expires: ${expiresAt}
+                </span>
+                <div class="card-actions">
+                    <button class="action-btn" title="Refresh Token" onclick="event.stopPropagation(); refreshToken(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10"/>
+                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn" title="Check Quota" onclick="event.stopPropagation(); refreshQuota(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                        </svg>
+                    </button>
+                    <button class="action-btn danger" title="Delete" onclick="event.stopPropagation(); deleteCredential(${cred.id})">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="3 6 5 6 21 6"/>
+                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
     `;
+}
+
+function toggleSelect(id, checked) {
+    if (checked) {
+        selectedIds.add(id);
+    } else {
+        selectedIds.delete(id);
+    }
+    updateSelectionUI();
+}
+
+function updateSelectionUI() {
+    const selectAllCheckbox = document.getElementById('select-all');
+    const batchDeleteBtn = document.getElementById('batch-delete-btn');
+
+    if (selectAllCheckbox) {
+        selectAllCheckbox.checked = selectedIds.size > 0 && selectedIds.size === credentials.length;
+        selectAllCheckbox.indeterminate = selectedIds.size > 0 && selectedIds.size < credentials.length;
+    }
+
+    if (batchDeleteBtn) {
+        batchDeleteBtn.style.display = selectedIds.size > 0 ? 'inline-flex' : 'none';
+    }
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+}
+
+function formatDateShort(dateStr) {
+    if (!dateStr) return '-';
+    const date = new Date(dateStr);
+    return date.toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
 // Modal Functions
@@ -572,4 +657,39 @@ async function refreshAllQuotas() {
     } catch (e) {
         showToast('Query failed: ' + e.message, 'error');
     }
+}
+
+function handleSelectAll(e) {
+    const isChecked = e.target.checked;
+    if (isChecked) {
+        credentials.forEach(c => selectedIds.add(c.id));
+    } else {
+        selectedIds.clear();
+    }
+    renderCredentials();
+    updateSelectionUI();
+}
+
+async function handleBatchDelete() {
+    if (selectedIds.size === 0) return;
+
+    if (!confirm(`Are you sure you want to delete ${selectedIds.size} selected accounts?`)) return;
+
+    let success = 0, failed = 0;
+    for (const id of selectedIds) {
+        try {
+            const res = await fetch(`/api/warp/credentials/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) success++;
+            else failed++;
+        } catch {
+            failed++;
+        }
+    }
+
+    showToast(`Delete complete: ${success} succeeded, ${failed} failed`, success > 0 ? 'success' : 'error');
+    selectedIds.clear();
+    await loadCredentials();
+    await loadStatistics();
+    updateSelectionUI();
 }
