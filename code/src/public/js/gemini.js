@@ -265,10 +265,13 @@ function generateModelTagsHTML(usage) {
 }
 
 // Show credential details
+let currentDetailId = null;
+
 function showCredentialDetail(id) {
     const cred = credentials.find(c => c.id === id);
     if (!cred) return;
 
+    currentDetailId = id;
     const modal = document.getElementById('detail-modal');
     const body = document.getElementById('detail-modal-body');
 
@@ -285,53 +288,64 @@ function showCredentialDetail(id) {
     };
 
     body.innerHTML = `
-        <div style="display: grid; gap: 12px;">
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Name</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${escapeHtml(cred.name)}</div>
+        <div class="detail-grid">
+            <div class="detail-row">
+                <span class="detail-label">ID</span>
+                <span class="detail-value">${cred.id}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Email</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${escapeHtml(cred.email || '-')}</div>
+            <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value">${escapeHtml(cred.name)}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Project ID</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${escapeHtml(cred.projectId || '-')}</div>
+            <div class="detail-row">
+                <span class="detail-label">Email</span>
+                <span class="detail-value">${escapeHtml(cred.email || '-')}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Access Token</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; font-family: monospace;">${formatToken(cred.accessToken)}</div>
+            <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">${cred.isActive ? '<span class="status-badge success">Active</span>' : '<span class="status-badge">Inactive</span>'}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Refresh Token</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; font-family: monospace;">${cred.refreshToken ? 'Available' : 'Not set'}</div>
+            <div class="detail-row">
+                <span class="detail-label">Project ID</span>
+                <span class="detail-value">${escapeHtml(cred.projectId || '-')}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Status</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">
-                    <span class="logs-status-badge ${cred.isActive ? 'success' : 'error'}">${cred.isActive ? 'Active' : 'Inactive'}</span>
-                </div>
+            <div class="detail-row">
+                <span class="detail-label">Access Token</span>
+                <span class="detail-value monospace">${formatToken(cred.accessToken)}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Expires At</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${formatDate(cred.expiresAt)}</div>
+            <div class="detail-row">
+                <span class="detail-label">Refresh Token</span>
+                <span class="detail-value">${cred.refreshToken ? 'Available' : 'Not set'}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Created At</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${formatDate(cred.createdAt)}</div>
+            <div class="detail-row">
+                <span class="detail-label">Token Expires</span>
+                <span class="detail-value">${formatDate(cred.expiresAt)}</span>
             </div>
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600;">Error Count</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px;">${cred.errorCount || 0}</div>
+            <div class="detail-row">
+                <span class="detail-label">Error Count</span>
+                <span class="detail-value">${cred.errorCount || 0}</span>
             </div>
             ${cred.lastErrorMessage ? `
-            <div class="form-group" style="margin-bottom: 0;">
-                <label class="form-label" style="font-weight: 600; color: var(--error-color);">Last Error</label>
-                <div style="padding: 8px 12px; background: var(--bg-tertiary); border-radius: 6px; color: var(--error-color);">${escapeHtml(cred.lastErrorMessage)}</div>
+            <div class="detail-row">
+                <span class="detail-label">Last Error</span>
+                <span class="detail-value" style="color: var(--error-color);">${escapeHtml(cred.lastErrorMessage)}</span>
             </div>
             ` : ''}
+            <div class="detail-row">
+                <span class="detail-label">Created At</span>
+                <span class="detail-value">${formatDate(cred.createdAt)}</span>
+            </div>
         </div>
     `;
+
+    // Setup refresh token button
+    const refreshBtn = document.getElementById('detail-refresh-btn');
+    if (refreshBtn) {
+        refreshBtn.onclick = function() {
+            refreshToken(currentDetailId);
+            closeDetailModal();
+        };
+    }
 
     modal.classList.add('active');
 }
@@ -339,6 +353,7 @@ function showCredentialDetail(id) {
 // Close details modal
 function closeDetailModal() {
     document.getElementById('detail-modal').classList.remove('active');
+    currentDetailId = null;
 }
 
 // Format date (short format)

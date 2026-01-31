@@ -395,7 +395,8 @@ function openDetailModal(id) {
     if (!cred) return;
 
     OrchidsState.detailTarget = cred;
-    
+
+    document.getElementById('detail-id').textContent = cred.id;
     document.getElementById('detail-name').textContent = cred.name;
     document.getElementById('detail-email').textContent = cred.email || '-';
     document.getElementById('detail-weight').textContent = cred.weight || 1;

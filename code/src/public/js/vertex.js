@@ -668,9 +668,88 @@ async function testCredential(id) {
     }
 }
 
-// Show credential detail (opens edit modal for now)
+// Show credential detail
+let currentDetailId = null;
+
 function showCredentialDetail(id) {
-    showEditModal(id);
+    const cred = credentials.find(c => c.id === id);
+    if (!cred) return;
+
+    currentDetailId = id;
+    const body = document.getElementById('detail-modal-body');
+
+    // Format private key display
+    const formatPrivateKey = (key) => {
+        if (!key) return '-';
+        return 'Available (hidden)';
+    };
+
+    body.innerHTML = `
+        <div class="detail-grid">
+            <div class="detail-row">
+                <span class="detail-label">ID</span>
+                <span class="detail-value">${cred.id}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Name</span>
+                <span class="detail-value">${escapeHtml(cred.name || '-')}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Status</span>
+                <span class="detail-value">${cred.isActive ? '<span class="status-badge success">Active</span>' : '<span class="status-badge">Inactive</span>'}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Project ID</span>
+                <span class="detail-value monospace">${escapeHtml(cred.projectId || '-')}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Client Email</span>
+                <span class="detail-value monospace">${escapeHtml(cred.clientEmail || '-')}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Private Key</span>
+                <span class="detail-value">${formatPrivateKey(cred.privateKey)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Region</span>
+                <span class="detail-value">${escapeHtml(cred.region || 'global')}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Error Count</span>
+                <span class="detail-value">${cred.errorCount || 0}</span>
+            </div>
+            ${cred.lastError ? `
+            <div class="detail-row">
+                <span class="detail-label">Last Error</span>
+                <span class="detail-value" style="color: var(--error-color);">${escapeHtml(cred.lastError)}</span>
+            </div>
+            ` : ''}
+            <div class="detail-row">
+                <span class="detail-label">Created At</span>
+                <span class="detail-value">${formatDate(cred.createdAt)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">Updated At</span>
+                <span class="detail-value">${formatDate(cred.updatedAt)}</span>
+            </div>
+        </div>
+    `;
+
+    // Setup edit button
+    const editBtn = document.getElementById('detail-edit-btn');
+    if (editBtn) {
+        editBtn.onclick = function() {
+            closeDetailModal();
+            showEditModal(currentDetailId);
+        };
+    }
+
+    document.getElementById('detail-modal').classList.add('active');
+}
+
+function closeDetailModal() {
+    document.getElementById('detail-modal').classList.remove('active');
+    currentDetailId = null;
 }
 
 // Show edit modal
