@@ -3,7 +3,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, TrialApplicationStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, RemotePricingCacheStore, AnthropicCredentialStore, initDatabase } from './db.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
 import { KiroAPI } from './kiro/api.js';
@@ -31,6 +31,7 @@ import {
 import { setupGeminiRoutes } from './gemini/gemini-routes.js';
 import { setupVertexRoutes } from './vertex/vertex-routes.js';
 import bedrockRoutes from './bedrock/bedrock-routes.js';
+import { ANTHROPIC_MODELS, isAnthropicModel, sendMessage as sendAnthropicMessage, sendMessageStream as sendAnthropicMessageStream, verifyCredentials as verifyAnthropicCredentials } from './anthropic/index.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -92,6 +93,7 @@ let warpService = null;
 let trialStore = null;
 let siteSettingsStore = null;
 let pricingStore = null;
+let anthropicStore = null;
 
 // Credential 403 error counter
 const credential403Counter = new Map();
@@ -3919,6 +3921,203 @@ app.post('/api/pricing/reset-default', authMiddleware, async (req, res) => {
     }
 });
 
+// ============ Anthropic API Credentials Management ============
+
+// Get all Anthropic credentials
+app.get('/api/anthropic/credentials', authMiddleware, async (req, res) => {
+    try {
+        const credentials = await anthropicStore.getAll();
+        res.json({ success: true, data: credentials });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get single Anthropic credential
+app.get('/api/anthropic/credentials/:id', authMiddleware, async (req, res) => {
+    try {
+        const credential = await anthropicStore.getById(parseInt(req.params.id));
+        if (!credential) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+        res.json({ success: true, data: credential });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Add Anthropic credential
+app.post('/api/anthropic/credentials', authMiddleware, async (req, res) => {
+    try {
+        const { name, email, accessToken, apiBaseUrl } = req.body;
+
+        if (!name || !accessToken) {
+            return res.status(400).json({ success: false, error: 'Name and access token are required' });
+        }
+
+        // Validate API key format
+        if (!accessToken.startsWith('sk-ant-')) {
+            return res.status(400).json({ success: false, error: 'Invalid Anthropic API key format (must start with sk-ant-)' });
+        }
+
+        // Verify credentials
+        const verification = await verifyAnthropicCredentials(accessToken, apiBaseUrl);
+        if (!verification.valid) {
+            return res.status(400).json({
+                success: false,
+                error: `Credential verification failed: ${verification.error}`
+            });
+        }
+
+        const id = await anthropicStore.add({
+            name,
+            email,
+            accessToken,
+            apiBaseUrl: apiBaseUrl || null
+        });
+
+        // Save rate limits if available
+        if (verification.rateLimits) {
+            await anthropicStore.updateRateLimits(id, verification.rateLimits);
+        }
+
+        res.json({ success: true, data: { id, rateLimits: verification.rateLimits } });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ success: false, error: 'Credential with this name already exists' });
+        }
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update Anthropic credential
+app.put('/api/anthropic/credentials/:id', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { name, email, accessToken, apiBaseUrl, isActive } = req.body;
+
+        const credential = await anthropicStore.getById(id);
+        if (!credential) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+
+        await anthropicStore.update(id, { name, email, accessToken, apiBaseUrl, isActive });
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update Anthropic credential API base URL
+app.put('/api/anthropic/credentials/:id/api-url', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { apiBaseUrl } = req.body;
+
+        const credential = await anthropicStore.getById(id);
+        if (!credential) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+
+        // Validate URL if provided
+        if (apiBaseUrl) {
+            try {
+                new URL(apiBaseUrl);
+            } catch (e) {
+                return res.status(400).json({ success: false, error: 'Invalid URL format' });
+            }
+        }
+
+        await anthropicStore.updateApiBaseUrl(id, apiBaseUrl);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete Anthropic credential
+app.delete('/api/anthropic/credentials/:id', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const deleted = await anthropicStore.delete(id);
+        if (!deleted) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Test Anthropic credential
+app.post('/api/anthropic/credentials/:id/test', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const credential = await anthropicStore.getById(id);
+
+        if (!credential) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+
+        const verification = await verifyAnthropicCredentials(credential.accessToken, credential.apiBaseUrl);
+
+        if (verification.valid && verification.rateLimits) {
+            await anthropicStore.updateRateLimits(id, verification.rateLimits);
+        }
+
+        res.json({ success: true, data: verification });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get Anthropic error credentials
+app.get('/api/anthropic/error-credentials', authMiddleware, async (req, res) => {
+    try {
+        const credentials = await anthropicStore.getErrorCredentials();
+        res.json({ success: true, data: credentials });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Recover Anthropic error credential
+app.post('/api/anthropic/error-credentials/:id/recover', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const newId = await anthropicStore.recoverFromError(id);
+        if (!newId) {
+            return res.status(404).json({ success: false, error: 'Error credential not found' });
+        }
+        res.json({ success: true, data: { newId } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete Anthropic error credential
+app.delete('/api/anthropic/error-credentials/:id', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const deleted = await anthropicStore.deleteErrorCredential(id);
+        if (!deleted) {
+            return res.status(404).json({ success: false, error: 'Error credential not found' });
+        }
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get Anthropic supported models
+app.get('/api/anthropic/models', authMiddleware, async (req, res) => {
+    try {
+        res.json({ success: true, data: ANTHROPIC_MODELS });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ API Log Management ============
 
 // Get error log list (status code >= 400)
@@ -4585,6 +4784,7 @@ async function start() {
     trialStore = await TrialApplicationStore.create();
     siteSettingsStore = await SiteSettingsStore.create();
     pricingStore = await ModelPricingStore.create();
+    anthropicStore = await AnthropicCredentialStore.create();
 
     // Load dynamic pricing configuration
     try {

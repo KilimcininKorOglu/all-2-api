@@ -414,6 +414,43 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Create Anthropic API credentials table (direct API access with custom endpoints)
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS anthropic_credentials (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL UNIQUE,
+            email VARCHAR(255),
+            access_token TEXT NOT NULL COMMENT 'Anthropic API key (sk-ant-*)',
+            api_base_url VARCHAR(500) COMMENT 'Custom API base URL (optional)',
+            expires_at VARCHAR(50),
+            is_active TINYINT DEFAULT 1,
+            use_count INT DEFAULT 0,
+            last_used_at DATETIME,
+            error_count INT DEFAULT 0,
+            last_error_at DATETIME,
+            last_error_message TEXT,
+            rate_limits JSON COMMENT 'Rate limit info from API',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Create Anthropic error credentials table
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS anthropic_error_credentials (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            original_id INT,
+            name VARCHAR(255) NOT NULL,
+            email VARCHAR(255),
+            access_token TEXT NOT NULL,
+            api_base_url VARCHAR(500),
+            error_message TEXT,
+            error_count INT DEFAULT 1,
+            last_error_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     // Create Amazon Bedrock credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS bedrock_credentials (
@@ -1826,6 +1863,191 @@ export class GeminiCredentialStore {
             refreshToken: row.refresh_token,
             projectId: row.project_id,
             expiresAt: row.expires_at,
+            errorMessage: row.error_message,
+            errorCount: row.error_count,
+            lastErrorAt: row.last_error_at,
+            createdAt: row.created_at
+        };
+    }
+}
+
+/**
+ * Anthropic API credential management class (direct API with custom endpoints)
+ */
+export class AnthropicCredentialStore {
+    constructor(database) {
+        this.db = database;
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new AnthropicCredentialStore(database);
+    }
+
+    async add(credential) {
+        const [result] = await this.db.execute(`
+            INSERT INTO anthropic_credentials (name, email, access_token, api_base_url, expires_at, is_active)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+            credential.name,
+            credential.email || null,
+            credential.accessToken,
+            credential.apiBaseUrl || null,
+            credential.expiresAt || null,
+            credential.isActive !== false ? 1 : 0
+        ]);
+        return result.insertId;
+    }
+
+    async getAll() {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM anthropic_credentials ORDER BY is_active DESC, last_used_at DESC
+        `);
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async getActive() {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM anthropic_credentials WHERE is_active = 1 ORDER BY error_count ASC, last_used_at ASC
+        `);
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async getById(id) {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM anthropic_credentials WHERE id = ?
+        `, [id]);
+        return rows.length > 0 ? this._mapRow(rows[0]) : null;
+    }
+
+    async getByName(name) {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM anthropic_credentials WHERE name = ?
+        `, [name]);
+        return rows.length > 0 ? this._mapRow(rows[0]) : null;
+    }
+
+    async update(id, updates) {
+        const fields = [];
+        const values = [];
+
+        if (updates.name !== undefined) { fields.push('name = ?'); values.push(updates.name); }
+        if (updates.email !== undefined) { fields.push('email = ?'); values.push(updates.email); }
+        if (updates.accessToken !== undefined) { fields.push('access_token = ?'); values.push(updates.accessToken); }
+        if (updates.apiBaseUrl !== undefined) { fields.push('api_base_url = ?'); values.push(updates.apiBaseUrl); }
+        if (updates.expiresAt !== undefined) { fields.push('expires_at = ?'); values.push(updates.expiresAt); }
+        if (updates.isActive !== undefined) { fields.push('is_active = ?'); values.push(updates.isActive ? 1 : 0); }
+        if (updates.rateLimits !== undefined) { fields.push('rate_limits = ?'); values.push(JSON.stringify(updates.rateLimits)); }
+
+        if (fields.length === 0) return false;
+
+        values.push(id);
+        await this.db.execute(`UPDATE anthropic_credentials SET ${fields.join(', ')} WHERE id = ?`, values);
+        return true;
+    }
+
+    async updateApiBaseUrl(id, apiBaseUrl) {
+        await this.db.execute(`
+            UPDATE anthropic_credentials SET api_base_url = ? WHERE id = ?
+        `, [apiBaseUrl || null, id]);
+        return true;
+    }
+
+    async updateRateLimits(id, rateLimits) {
+        await this.db.execute(`
+            UPDATE anthropic_credentials SET rate_limits = ? WHERE id = ?
+        `, [JSON.stringify(rateLimits), id]);
+        return true;
+    }
+
+    async recordUsage(id) {
+        await this.db.execute(`
+            UPDATE anthropic_credentials SET use_count = use_count + 1, last_used_at = NOW(), error_count = 0 WHERE id = ?
+        `, [id]);
+    }
+
+    async recordError(id, errorMessage) {
+        await this.db.execute(`
+            UPDATE anthropic_credentials SET error_count = error_count + 1, last_error_at = NOW(), last_error_message = ? WHERE id = ?
+        `, [errorMessage, id]);
+    }
+
+    async delete(id) {
+        const [result] = await this.db.execute(`DELETE FROM anthropic_credentials WHERE id = ?`, [id]);
+        return result.affectedRows > 0;
+    }
+
+    async moveToError(id, errorMessage) {
+        const credential = await this.getById(id);
+        if (!credential) return false;
+
+        await this.db.execute(`
+            INSERT INTO anthropic_error_credentials (original_id, name, email, access_token, api_base_url, error_message)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [id, credential.name, credential.email, credential.accessToken, credential.apiBaseUrl, errorMessage]);
+
+        await this.delete(id);
+        return true;
+    }
+
+    async getErrorCredentials() {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM anthropic_error_credentials ORDER BY last_error_at DESC
+        `);
+        return rows.map(row => this._mapErrorRow(row));
+    }
+
+    async recoverFromError(errorId) {
+        const [rows] = await this.db.execute(`
+            SELECT * FROM anthropic_error_credentials WHERE id = ?
+        `, [errorId]);
+        if (rows.length === 0) return null;
+
+        const row = rows[0];
+        const insertId = await this.add({
+            name: row.name,
+            email: row.email,
+            accessToken: row.access_token,
+            apiBaseUrl: row.api_base_url
+        });
+
+        await this.db.execute(`DELETE FROM anthropic_error_credentials WHERE id = ?`, [errorId]);
+        return insertId;
+    }
+
+    async deleteErrorCredential(errorId) {
+        const [result] = await this.db.execute(`DELETE FROM anthropic_error_credentials WHERE id = ?`, [errorId]);
+        return result.affectedRows > 0;
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            name: row.name,
+            email: row.email,
+            accessToken: row.access_token,
+            apiBaseUrl: row.api_base_url,
+            expiresAt: row.expires_at,
+            isActive: row.is_active === 1,
+            useCount: row.use_count,
+            lastUsedAt: row.last_used_at,
+            errorCount: row.error_count,
+            lastErrorAt: row.last_error_at,
+            lastErrorMessage: row.last_error_message,
+            rateLimits: row.rate_limits ? JSON.parse(row.rate_limits) : null,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
+    }
+
+    _mapErrorRow(row) {
+        return {
+            id: row.id,
+            originalId: row.original_id,
+            name: row.name,
+            email: row.email,
+            accessToken: row.access_token,
+            apiBaseUrl: row.api_base_url,
             errorMessage: row.error_message,
             errorCount: row.error_count,
             lastErrorAt: row.last_error_at,

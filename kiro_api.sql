@@ -254,6 +254,46 @@ CREATE TABLE `remote_pricing_cache` (
   INDEX `idx_fetched_at`(`fetched_at` ASC) USING BTREE
 ) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
 -- ----------------------------
+-- Table structure for anthropic_credentials
+-- ----------------------------
+DROP TABLE IF EXISTS `anthropic_credentials`;
+CREATE TABLE `anthropic_credentials` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `access_token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL COMMENT 'Anthropic API key (sk-ant-*)',
+  `api_base_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL COMMENT 'Custom API base URL (optional)',
+  `expires_at` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `is_active` tinyint NULL DEFAULT 1,
+  `use_count` int NULL DEFAULT 0,
+  `last_used_at` datetime NULL DEFAULT NULL,
+  `error_count` int NULL DEFAULT 0,
+  `last_error_at` datetime NULL DEFAULT NULL,
+  `last_error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `rate_limits` json NULL COMMENT 'Rate limit info from API',
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `name`(`name` ASC) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+-- ----------------------------
+-- Table structure for anthropic_error_credentials
+-- ----------------------------
+DROP TABLE IF EXISTS `anthropic_error_credentials`;
+CREATE TABLE `anthropic_error_credentials` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `original_id` int NULL DEFAULT NULL,
+  `name` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `email` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `access_token` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NOT NULL,
+  `api_base_url` varchar(500) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL DEFAULT NULL,
+  `error_message` text CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci NULL,
+  `error_count` int NULL DEFAULT 1,
+  `last_error_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  `created_at` datetime NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`) USING BTREE
+) ENGINE = InnoDB AUTO_INCREMENT = 1 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_unicode_ci ROW_FORMAT = Dynamic;
+-- ----------------------------
 -- Table structure for settings
 -- ----------------------------
 DROP TABLE IF EXISTS `settings`;
