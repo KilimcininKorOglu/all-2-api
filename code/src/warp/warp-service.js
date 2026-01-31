@@ -4,7 +4,8 @@
  */
 
 import https from 'https';
-import { execSync } from 'child_process';
+import axios from 'axios';
+import { HttpsProxyAgent } from 'https-proxy-agent';
 
 // Firebase API Key
 const FIREBASE_API_KEY = 'AIzaSyBdy3O3S9hrdayLJxJ7mriBR4qgUaUygAs';
@@ -164,81 +165,64 @@ export function getEmailFromToken(token) {
 
 /**
  * Refresh access token using refresh token
- * Uses curl command through proxy if needed
+ * Uses axios with proxy support (safer than shell commands)
  */
-export function refreshAccessToken(refreshToken) {
-    return new Promise((resolve, reject) => {
+export async function refreshAccessToken(refreshToken) {
+    const url = `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`;
+    const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
 
-        const payload = JSON.stringify({
+    const axiosConfig = {
+        method: 'POST',
+        url,
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        data: {
             grant_type: 'refresh_token',
             refresh_token: refreshToken
-        });
+        },
+        timeout: 30000
+    };
 
-        const url = `https://securetoken.googleapis.com/v1/token?key=${FIREBASE_API_KEY}`;
-        const proxyUrl = process.env.HTTP_PROXY || process.env.HTTPS_PROXY;
-        const isWindows = process.platform === 'win32';
+    // Configure proxy if available
+    if (proxyUrl) {
+        axiosConfig.httpsAgent = new HttpsProxyAgent(proxyUrl);
+    }
 
-        // Windows uses double quotes and escapes internal double quotes, Unix uses single quotes
-        const escapedPayload = isWindows
-            ? `"${payload.replace(/"/g, '\\"')}"`
-            : `'${payload}'`;
+    try {
+        let response;
 
-        try {
-            let result;
-
-            // If proxy is set, try proxy first
-            if (proxyUrl) {
-                try {
-                    const proxyCmd = `curl -s --connect-timeout 10 --max-time 30 -x "${proxyUrl}" -X POST "${url}" -H "Content-Type: application/json" -d ${escapedPayload}`;
-                    result = execSync(proxyCmd, {
-                        encoding: 'utf8',
-                        timeout: 35000,
-                        windowsHide: true
-                    });
-                } catch (proxyError) {
-                    console.log('[Warp] Proxy request failed, trying direct connection...');
-                    // Proxy failed, try direct connection
-                    const directCmd = `curl -s --connect-timeout 10 --max-time 30 -X POST "${url}" -H "Content-Type: application/json" -d ${escapedPayload}`;
-                    result = execSync(directCmd, {
-                        encoding: 'utf8',
-                        timeout: 35000,
-                        windowsHide: true
-                    });
-                }
-            } else {
-                // No proxy, direct request
-                const directCmd = `curl -s --connect-timeout 10 --max-time 30 -X POST "${url}" -H "Content-Type: application/json" -d ${escapedPayload}`;
-                result = execSync(directCmd, {
-                    encoding: 'utf8',
-                    timeout: 35000,
-                    windowsHide: true
-                });
+        // Try with proxy first if configured
+        if (proxyUrl) {
+            try {
+                response = await axios(axiosConfig);
+            } catch (proxyError) {
+                console.log('[Warp] Proxy request failed, trying direct connection...');
+                // Retry without proxy
+                delete axiosConfig.httpsAgent;
+                response = await axios(axiosConfig);
             }
-
-            if (!result || result.trim() === '') {
-                reject(new Error('Refresh failed: no server response'));
-                return;
-            }
-
-            const json = JSON.parse(result);
-
-            if (json.error) {
-                reject(new Error(`Refresh failed: ${json.error.message}`));
-            } else {
-                resolve({
-                    accessToken: json.id_token,
-                    refreshToken: json.refresh_token,
-                    expiresIn: parseInt(json.expires_in)
-                });
-            }
-        } catch (e) {
-            if (e.message && e.message.includes('ETIMEDOUT')) {
-                reject(new Error('Refresh failed: connection timeout, please check network or proxy settings'));
-            } else {
-                reject(e);
-            }
+        } else {
+            response = await axios(axiosConfig);
         }
-    });
+
+        const json = response.data;
+
+        if (json.error) {
+            throw new Error(`Refresh failed: ${json.error.message}`);
+        }
+
+        return {
+            accessToken: json.id_token,
+            refreshToken: json.refresh_token,
+            expiresIn: parseInt(json.expires_in)
+        };
+    } catch (e) {
+        if (e.code === 'ETIMEDOUT' || e.code === 'ECONNABORTED') {
+            throw new Error('Refresh failed: connection timeout, please check network or proxy settings');
+        }
+        throw e;
+    }
 }
 
 // ==================== Protobuf Encoding ====================
