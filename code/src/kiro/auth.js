@@ -334,8 +334,8 @@ export class KiroAuth {
      * @returns {Promise<object>} Device authorization data with client credentials
      */
     async startIdCAuth(startUrl, region = 'us-east-1') {
-        // IAM Identity Center uses sso-oidc endpoint (different from Builder ID's oidc endpoint)
-        const ssoOidcEndpoint = `https://sso-oidc.${region}.amazonaws.com`;
+        // IAM Identity Center uses same OIDC endpoint as Builder ID, difference is in startUrl
+        const ssoOidcEndpoint = KIRO_OAUTH_CONFIG.ssoOIDCEndpoint.replace('{{region}}', region);
 
         // 1. Register OIDC client
         const regResponse = await fetch(`${ssoOidcEndpoint}/client/register`, {

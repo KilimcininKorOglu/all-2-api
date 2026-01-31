@@ -5,7 +5,8 @@ export const KIRO_CONSTANTS = {
     // Token refresh endpoints
     REFRESH_URL: 'https://prod.{{region}}.auth.desktop.kiro.dev/refreshToken',
     REFRESH_IDC_URL: 'https://oidc.{{region}}.amazonaws.com/token',
-    REFRESH_SSO_OIDC_URL: 'https://sso-oidc.{{region}}.amazonaws.com/token',
+    // Note: Both Builder ID and IAM Identity Center use the same oidc endpoint
+    REFRESH_SSO_OIDC_URL: 'https://oidc.{{region}}.amazonaws.com/token',
 
     // API endpoints
     BASE_URL: 'https://codewhisperer.{{region}}.amazonaws.com/generateAssistantResponse',
