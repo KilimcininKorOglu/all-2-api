@@ -135,10 +135,16 @@ function createCardHTML(cred) {
                     <span class="info-value">${escapeHtml(cred.email)}</span>
                 </div>
                 ` : ''}
-                ${cred.rateLimitRequestsPerMinute ? `
+                ${cred.rateLimits?.unified5h ? `
                 <div class="info-row">
-                    <span class="info-label">Rate Limit:</span>
-                    <span class="info-value">${cred.rateLimitRequestsPerMinute} req/min</span>
+                    <span class="info-label">5h Quota:</span>
+                    <span class="info-value ${getQuotaClass(cred.rateLimits.unified5h.utilization)}">${formatQuota(cred.rateLimits.unified5h.utilization)}</span>
+                </div>
+                ` : ''}
+                ${cred.rateLimits?.unified7d ? `
+                <div class="info-row">
+                    <span class="info-label">7d Quota:</span>
+                    <span class="info-value ${getQuotaClass(cred.rateLimits.unified7d.utilization)}">${formatQuota(cred.rateLimits.unified7d.utilization)}</span>
                 </div>
                 ` : ''}
             </div>
@@ -622,16 +628,20 @@ function showCredentialDetail(id) {
                 <span class="detail-value">${cred.isActive ? '<span class="status-badge success">Active</span>' : '<span class="status-badge">Inactive</span>'}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Rate Limit (Requests/min)</span>
-                <span class="detail-value">${cred.rateLimitRequestsPerMinute || '-'}</span>
+                <span class="detail-label">5h Quota Usage</span>
+                <span class="detail-value ${getQuotaClass(cred.rateLimits?.unified5h?.utilization)}">${formatQuota(cred.rateLimits?.unified5h?.utilization)}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Rate Limit (Tokens/min)</span>
-                <span class="detail-value">${cred.rateLimitTokensPerMinute || '-'}</span>
+                <span class="detail-label">5h Quota Reset</span>
+                <span class="detail-value">${formatResetTime(cred.rateLimits?.unified5h?.reset)}</span>
             </div>
             <div class="detail-row">
-                <span class="detail-label">Rate Limit (Tokens/day)</span>
-                <span class="detail-value">${cred.rateLimitTokensPerDay || '-'}</span>
+                <span class="detail-label">7d Quota Usage</span>
+                <span class="detail-value ${getQuotaClass(cred.rateLimits?.unified7d?.utilization)}">${formatQuota(cred.rateLimits?.unified7d?.utilization)}</span>
+            </div>
+            <div class="detail-row">
+                <span class="detail-label">7d Quota Reset</span>
+                <span class="detail-value">${formatResetTime(cred.rateLimits?.unified7d?.reset)}</span>
             </div>
             <div class="detail-row">
                 <span class="detail-label">Use Count</span>
@@ -679,4 +689,35 @@ function escapeHtml(str) {
         .replace(/>/g, '&gt;')
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#039;');
+}
+
+function formatQuota(utilization) {
+    if (utilization === null || utilization === undefined) return '-';
+    const percent = (utilization * 100).toFixed(1);
+    return `${percent}%`;
+}
+
+function getQuotaClass(utilization) {
+    if (utilization === null || utilization === undefined) return '';
+    if (utilization >= 0.9) return 'quota-critical';
+    if (utilization >= 0.7) return 'quota-warning';
+    return 'quota-ok';
+}
+
+function formatResetTime(timestamp) {
+    if (!timestamp) return '-';
+    const resetDate = new Date(parseInt(timestamp) * 1000);
+    const now = new Date();
+    const diff = resetDate - now;
+
+    if (diff <= 0) return 'Now';
+
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+
+    if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        return `${days}d ${hours % 24}h`;
+    }
+    return `${hours}h ${minutes}m`;
 }

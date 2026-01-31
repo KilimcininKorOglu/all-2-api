@@ -2147,10 +2147,16 @@ export class AnthropicCredentialStore {
     }
 
     async updateRateLimits(id, rateLimits) {
-        await this.db.execute(`
-            UPDATE anthropic_credentials SET rate_limits = ? WHERE id = ?
-        `, [JSON.stringify(rateLimits), id]);
-        return true;
+        try {
+            const jsonStr = JSON.stringify(rateLimits);
+            await this.db.execute(`
+                UPDATE anthropic_credentials SET rate_limits = ? WHERE id = ?
+            `, [jsonStr, id]);
+            return true;
+        } catch (error) {
+            console.error('[AnthropicStore] Failed to update rate limits:', error.message, rateLimits);
+            return false;
+        }
     }
 
     async recordUsage(id) {
@@ -2227,7 +2233,7 @@ export class AnthropicCredentialStore {
             errorCount: row.error_count,
             lastErrorAt: row.last_error_at,
             lastErrorMessage: row.last_error_message,
-            rateLimits: row.rate_limits ? JSON.parse(row.rate_limits) : null,
+            rateLimits: row.rate_limits ? (typeof row.rate_limits === 'string' ? JSON.parse(row.rate_limits) : row.rate_limits) : null,
             createdAt: row.created_at,
             updatedAt: row.updated_at
         };

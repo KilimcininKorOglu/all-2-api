@@ -649,6 +649,11 @@ body {
 .status-badge.warning { background: var(--accent-warning-bg); color: var(--accent-warning); }
 .status-badge.error { background: var(--accent-danger-bg); color: var(--accent-danger); }
 
+/* Quota utilization indicators */
+.quota-ok { color: var(--accent-success); font-weight: 600; }
+.quota-warning { color: var(--accent-warning); font-weight: 600; }
+.quota-critical { color: var(--accent-danger); font-weight: 600; }
+
 .active-indicator {
     display: flex;
     align-items: center;
