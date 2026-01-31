@@ -3,327 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Warp Account Management - Hermes Account Manager</title>
+    <title>Warp Account Management - All-2-API</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/common.css">
     <link rel="stylesheet" href="/css/styles.css">
-    <style>
-        .warp-gradient {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        }
-        .warp-icon {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        }
-        .warp-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 16px;
-            padding: 16px 0;
-        }
-        .warp-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 16px;
-            transition: all 0.2s ease;
-        }
-        .warp-card:hover {
-            border-color: #6366f1;
-            box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
-        }
-        .warp-card-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 12px;
-            gap: 8px;
-        }
-        .warp-card-info {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            flex: 1;
-            min-width: 0;
-            overflow: hidden;
-        }
-        .warp-card-info > div {
-            min-width: 0;
-            overflow: hidden;
-        }
-        .warp-card-avatar {
-            width: 40px;
-            height: 40px;
-            border-radius: 10px;
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 600;
-            font-size: 16px;
-        }
-        .warp-card-name {
-            font-weight: 600;
-            color: var(--text-primary);
-            font-size: 14px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .warp-card-email {
-            font-size: 12px;
-            color: var(--text-secondary);
-            max-width: 150px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .warp-card-body {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .warp-card-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 13px;
-        }
-        .warp-card-label {
-            color: var(--text-secondary);
-        }
-        .warp-card-value {
-            color: var(--text-primary);
-            font-weight: 500;
-        }
-        .warp-card-actions {
-            display: flex;
-            gap: 6px;
-            margin-top: 12px;
-            padding-top: 12px;
-            border-top: 1px solid var(--border-color);
-        }
-        .warp-card-actions .btn {
-            flex: 1;
-            padding: 8px 10px;
-            font-size: 12px;
-            min-width: 40px;
-        }
-        .warp-card-actions .btn .btn-icon {
-            margin: 0;
-        }
-        .quota-text {
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .quota-text.success {
-            color: #22c55e;
-        }
-        .quota-text.warning {
-            color: #f59e0b;
-        }
-        .quota-text.danger {
-            color: #ef4444;
-        }
-        .quota-bar-container {
-            width: 100%;
-            margin-top: 8px;
-        }
-        .quota-bar-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 4px;
-            font-size: 12px;
-        }
-        .quota-bar-label {
-            color: var(--text-secondary);
-        }
-        .quota-bar-value {
-            font-weight: 500;
-        }
-        .quota-bar {
-            height: 6px;
-            background: var(--border-color);
-            border-radius: 3px;
-            overflow: hidden;
-        }
-        .quota-bar-fill {
-            height: 100%;
-            border-radius: 3px;
-            transition: width 0.3s ease;
-        }
-        .quota-bar-fill.success {
-            background: linear-gradient(90deg, #22c55e, #4ade80);
-        }
-        .quota-bar-fill.warning {
-            background: linear-gradient(90deg, #f59e0b, #fbbf24);
-        }
-        .quota-bar-fill.danger {
-            background: linear-gradient(90deg, #ef4444, #f87171);
-        }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 4px;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
-            flex-shrink: 0;
-            white-space: nowrap;
-        }
-        .status-badge.active {
-            background: rgba(34, 197, 94, 0.1);
-            color: #22c55e;
-        }
-        .status-badge.inactive {
-            background: rgba(239, 68, 68, 0.1);
-            color: #ef4444;
-        }
-        .status-badge.warning {
-            background: rgba(245, 158, 11, 0.1);
-            color: #f59e0b;
-        }
-        .modal-overlay {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            z-index: 1000;
-            opacity: 0;
-            visibility: hidden;
-            transition: all 0.2s ease;
-        }
-        .modal-overlay.active {
-            opacity: 1;
-            visibility: visible;
-        }
-        .modal {
-            background: var(--card-bg);
-            border-radius: 16px;
-            width: 90%;
-            max-width: 500px;
-            max-height: 90vh;
-            overflow: auto;
-            transform: scale(0.9);
-            transition: transform 0.2s ease;
-        }
-        .modal-overlay.active .modal {
-            transform: scale(1);
-        }
-        .modal-header {
-            padding: 20px;
-            border-bottom: 1px solid var(--border-color);
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .modal-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-        .modal-close {
-            background: none;
-            border: none;
-            cursor: pointer;
-            color: var(--text-secondary);
-            padding: 4px;
-        }
-        .modal-body {
-            padding: 20px;
-        }
-        .modal-footer {
-            padding: 16px 20px;
-            border-top: 1px solid var(--border-color);
-            display: flex;
-            justify-content: flex-end;
-            gap: 12px;
-        }
-        .form-group {
-            margin-bottom: 16px;
-        }
-        .form-label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-primary);
-            margin-bottom: 8px;
-        }
-        .form-input, .form-textarea {
-            width: 100%;
-            padding: 10px 12px;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background: var(--input-bg);
-            color: var(--text-primary);
-            font-size: 14px;
-            transition: border-color 0.2s;
-        }
-        .form-input:focus, .form-textarea:focus {
-            outline: none;
-            border-color: #6366f1;
-        }
-        .form-textarea {
-            min-height: 120px;
-            resize: vertical;
-            font-family: monospace;
-        }
-        .form-hint {
-            font-size: 12px;
-            color: var(--text-secondary);
-            margin-top: 4px;
-        }
-        .toast {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            color: white;
-            font-size: 14px;
-            z-index: 2000;
-            transform: translateY(100px);
-            opacity: 0;
-            transition: all 0.3s ease;
-        }
-        .toast.show {
-            transform: translateY(0);
-            opacity: 1;
-        }
-        .toast.success {
-            background: #22c55e;
-        }
-        .toast.error {
-            background: #ef4444;
-        }
-    </style>
 </head>
 <body>
     <div class="app-container">
         <div id="sidebar-container"></div>
 
         <main class="main-content">
-            <!-- Header -->
             <header class="header">
                 <div class="header-left">
                     <div class="page-title-section">
-                        <div class="page-icon warp-icon">
+                        <div class="page-icon warp">
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
                             </svg>
                         </div>
                         <div>
                             <h1 class="page-title">Warp Account Management</h1>
-                            <p class="page-subtitle">Manage your Warp API credentials (Claude 4.1 Opus)</p>
+                            <p class="page-subtitle">Manage your Warp API credentials</p>
                         </div>
                     </div>
                 </div>
@@ -333,22 +35,16 @@
                             <circle cx="11" cy="11" r="8"/>
                             <path d="M21 21l-4.35-4.35"/>
                         </svg>
-                        <input type="text" id="search-input" placeholder="Search account name, email...">
+                        <input type="text" id="search-input" placeholder="Search accounts...">
                     </div>
                 </div>
                 <div class="header-right">
-                    <button class="btn btn-secondary" id="refresh-all-btn">
+                    <button class="btn btn-primary" id="add-account-btn">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <polyline points="23 4 23 10 17 10"/>
-                            <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
-                        Refresh All Tokens
-                    </button>
-                    <button class="btn btn-secondary" id="refresh-all-quota-btn">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                        </svg>
-                        Refresh All Quotas
+                        Add Account
                     </button>
                     <button class="btn btn-secondary" id="batch-import-btn">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -358,20 +54,13 @@
                         </svg>
                         Batch Import
                     </button>
-                    <button class="btn btn-primary" id="add-account-btn">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Account
-                    </button>
                 </div>
             </header>
 
             <!-- Statistics Cards -->
-            <div class="stats-cards">
+            <div class="stats-cards" id="stats-cards">
                 <div class="stat-card">
-                    <div class="stat-icon warp-gradient">
+                    <div class="stat-icon" style="background: linear-gradient(135deg, #6366f1, #8b5cf6);">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
                             <circle cx="9" cy="7" r="4"/>
@@ -380,7 +69,7 @@
                         </svg>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value" id="stat-total">-</div>
+                        <div class="stat-value" id="stat-total-accounts">0</div>
                         <div class="stat-label">Total Accounts</div>
                     </div>
                 </div>
@@ -392,7 +81,7 @@
                         </svg>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value" id="stat-healthy">-</div>
+                        <div class="stat-value" id="stat-healthy-accounts">0</div>
                         <div class="stat-label">Healthy Accounts</div>
                     </div>
                 </div>
@@ -405,7 +94,7 @@
                         </svg>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value" id="stat-errors">-</div>
+                        <div class="stat-value" id="stat-error-accounts">0</div>
                         <div class="stat-label">Error Accounts</div>
                     </div>
                 </div>
@@ -416,57 +105,60 @@
                         </svg>
                     </div>
                     <div class="stat-content">
-                        <div class="stat-value" id="stat-usage">-</div>
+                        <div class="stat-value" id="stat-total-usage">0</div>
                         <div class="stat-label">Total Usage</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Content Area -->
-            <div class="content-area">
-                <!-- Toolbar -->
-                <div class="content-toolbar">
-                    <div class="toolbar-left">
-                        <span class="account-count">Total <strong id="displayed-count">0</strong> accounts</span>
+            <div class="content-area" id="warp-page">
+                <div class="content-header">
+                    <div class="content-header-left">
+                        <div class="select-all-wrapper">
+                            <input type="checkbox" class="checkbox-custom" id="select-all">
+                            <label class="select-label" for="select-all">Select All</label>
+                        </div>
+                        <span class="account-count"><strong id="displayed-count">0</strong> accounts</span>
                     </div>
-                    <div class="toolbar-right">
-                        <button class="btn btn-secondary btn-sm" id="health-check-btn">
+                    <div class="content-header-right">
+                        <button class="btn btn-secondary btn-sm" id="refresh-tokens-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="23 4 23 10 17 10"/>
+                                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+                            </svg>
+                            Refresh Tokens
+                        </button>
+                        <button class="btn btn-secondary btn-sm" id="refresh-quotas-btn">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
                             </svg>
-                            Health Check
+                            Refresh Quotas
+                        </button>
+                        <button class="btn btn-danger btn-sm" id="batch-delete-btn" style="display: none;">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                            Batch Delete
                         </button>
                     </div>
                 </div>
 
-                <!-- Cards Grid -->
-                <div class="warp-grid" id="cards-grid"></div>
+                <div class="cards-grid" id="cards-grid"></div>
 
-                <!-- Empty State -->
                 <div class="empty-state" id="empty-state" style="display: none;">
-                    <div class="empty-illustration">
-                        <svg viewBox="0 0 120 120" fill="none">
-                            <circle cx="60" cy="60" r="50" stroke="currentColor" stroke-width="2" opacity="0.2"/>
-                            <circle cx="60" cy="60" r="35" stroke="currentColor" stroke-width="2" opacity="0.3"/>
-                            <circle cx="60" cy="60" r="20" stroke="currentColor" stroke-width="2" opacity="0.4"/>
-                            <path d="M60 40v40M40 60h40" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </div>
+                    <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                    </svg>
                     <h3 class="empty-title">No Warp Accounts</h3>
-                    <p class="empty-description">Add your first Warp account to start using Claude 4.1 Opus API</p>
-                    <button class="btn btn-primary btn-lg" id="empty-add-btn">
+                    <p class="empty-description">Click the button below to add your first Warp account</p>
+                    <button class="btn btn-primary" id="empty-add-btn">
                         <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <line x1="12" y1="5" x2="12" y2="19"/>
                             <line x1="5" y1="12" x2="19" y2="12"/>
                         </svg>
                         Add Account
                     </button>
-                </div>
-
-                <!-- Loading State -->
-                <div class="loading-state" id="loading-state">
-                    <div class="loading-spinner large"></div>
-                    <p class="loading-text">Loading...</p>
                 </div>
             </div>
         </main>
@@ -477,49 +169,57 @@
         <div class="modal">
             <div class="modal-header">
                 <h2 class="modal-title">Add Warp Account</h2>
-                <button class="modal-close" onclick="closeModal('add-modal')">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <button class="modal-close" id="add-modal-close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Name (optional)</label>
-                    <input type="text" class="form-input" id="add-name" placeholder="Auto use email as name">
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Refresh Token *</label>
-                    <textarea class="form-textarea" id="add-refresh-token" placeholder="Enter Warp refresh_token"></textarea>
-                    <p class="form-hint">refresh_token obtained from Warp client or database</p>
-                </div>
+                <form id="add-account-form">
+                    <div class="form-group">
+                        <label class="form-label">Name <span class="optional">(Optional)</span></label>
+                        <input type="text" class="form-input" id="add-name" placeholder="Auto use email as name">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Refresh Token <span class="required">*</span></label>
+                        <textarea class="form-input" id="add-refresh-token" rows="4" placeholder="Enter Warp refresh_token" required></textarea>
+                        <p class="form-hint">refresh_token obtained from Warp client or database</p>
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('add-modal')">Cancel</button>
-                <button class="btn btn-primary" id="add-submit-btn">Add</button>
+                <button class="btn btn-secondary" id="add-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="add-modal-submit">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Add Account
+                </button>
             </div>
         </div>
     </div>
 
     <!-- Batch Import Modal -->
-    <div class="modal-overlay" id="batch-modal">
-        <div class="modal">
+    <div class="modal-overlay" id="batch-import-modal">
+        <div class="modal modal-lg">
             <div class="modal-header">
-                <h2 class="modal-title">Batch Import Warp Accounts</h2>
-                <button class="modal-close" onclick="closeModal('batch-modal')">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <h2 class="modal-title">Batch Import Accounts</h2>
+                <button class="modal-close" id="batch-modal-close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Account Data</label>
-                    <textarea class="form-textarea" id="batch-data" style="min-height: 200px;" placeholder='Supports two formats:
+                <form id="batch-import-form">
+                    <div class="form-group">
+                        <label class="form-label">Account Data</label>
+                        <textarea class="form-input" id="batch-data" rows="10" placeholder='Supports two formats:
 
-Format 1 - Text format (one token per line, with optional name):
+Format 1 - Text format (one token per line):
 Account1
 AMf-vBzr...
 Account2
@@ -527,651 +227,124 @@ AMf-vBxw...
 
 Format 2 - JSON format:
 [{"refreshToken": "AMf-vBzr...", "name": "Account1"}]'></textarea>
-                    <p class="form-hint">Supports text format (Account N + token) or JSON format</p>
-                </div>
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('batch-modal')">Cancel</button>
-                <button class="btn btn-primary" id="batch-submit-btn">Import</button>
+                <button class="btn btn-secondary" id="batch-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="batch-modal-submit">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Import
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Chat Modal -->
-    <div class="modal-overlay" id="chat-modal">
+    <!-- Detail Modal -->
+    <div class="modal-overlay" id="detail-modal">
         <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <h2 class="modal-title">Chat Test</h2>
-                <button class="modal-close" onclick="closeModal('chat-modal')">
-                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+                <h2 class="modal-title">Account Details</h2>
+                <button class="modal-close" id="detail-modal-close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="detail-modal-body">
+                <!-- Content will be populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-danger" id="detail-delete-btn">Delete</button>
+                <button class="btn btn-secondary" id="detail-close-btn">Close</button>
+                <button class="btn btn-primary" id="detail-edit-btn">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                    Edit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class="modal-overlay" id="edit-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h2 class="modal-title">Edit Warp Account</h2>
+                <button class="modal-close" id="edit-modal-close">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <line x1="18" y1="6" x2="6" y2="18"/>
                         <line x1="6" y1="6" x2="18" y2="18"/>
                     </svg>
                 </button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
-                    <label class="form-label">Model</label>
-                    <select class="form-input" id="chat-model">
-                        <option value="claude-4-5-opus">Claude 4.5 Opus</option>
-                        <option value="claude-4.1-opus">Claude 4.1 Opus</option>
-                        <option value="claude-4-sonnet">Claude 4 Sonnet</option>
-                        <option value="gemini-3-pro">Gemini 3 Pro</option>
-                        <option value="gemini-2.5-pro">Gemini 2.5 Pro</option>
-                        <option value="gpt-5">GPT-5</option>
-                        <option value="gpt-4.1">GPT-4.1</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Message</label>
-                    <textarea class="form-textarea" id="chat-message" placeholder="Enter message...">What model are you?</textarea>
-                </div>
-                <div class="form-group">
-                    <label class="form-label">Response</label>
-                    <div id="chat-response" style="min-height: 100px; padding: 12px; background: var(--input-bg); border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; white-space: pre-wrap; color: var(--text-primary);">Waiting to send...</div>
-                </div>
-                <input type="hidden" id="chat-credential-id">
+                <form id="edit-account-form">
+                    <input type="hidden" id="edit-account-id">
+                    <div class="form-group">
+                        <label class="form-label">Name <span class="required">*</span></label>
+                        <input type="text" class="form-input" id="edit-account-name" placeholder="Account name" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">
+                            <input type="checkbox" id="edit-is-active"> Active
+                        </label>
+                    </div>
+                </form>
             </div>
             <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal('chat-modal')">Close</button>
-                <button class="btn btn-primary" id="chat-submit-btn">Send</button>
+                <button class="btn btn-secondary" id="edit-modal-cancel">Cancel</button>
+                <button class="btn btn-primary" id="edit-modal-submit">
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="20 6 9 17 4 12"/>
+                    </svg>
+                    Save Changes
+                </button>
             </div>
         </div>
     </div>
 
-    <!-- Toast -->
-    <div class="toast" id="toast"></div>
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <div class="context-menu-item" data-action="details">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            View Details
+        </div>
+        <div class="context-menu-item" data-action="refresh">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="23 4 23 10 17 10"/>
+                <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
+            </svg>
+            Refresh Token
+        </div>
+        <div class="context-menu-item" data-action="quota">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+            </svg>
+            Check Quota
+        </div>
+        <div class="context-menu-divider"></div>
+        <div class="context-menu-item danger" data-action="delete">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+            </svg>
+            Delete
+        </div>
+    </div>
+
+    <div class="toast-container" id="toast-container"></div>
 
     <script src="/js/common.js"></script>
-    <script>
-        let credentials = [];
-
-        // Toast notification
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            toast.textContent = message;
-            toast.className = `toast ${type} show`;
-            setTimeout(() => toast.classList.remove('show'), 3000);
-        }
-
-        // Modal control
-        function openModal(id) {
-            document.getElementById(id).classList.add('active');
-        }
-
-        function closeModal(id) {
-            document.getElementById(id).classList.remove('active');
-        }
-
-        // Load statistics data
-        async function loadStatistics() {
-            try {
-                const res = await fetch('/api/warp/statistics');
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('stat-total').textContent = data.data.total;
-                    document.getElementById('stat-healthy').textContent = data.data.healthy;
-                    document.getElementById('stat-errors').textContent = data.data.errors;
-                    document.getElementById('stat-usage').textContent = data.data.totalUseCount;
-                }
-            } catch (e) {
-                console.error('Failed to load statistics:', e);
-            }
-        }
-
-        // Load credentials list
-        async function loadCredentials() {
-            document.getElementById('loading-state').style.display = 'flex';
-            document.getElementById('cards-grid').innerHTML = '';
-
-            try {
-                const res = await fetch('/api/warp/credentials');
-                const data = await res.json();
-                
-                if (data.success) {
-                    credentials = data.data;
-                    renderCredentials(credentials);
-                }
-            } catch (e) {
-                showToast('Load failed: ' + e.message, 'error');
-            } finally {
-                document.getElementById('loading-state').style.display = 'none';
-            }
-        }
-
-        // Render usage progress bar
-        function renderQuotaBar(cred) {
-            // If no usage data available
-            if (!cred.quotaLimit || cred.quotaLimit === 0) {
-                return `
-                    <div class="quota-bar-header">
-                        <span class="quota-bar-label">Usage</span>
-                        <span class="quota-bar-value" style="color: var(--text-secondary);">Click to refresh</span>
-                    </div>
-                    <div class="quota-bar">
-                        <div class="quota-bar-fill" style="width: 0%"></div>
-                    </div>
-                `;
-            }
-
-            // Unlimited quota
-            if (cred.quotaLimit === -1) {
-                return `
-                    <div class="quota-bar-header">
-                        <span class="quota-bar-label">Usage</span>
-                        <span class="quota-bar-value" style="color: #22c55e;">Unlimited</span>
-                    </div>
-                    <div class="quota-bar">
-                        <div class="quota-bar-fill success" style="width: 100%"></div>
-                    </div>
-                `;
-            }
-            
-            const used = cred.quotaUsed || 0;
-            const limit = cred.quotaLimit;
-            const remaining = limit - used;
-            const percent = Math.min(100, Math.round((used / limit) * 100));
-            
-            let colorClass = 'success';
-            if (remaining < 50) colorClass = 'danger';
-            else if (remaining < 100) colorClass = 'warning';
-            
-            return `
-                <div class="quota-bar-header">
-                    <span class="quota-bar-label">Usage</span>
-                    <span class="quota-bar-value ${colorClass}">${used}/${limit} (remaining ${remaining})</span>
-                </div>
-                <div class="quota-bar">
-                    <div class="quota-bar-fill ${colorClass}" style="width: ${percent}%"></div>
-                </div>
-            `;
-        }
-
-        // Render credential cards
-        function renderCredentials(creds) {
-            const grid = document.getElementById('cards-grid');
-            const emptyState = document.getElementById('empty-state');
-            
-            document.getElementById('displayed-count').textContent = creds.length;
-
-            if (creds.length === 0) {
-                grid.innerHTML = '';
-                emptyState.style.display = 'flex';
-                return;
-            }
-
-            emptyState.style.display = 'none';
-            grid.innerHTML = creds.map(cred => {
-                const initial = (cred.name || cred.email || 'W')[0].toUpperCase();
-                const statusClass = cred.errorCount >= 3 ? 'inactive' : (cred.isActive ? 'active' : 'warning');
-                const statusText = cred.errorCount >= 3 ? 'Error' : (cred.isActive ? 'Normal' : 'Disabled');
-                const expiresAt = cred.tokenExpiresAt ? new Date(cred.tokenExpiresAt).toLocaleString() : 'Unknown';
-
-                return `
-                    <div class="warp-card" data-id="${cred.id}">
-                        <div class="warp-card-header">
-                            <div class="warp-card-info">
-                                <div class="warp-card-avatar">${initial}</div>
-                                <div>
-                                    <div class="warp-card-name">${cred.name || 'Unnamed'}</div>
-                                    <div class="warp-card-email">${cred.email || 'No email'}</div>
-                                </div>
-                            </div>
-                            <span class="status-badge ${statusClass}">${statusText}</span>
-                        </div>
-                        <div class="warp-card-body">
-                            <div class="warp-card-row">
-                                <span class="warp-card-label">Use Count</span>
-                                <span class="warp-card-value">${cred.useCount}</span>
-                            </div>
-                            <div class="warp-card-row">
-                                <span class="warp-card-label">Token Expires</span>
-                                <span class="warp-card-value">${expiresAt}</span>
-                            </div>
-                            <div class="warp-card-row">
-                                <span class="warp-card-label">Error Count</span>
-                                <span class="warp-card-value">${cred.errorCount}</span>
-                            </div>
-                        </div>
-                        <div class="quota-bar-container" id="quota-container-${cred.id}">
-                            ${renderQuotaBar(cred)}
-                        </div>
-                        <div class="warp-card-actions">
-                            <button class="btn btn-secondary btn-sm" onclick="refreshToken(${cred.id})" title="Refresh Token">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                                    <polyline points="23 4 23 10 17 10"/>
-                                    <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>
-                                </svg>
-                            </button>
-                            <button class="btn btn-secondary btn-sm" onclick="refreshQuota(${cred.id})" title="Check Usage">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                                    <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
-                                </svg>
-                            </button>
-                            <button class="btn btn-secondary btn-sm" onclick="openChatModal(${cred.id})" title="Chat Test">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                                    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
-                                </svg>
-                            </button>
-                            <button class="btn btn-danger btn-sm" onclick="deleteCredential(${cred.id})" title="Delete">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="14" height="14">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                `;
-            }).join('');
-        }
-
-        // Refresh single token
-        async function refreshToken(id) {
-            try {
-                const res = await fetch(`/api/warp/credentials/${id}/refresh`, { method: 'POST' });
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Token refreshed successfully');
-                    loadCredentials();
-                    loadStatistics();
-                } else {
-                    showToast('Refresh failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Refresh failed: ' + e.message, 'error');
-            }
-        }
-
-        // Delete credential
-        async function deleteCredential(id) {
-            if (!confirm('Are you sure you want to delete this account?')) return;
-
-            try {
-                const res = await fetch(`/api/warp/credentials/${id}`, { method: 'DELETE' });
-                const data = await res.json();
-                if (data.success) {
-                    showToast('Deleted successfully');
-                    loadCredentials();
-                    loadStatistics();
-                } else {
-                    showToast('Delete failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Delete failed: ' + e.message, 'error');
-            }
-        }
-
-        // Add Account
-        async function addCredential() {
-            const name = document.getElementById('add-name').value.trim();
-            const refreshToken = document.getElementById('add-refresh-token').value.trim();
-
-            if (!refreshToken) {
-                showToast('Please enter Refresh Token', 'error');
-                return;
-            }
-
-            try {
-                const res = await fetch('/api/warp/credentials', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, refreshToken })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    showToast('Added successfully');
-                    closeModal('add-modal');
-                    document.getElementById('add-name').value = '';
-                    document.getElementById('add-refresh-token').value = '';
-                    loadCredentials();
-                    loadStatistics();
-                } else {
-                    showToast('Add failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Add failed: ' + e.message, 'error');
-            }
-        }
-
-        // Parse text format batch import data
-        function parseTextFormat(text) {
-            const accounts = [];
-            const lines = text.split('\n').map(l => l.trim()).filter(l => l);
-
-            let currentName = null;
-            for (const line of lines) {
-                // Match "AccountN" or "Account N" format
-                const nameMatch = line.match(/^Account\s*(\d+)$/i);
-                if (nameMatch) {
-                    currentName = `Account${nameMatch[1]}`;
-                    continue;
-                }
-
-                // If it's a token (starts with AMf- or length > 100)
-                if (line.startsWith('AMf-') || line.length > 100) {
-                    accounts.push({
-                        refreshToken: line,
-                        name: currentName || `Account${accounts.length + 1}`
-                    });
-                    currentName = null;
-                }
-            }
-            
-            return accounts;
-        }
-
-        // Batch import
-        async function batchImport() {
-            const dataStr = document.getElementById('batch-data').value.trim();
-
-            if (!dataStr) {
-                showToast('Please enter account data', 'error');
-                return;
-            }
-
-            let accounts;
-
-            // Try JSON format
-            if (dataStr.startsWith('[') || dataStr.startsWith('{')) {
-                try {
-                    accounts = JSON.parse(dataStr);
-                    if (!Array.isArray(accounts)) {
-                        accounts = [accounts];
-                    }
-                } catch (e) {
-                    showToast('JSON format error', 'error');
-                    return;
-                }
-            } else {
-                // Text format
-                accounts = parseTextFormat(dataStr);
-                if (accounts.length === 0) {
-                    showToast('No valid tokens found', 'error');
-                    return;
-                }
-            }
-
-            try {
-                const res = await fetch('/api/warp/credentials/batch-import', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ accounts })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    showToast(`Import complete: success ${data.data.success}, failed ${data.data.failed}`);
-                    closeModal('batch-modal');
-                    document.getElementById('batch-data').value = '';
-                    loadCredentials();
-                    loadStatistics();
-                } else {
-                    showToast('Import failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Import failed: ' + e.message, 'error');
-            }
-        }
-
-        // Refresh all tokens
-        async function refreshAllTokens() {
-            if (!confirm('Are you sure you want to refresh all account tokens?')) return;
-
-            try {
-                showToast('Refreshing...');
-                const res = await fetch('/api/warp/credentials/refresh-all', { method: 'POST' });
-                const data = await res.json();
-                
-                if (data.success) {
-                    const success = data.data.filter(r => r.success).length;
-                    const failed = data.data.filter(r => !r.success).length;
-                    showToast(`Refresh complete: success ${success}, failed ${failed}`);
-                    loadCredentials();
-                    loadStatistics();
-                } else {
-                    showToast('Refresh failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Refresh failed: ' + e.message, 'error');
-            }
-        }
-
-        // Health Check
-        async function healthCheck() {
-            try {
-                const res = await fetch('/api/warp/health');
-                const data = await res.json();
-                
-                if (data.success) {
-                    const h = data.data;
-                    showToast(`Health status: ${h.isHealthy ? 'Normal' : 'Error'} | Total: ${h.total} | Healthy: ${h.healthy}`);
-                } else {
-                    showToast('Check failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Check failed: ' + e.message, 'error');
-            }
-        }
-
-        // Update progress bar display
-        function updateQuotaBar(id, quota) {
-            const container = document.getElementById(`quota-container-${id}`);
-            if (!container) return;
-            
-            const cred = {
-                quotaLimit: quota.isUnlimited ? -1 : quota.requestLimit,
-                quotaUsed: quota.requestsUsed
-            };
-            container.innerHTML = renderQuotaBar(cred);
-        }
-
-        // Refresh single account usage
-        async function refreshQuota(id) {
-            const container = document.getElementById(`quota-container-${id}`);
-            if (container) {
-                container.innerHTML = `
-                    <div class="quota-bar-header">
-                        <span class="quota-bar-label">Usage</span>
-                        <span class="quota-bar-value" style="color: var(--text-secondary);">Querying...</span>
-                    </div>
-                    <div class="quota-bar">
-                        <div class="quota-bar-fill" style="width: 0%"></div>
-                    </div>
-                `;
-            }
-            
-            try {
-                const res = await fetch(`/w/api/quota?credentialId=${id}`);
-                const data = await res.json();
-                
-                if (data.success) {
-                    const q = data.data;
-                    updateQuotaBar(id, q);
-
-                    // Update local data
-                    const cred = credentials.find(c => c.id === id);
-                    if (cred) {
-                        cred.quotaLimit = q.isUnlimited ? -1 : q.requestLimit;
-                        cred.quotaUsed = q.requestsUsed;
-                    }
-                    
-                    showToast(`Usage: ${q.requestsUsed}/${q.requestLimit}`);
-                } else {
-                    if (container) {
-                        container.innerHTML = `
-                            <div class="quota-bar-header">
-                                <span class="quota-bar-label">Usage</span>
-                                <span class="quota-bar-value" style="color: #ef4444;">Query failed</span>
-                            </div>
-                            <div class="quota-bar">
-                                <div class="quota-bar-fill danger" style="width: 0%"></div>
-                            </div>
-                        `;
-                    }
-                    showToast('Query failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Query failed: ' + e.message, 'error');
-            }
-        }
-
-        // Refresh all quotas
-        async function refreshAllQuotas() {
-            showToast('Querying all account usage...');
-
-            // First set all usage displays to querying state
-            credentials.forEach(cred => {
-                const container = document.getElementById(`quota-container-${cred.id}`);
-                if (container) {
-                    container.innerHTML = `
-                        <div class="quota-bar-header">
-                            <span class="quota-bar-label">Usage</span>
-                            <span class="quota-bar-value" style="color: var(--text-secondary);">Querying...</span>
-                        </div>
-                        <div class="quota-bar">
-                            <div class="quota-bar-fill" style="width: 0%"></div>
-                        </div>
-                    `;
-                }
-            });
-            
-            try {
-                const res = await fetch('/w/api/quotas');
-                const data = await res.json();
-                
-                if (data.success) {
-                    const { summary, accounts } = data.data;
-
-                    // Update usage display for each card
-                    for (const q of accounts) {
-                        if (q.error) {
-                            const container = document.getElementById(`quota-container-${q.credentialId}`);
-                            if (container) {
-                                container.innerHTML = `
-                                    <div class="quota-bar-header">
-                                        <span class="quota-bar-label">Usage</span>
-                                        <span class="quota-bar-value" style="color: #ef4444;">Query failed</span>
-                                    </div>
-                                    <div class="quota-bar">
-                                        <div class="quota-bar-fill danger" style="width: 0%"></div>
-                                    </div>
-                                `;
-                            }
-                        } else {
-                            updateQuotaBar(q.credentialId, q);
-
-                            // Update local data
-                            const cred = credentials.find(c => c.id === q.credentialId);
-                            if (cred) {
-                                cred.quotaLimit = q.isUnlimited ? -1 : q.requestLimit;
-                                cred.quotaUsed = q.requestsUsed;
-                            }
-                        }
-                    }
-                    
-                    showToast(`Usage summary: total limit ${summary.totalLimit}, used ${summary.totalUsed}, remaining ${summary.totalRemaining}`);
-                } else {
-                    showToast('Query failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                showToast('Query failed: ' + e.message, 'error');
-            }
-        }
-
-        // Open chat modal
-        function openChatModal(credentialId) {
-            document.getElementById('chat-credential-id').value = credentialId;
-            document.getElementById('chat-response').textContent = 'Waiting to send...';
-            openModal('chat-modal');
-        }
-
-        // Send chat message
-        async function sendChat() {
-            const credentialId = document.getElementById('chat-credential-id').value;
-            const model = document.getElementById('chat-model').value;
-            const message = document.getElementById('chat-message').value.trim();
-            const responseDiv = document.getElementById('chat-response');
-            
-            if (!message) {
-                showToast('Please enter a message', 'error');
-                return;
-            }
-            
-            responseDiv.textContent = 'Requesting...';
-            
-            try {
-                const res = await fetch('/api/warp/chat', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        credentialId: parseInt(credentialId),
-                        query: message,
-                        model: model
-                    })
-                });
-                const data = await res.json();
-                
-                if (data.success) {
-                    responseDiv.textContent = data.data.response || '(empty response)';
-                    showToast('Request successful');
-                } else {
-                    responseDiv.textContent = 'Error: ' + data.error;
-                    showToast('Request failed: ' + data.error, 'error');
-                }
-            } catch (e) {
-                responseDiv.textContent = 'Error: ' + e.message;
-                showToast('Request failed: ' + e.message, 'error');
-            }
-        }
-
-        // Search
-        function filterCredentials(keyword) {
-            const filtered = credentials.filter(c => 
-                (c.name && c.name.toLowerCase().includes(keyword.toLowerCase())) ||
-                (c.email && c.email.toLowerCase().includes(keyword.toLowerCase()))
-            );
-            renderCredentials(filtered);
-        }
-
-        // Initialize
-        document.addEventListener('DOMContentLoaded', async () => {
-            // Initialize sidebar
-            const sidebarContainer = document.getElementById('sidebar-container');
-            if (sidebarContainer) {
-                sidebarContainer.innerHTML = getSidebarHTML();
-                initSidebar('warp');
-                updateSidebarStats();
-            }
-
-            loadCredentials();
-            loadStatistics();
-
-            // Event binding
-            document.getElementById('add-account-btn').addEventListener('click', () => openModal('add-modal'));
-            document.getElementById('empty-add-btn').addEventListener('click', () => openModal('add-modal'));
-            document.getElementById('batch-import-btn').addEventListener('click', () => openModal('batch-modal'));
-            document.getElementById('add-submit-btn').addEventListener('click', addCredential);
-            document.getElementById('batch-submit-btn').addEventListener('click', batchImport);
-            document.getElementById('refresh-all-btn').addEventListener('click', refreshAllTokens);
-            document.getElementById('refresh-all-quota-btn').addEventListener('click', refreshAllQuotas);
-            document.getElementById('health-check-btn').addEventListener('click', healthCheck);
-            document.getElementById('chat-submit-btn').addEventListener('click', sendChat);
-
-            // Search
-            document.getElementById('search-input').addEventListener('input', (e) => {
-                filterCredentials(e.target.value);
-            });
-
-            // Close modal when clicking outside
-            document.querySelectorAll('.modal-overlay').forEach(overlay => {
-                overlay.addEventListener('click', (e) => {
-                    if (e.target === overlay) {
-                        overlay.classList.remove('active');
-                    }
-                });
-            });
-        });
-    </script>
+    <script src="/js/warp.js"></script>
 </body>
 </html>
