@@ -5,6 +5,7 @@ let filteredCredentials = [];
 let selectedIds = new Set();
 let contextMenuTarget = null;
 let supportedModels = [];
+let currentDetailId = null;
 
 document.addEventListener('DOMContentLoaded', async () => {
     // Check login status
@@ -263,6 +264,12 @@ function bindEvents() {
     // Detail modal events
     document.getElementById('detail-modal-close').addEventListener('click', closeDetailModal);
     document.getElementById('detail-modal-close-btn').addEventListener('click', closeDetailModal);
+    document.getElementById('detail-edit-btn').addEventListener('click', () => {
+        if (currentDetailId) {
+            closeDetailModal();
+            editCredential(currentDetailId);
+        }
+    });
 
     // Search
     document.getElementById('search-input').addEventListener('input', handleSearch);
@@ -305,6 +312,7 @@ function closeEditModal() {
 
 function closeDetailModal() {
     document.getElementById('detail-modal').classList.remove('active');
+    currentDetailId = null;
 }
 
 async function submitAddForm() {
@@ -617,6 +625,7 @@ function showCredentialDetail(id) {
     const cred = credentials.find(c => c.id === id);
     if (!cred) return;
 
+    currentDetailId = id;
     const body = document.getElementById('detail-modal-body');
     body.innerHTML = `
         <div class="detail-grid">
