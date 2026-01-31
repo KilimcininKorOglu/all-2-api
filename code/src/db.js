@@ -482,6 +482,71 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Create account health tracking table (for selection module)
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS account_health (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            provider VARCHAR(50) NOT NULL,
+            credential_id INT NOT NULL,
+            health_score INT DEFAULT 70,
+            consecutive_failures INT DEFAULT 0,
+            last_success_at DATETIME,
+            last_failure_at DATETIME,
+            last_error_message TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_provider_credential (provider, credential_id),
+            INDEX idx_provider (provider),
+            INDEX idx_health_score (health_score)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Create token bucket rate limiting table (for selection module)
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS token_buckets (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            provider VARCHAR(50) NOT NULL,
+            credential_id INT NOT NULL,
+            tokens DECIMAL(5,2) DEFAULT 50.00,
+            last_updated DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE KEY unique_provider_credential (provider, credential_id),
+            INDEX idx_provider (provider)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Create selection configuration table (for selection module)
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS selection_config (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            provider VARCHAR(50) NOT NULL UNIQUE,
+            strategy VARCHAR(50) DEFAULT 'hybrid',
+            health_weight DECIMAL(3,1) DEFAULT 2.0,
+            token_weight DECIMAL(3,1) DEFAULT 5.0,
+            quota_weight DECIMAL(3,1) DEFAULT 3.0,
+            lru_weight DECIMAL(3,1) DEFAULT 0.1,
+            min_health_threshold INT DEFAULT 50,
+            token_bucket_max INT DEFAULT 50,
+            token_regen_per_minute DECIMAL(5,2) DEFAULT 6.00,
+            quota_low_threshold DECIMAL(3,2) DEFAULT 0.10,
+            quota_critical_threshold DECIMAL(3,2) DEFAULT 0.05,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
+    // Create thinking signature cache table (for selection module)
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS thinking_signature_cache (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            signature_hash VARCHAR(64) NOT NULL UNIQUE,
+            signature_value TEXT NOT NULL,
+            model_family VARCHAR(20),
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            expires_at DATETIME NOT NULL,
+            INDEX idx_expires_at (expires_at)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     return pool;
 }
 
@@ -3870,6 +3935,390 @@ export class BedrockCredentialStore {
             lastErrorMessage: row.last_error_message,
             createdAt: row.created_at,
             updatedAt: row.updated_at
+        };
+    }
+}
+
+/**
+ * Account health tracking store (for selection module)
+ */
+export class AccountHealthStore {
+    constructor(database) {
+        this.db = database;
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new AccountHealthStore(database);
+    }
+
+    async get(provider, credentialId) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM account_health WHERE provider = ? AND credential_id = ?',
+            [provider, credentialId]
+        );
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async upsert(provider, credentialId, data) {
+        const existing = await this.get(provider, credentialId);
+        if (existing) {
+            const fields = [];
+            const values = [];
+            if (data.healthScore !== undefined) { fields.push('health_score = ?'); values.push(data.healthScore); }
+            if (data.consecutiveFailures !== undefined) { fields.push('consecutive_failures = ?'); values.push(data.consecutiveFailures); }
+            if (data.lastSuccessAt !== undefined) { fields.push('last_success_at = ?'); values.push(data.lastSuccessAt); }
+            if (data.lastFailureAt !== undefined) { fields.push('last_failure_at = ?'); values.push(data.lastFailureAt); }
+            if (data.lastErrorMessage !== undefined) { fields.push('last_error_message = ?'); values.push(data.lastErrorMessage); }
+            if (fields.length > 0) {
+                values.push(provider, credentialId);
+                await this.db.execute(
+                    `UPDATE account_health SET ${fields.join(', ')} WHERE provider = ? AND credential_id = ?`,
+                    values
+                );
+            }
+            return existing.id;
+        } else {
+            const [result] = await this.db.execute(`
+                INSERT INTO account_health (provider, credential_id, health_score, consecutive_failures, last_success_at, last_failure_at, last_error_message)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            `, [
+                provider,
+                credentialId,
+                data.healthScore ?? 70,
+                data.consecutiveFailures ?? 0,
+                data.lastSuccessAt ?? null,
+                data.lastFailureAt ?? null,
+                data.lastErrorMessage ?? null
+            ]);
+            return result.insertId;
+        }
+    }
+
+    async updateScore(provider, credentialId, scoreDelta) {
+        await this.db.execute(`
+            INSERT INTO account_health (provider, credential_id, health_score)
+            VALUES (?, ?, GREATEST(0, LEAST(100, 70 + ?)))
+            ON DUPLICATE KEY UPDATE
+                health_score = GREATEST(0, LEAST(100, health_score + ?))
+        `, [provider, credentialId, scoreDelta, scoreDelta]);
+    }
+
+    async recordSuccess(provider, credentialId, bonusScore = 1) {
+        await this.db.execute(`
+            INSERT INTO account_health (provider, credential_id, health_score, consecutive_failures, last_success_at)
+            VALUES (?, ?, LEAST(100, 70 + ?), 0, NOW())
+            ON DUPLICATE KEY UPDATE
+                health_score = LEAST(100, health_score + ?),
+                consecutive_failures = 0,
+                last_success_at = NOW()
+        `, [provider, credentialId, bonusScore, bonusScore]);
+    }
+
+    async recordFailure(provider, credentialId, errorMessage, penalty = 20) {
+        await this.db.execute(`
+            INSERT INTO account_health (provider, credential_id, health_score, consecutive_failures, last_failure_at, last_error_message)
+            VALUES (?, ?, GREATEST(0, 70 - ?), 1, NOW(), ?)
+            ON DUPLICATE KEY UPDATE
+                health_score = GREATEST(0, health_score - ?),
+                consecutive_failures = consecutive_failures + 1,
+                last_failure_at = NOW(),
+                last_error_message = ?
+        `, [provider, credentialId, penalty, errorMessage, penalty, errorMessage]);
+    }
+
+    async recordRateLimit(provider, credentialId, penalty = 10) {
+        await this.db.execute(`
+            INSERT INTO account_health (provider, credential_id, health_score, last_failure_at, last_error_message)
+            VALUES (?, ?, GREATEST(0, 70 - ?), NOW(), 'rate_limit')
+            ON DUPLICATE KEY UPDATE
+                health_score = GREATEST(0, health_score - ?),
+                last_failure_at = NOW(),
+                last_error_message = 'rate_limit'
+        `, [provider, credentialId, penalty, penalty]);
+    }
+
+    async getByProvider(provider) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM account_health WHERE provider = ? ORDER BY health_score DESC',
+            [provider]
+        );
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async delete(provider, credentialId) {
+        await this.db.execute(
+            'DELETE FROM account_health WHERE provider = ? AND credential_id = ?',
+            [provider, credentialId]
+        );
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            provider: row.provider,
+            credentialId: row.credential_id,
+            healthScore: row.health_score,
+            consecutiveFailures: row.consecutive_failures,
+            lastSuccessAt: row.last_success_at,
+            lastFailureAt: row.last_failure_at,
+            lastErrorMessage: row.last_error_message,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
+    }
+}
+
+/**
+ * Token bucket rate limiting store (for selection module)
+ */
+export class TokenBucketStore {
+    constructor(database) {
+        this.db = database;
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new TokenBucketStore(database);
+    }
+
+    async get(provider, credentialId) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM token_buckets WHERE provider = ? AND credential_id = ?',
+            [provider, credentialId]
+        );
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async getTokens(provider, credentialId, maxTokens = 50, regenPerMinute = 6) {
+        const record = await this.get(provider, credentialId);
+        if (!record) {
+            // Initialize with max tokens
+            await this.upsert(provider, credentialId, maxTokens);
+            return maxTokens;
+        }
+
+        // Calculate regenerated tokens
+        const lastUpdated = new Date(record.lastUpdated).getTime();
+        const now = Date.now();
+        const minutesElapsed = (now - lastUpdated) / 60000;
+        const regenerated = minutesElapsed * regenPerMinute;
+        const currentTokens = Math.min(maxTokens, record.tokens + regenerated);
+
+        // Update if tokens have regenerated
+        if (regenerated >= 1) {
+            await this.upsert(provider, credentialId, currentTokens);
+        }
+
+        return currentTokens;
+    }
+
+    async upsert(provider, credentialId, tokens) {
+        await this.db.execute(`
+            INSERT INTO token_buckets (provider, credential_id, tokens, last_updated)
+            VALUES (?, ?, ?, NOW())
+            ON DUPLICATE KEY UPDATE
+                tokens = ?,
+                last_updated = NOW()
+        `, [provider, credentialId, tokens, tokens]);
+    }
+
+    async consume(provider, credentialId, amount = 1, maxTokens = 50, regenPerMinute = 6) {
+        const currentTokens = await this.getTokens(provider, credentialId, maxTokens, regenPerMinute);
+        if (currentTokens < amount) {
+            return { success: false, tokens: currentTokens };
+        }
+        const newTokens = currentTokens - amount;
+        await this.upsert(provider, credentialId, newTokens);
+        return { success: true, tokens: newTokens };
+    }
+
+    async refund(provider, credentialId, amount = 1, maxTokens = 50) {
+        const record = await this.get(provider, credentialId);
+        const currentTokens = record ? record.tokens : maxTokens;
+        const newTokens = Math.min(maxTokens, currentTokens + amount);
+        await this.upsert(provider, credentialId, newTokens);
+        return newTokens;
+    }
+
+    async getByProvider(provider) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM token_buckets WHERE provider = ? ORDER BY tokens DESC',
+            [provider]
+        );
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async delete(provider, credentialId) {
+        await this.db.execute(
+            'DELETE FROM token_buckets WHERE provider = ? AND credential_id = ?',
+            [provider, credentialId]
+        );
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            provider: row.provider,
+            credentialId: row.credential_id,
+            tokens: parseFloat(row.tokens),
+            lastUpdated: row.last_updated
+        };
+    }
+}
+
+/**
+ * Selection configuration store (for selection module)
+ */
+export class SelectionConfigStore {
+    constructor(database) {
+        this.db = database;
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new SelectionConfigStore(database);
+    }
+
+    async getByProvider(provider) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM selection_config WHERE provider = ?',
+            [provider]
+        );
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async upsert(provider, config) {
+        const existing = await this.getByProvider(provider);
+        if (existing) {
+            const fields = [];
+            const values = [];
+            if (config.strategy !== undefined) { fields.push('strategy = ?'); values.push(config.strategy); }
+            if (config.healthWeight !== undefined) { fields.push('health_weight = ?'); values.push(config.healthWeight); }
+            if (config.tokenWeight !== undefined) { fields.push('token_weight = ?'); values.push(config.tokenWeight); }
+            if (config.quotaWeight !== undefined) { fields.push('quota_weight = ?'); values.push(config.quotaWeight); }
+            if (config.lruWeight !== undefined) { fields.push('lru_weight = ?'); values.push(config.lruWeight); }
+            if (config.minHealthThreshold !== undefined) { fields.push('min_health_threshold = ?'); values.push(config.minHealthThreshold); }
+            if (config.tokenBucketMax !== undefined) { fields.push('token_bucket_max = ?'); values.push(config.tokenBucketMax); }
+            if (config.tokenRegenPerMinute !== undefined) { fields.push('token_regen_per_minute = ?'); values.push(config.tokenRegenPerMinute); }
+            if (config.quotaLowThreshold !== undefined) { fields.push('quota_low_threshold = ?'); values.push(config.quotaLowThreshold); }
+            if (config.quotaCriticalThreshold !== undefined) { fields.push('quota_critical_threshold = ?'); values.push(config.quotaCriticalThreshold); }
+            if (fields.length > 0) {
+                values.push(provider);
+                await this.db.execute(
+                    `UPDATE selection_config SET ${fields.join(', ')} WHERE provider = ?`,
+                    values
+                );
+            }
+            return existing.id;
+        } else {
+            const [result] = await this.db.execute(`
+                INSERT INTO selection_config (provider, strategy, health_weight, token_weight, quota_weight, lru_weight, min_health_threshold, token_bucket_max, token_regen_per_minute, quota_low_threshold, quota_critical_threshold)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            `, [
+                provider,
+                config.strategy ?? 'hybrid',
+                config.healthWeight ?? 2.0,
+                config.tokenWeight ?? 5.0,
+                config.quotaWeight ?? 3.0,
+                config.lruWeight ?? 0.1,
+                config.minHealthThreshold ?? 50,
+                config.tokenBucketMax ?? 50,
+                config.tokenRegenPerMinute ?? 6.0,
+                config.quotaLowThreshold ?? 0.10,
+                config.quotaCriticalThreshold ?? 0.05
+            ]);
+            return result.insertId;
+        }
+    }
+
+    async getAll() {
+        const [rows] = await this.db.execute('SELECT * FROM selection_config ORDER BY provider');
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async delete(provider) {
+        await this.db.execute('DELETE FROM selection_config WHERE provider = ?', [provider]);
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            provider: row.provider,
+            strategy: row.strategy,
+            healthWeight: parseFloat(row.health_weight),
+            tokenWeight: parseFloat(row.token_weight),
+            quotaWeight: parseFloat(row.quota_weight),
+            lruWeight: parseFloat(row.lru_weight),
+            minHealthThreshold: row.min_health_threshold,
+            tokenBucketMax: row.token_bucket_max,
+            tokenRegenPerMinute: parseFloat(row.token_regen_per_minute),
+            quotaLowThreshold: parseFloat(row.quota_low_threshold),
+            quotaCriticalThreshold: parseFloat(row.quota_critical_threshold),
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
+    }
+}
+
+/**
+ * Thinking signature cache store (for selection module)
+ */
+export class ThinkingSignatureCacheStore {
+    constructor(database) {
+        this.db = database;
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new ThinkingSignatureCacheStore(database);
+    }
+
+    async get(signatureHash) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM thinking_signature_cache WHERE signature_hash = ? AND expires_at > NOW()',
+            [signatureHash]
+        );
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async set(signatureHash, signatureValue, modelFamily, ttlHours = 2) {
+        const expiresAt = new Date(Date.now() + ttlHours * 60 * 60 * 1000);
+        await this.db.execute(`
+            INSERT INTO thinking_signature_cache (signature_hash, signature_value, model_family, expires_at)
+            VALUES (?, ?, ?, ?)
+            ON DUPLICATE KEY UPDATE
+                signature_value = ?,
+                model_family = ?,
+                expires_at = ?
+        `, [signatureHash, signatureValue, modelFamily, expiresAt, signatureValue, modelFamily, expiresAt]);
+    }
+
+    async cleanup() {
+        const [result] = await this.db.execute('DELETE FROM thinking_signature_cache WHERE expires_at <= NOW()');
+        return result.affectedRows;
+    }
+
+    async getByModelFamily(modelFamily) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM thinking_signature_cache WHERE model_family = ? AND expires_at > NOW() ORDER BY created_at DESC',
+            [modelFamily]
+        );
+        return rows.map(row => this._mapRow(row));
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            signatureHash: row.signature_hash,
+            signatureValue: row.signature_value,
+            modelFamily: row.model_family,
+            createdAt: row.created_at,
+            expiresAt: row.expires_at
         };
     }
 }
