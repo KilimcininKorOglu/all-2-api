@@ -2951,7 +2951,7 @@ app.post('/v1/chat/completions', async (req, res) => {
 // ============ API Routes ============
 
 // Get credentials list
-app.get('/api/credentials', async (req, res) => {
+app.get('/api/credentials', authMiddleware, async (req, res) => {
     try {
         const credentials = await store.getAll();
         // Hide sensitive info
@@ -2968,7 +2968,7 @@ app.get('/api/credentials', async (req, res) => {
 });
 
 // Get single credential
-app.get('/api/credentials/:id', async (req, res) => {
+app.get('/api/credentials/:id', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const showFull = req.query.full === 'true';
@@ -2998,7 +2998,7 @@ app.get('/api/credentials/:id', async (req, res) => {
 });
 
 // Add credential
-app.post('/api/credentials', async (req, res) => {
+app.post('/api/credentials', authMiddleware, async (req, res) => {
     try {
         const { email, region, provider, refreshToken, authMethod, clientId, clientSecret } = req.body;
         
@@ -3051,7 +3051,7 @@ app.post('/api/credentials', async (req, res) => {
 });
 
 // Delete credential
-app.delete('/api/credentials/:id', async (req, res) => {
+app.delete('/api/credentials/:id', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         await store.delete(id);
@@ -3062,7 +3062,7 @@ app.delete('/api/credentials/:id', async (req, res) => {
 });
 
 // Set active credential
-app.post('/api/credentials/:id/activate', async (req, res) => {
+app.post('/api/credentials/:id/activate', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         await store.setActive(id);
@@ -3073,7 +3073,7 @@ app.post('/api/credentials/:id/activate', async (req, res) => {
 });
 
 // Import credential from file
-app.post('/api/credentials/import', async (req, res) => {
+app.post('/api/credentials/import', authMiddleware, async (req, res) => {
     try {
         const { filePath, name } = req.body;
 
@@ -3089,7 +3089,7 @@ app.post('/api/credentials/import', async (req, res) => {
 });
 
 // Batch import Google/Social accounts
-app.post('/api/credentials/batch-import', async (req, res) => {
+app.post('/api/credentials/batch-import', authMiddleware, async (req, res) => {
     try {
         const { accounts, region } = req.body;
 
@@ -3355,7 +3355,7 @@ app.post('/api/oauth/configs/import-all', async (req, res) => {
 // ==================== Credential Test ====================
 
 // Test credential
-app.post('/api/credentials/:id/test', async (req, res) => {
+app.post('/api/credentials/:id/test', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const credential = await store.getById(id);
@@ -3425,7 +3425,7 @@ app.get('/api/models', async (req, res) => {
 });
 
 // Get available models list for specified credential
-app.get('/api/credentials/:id/models', async (req, res) => {
+app.get('/api/credentials/:id/models', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const credential = await store.getById(id);
@@ -3485,7 +3485,7 @@ app.get('/api/usage', async (req, res) => {
 });
 
 // Get usage limits for specified credential
-app.get('/api/credentials/:id/usage', async (req, res) => {
+app.get('/api/credentials/:id/usage', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         let credential = await store.getById(id);
@@ -3567,7 +3567,7 @@ app.get('/api/credentials/:id/usage', async (req, res) => {
 });
 
 // Refresh Token
-app.post('/api/credentials/:id/refresh', async (req, res) => {
+app.post('/api/credentials/:id/refresh', authMiddleware, async (req, res) => {
     try {
         const id = parseInt(req.params.id);
         const credential = await store.getById(id);
