@@ -718,10 +718,46 @@ async function verifyApiKey(key) {
 
 /**
  * Simple session storage (production should use Redis etc.)
+ * Added size limits and periodic cleanup to prevent memory exhaustion
  */
 const sessions = new Map();
+const MAX_SESSIONS = 10000;
+const SESSION_EXPIRY_MS = 24 * 60 * 60 * 1000; // 24 hours
+const SESSION_CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // 1 hour
+
+/**
+ * Clean up expired sessions
+ */
+function cleanupExpiredSessions() {
+    const now = Date.now();
+    let cleaned = 0;
+    for (const [token, session] of sessions) {
+        if (now - session.createdAt > SESSION_EXPIRY_MS) {
+            sessions.delete(token);
+            cleaned++;
+        }
+    }
+    if (cleaned > 0) {
+        console.log(`[Session] Cleaned up ${cleaned} expired sessions, ${sessions.size} remaining`);
+    }
+}
+
+// Run cleanup periodically
+setInterval(cleanupExpiredSessions, SESSION_CLEANUP_INTERVAL_MS);
 
 function createSession(userId) {
+    // Enforce session limit to prevent memory exhaustion
+    if (sessions.size >= MAX_SESSIONS) {
+        // Remove oldest sessions (10% of max) to make room
+        const toRemove = Math.ceil(MAX_SESSIONS * 0.1);
+        const sortedSessions = [...sessions.entries()]
+            .sort((a, b) => a[1].createdAt - b[1].createdAt);
+        for (let i = 0; i < toRemove && i < sortedSessions.length; i++) {
+            sessions.delete(sortedSessions[i][0]);
+        }
+        console.log(`[Session] Evicted ${toRemove} oldest sessions due to limit`);
+    }
+
     const token = crypto.randomBytes(32).toString('hex');
     sessions.set(token, { userId, createdAt: Date.now() });
     return token;
@@ -731,7 +767,7 @@ function getSession(token) {
     const session = sessions.get(token);
     if (!session) return null;
     // 24 hour expiry
-    if (Date.now() - session.createdAt > 24 * 60 * 60 * 1000) {
+    if (Date.now() - session.createdAt > SESSION_EXPIRY_MS) {
         sessions.delete(token);
         return null;
     }
