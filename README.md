@@ -57,6 +57,9 @@ ALL-2-API is an API proxy service that breaks client restrictions, converting cl
 ### Manual Start
 
 ```bash
+# Navigate to code directory
+cd code
+
 # Install dependencies
 npm install
 
@@ -79,6 +82,9 @@ After the service starts, open your browser and visit: **http://localhost:13003*
 #### Using Built-in MySQL
 
 ```bash
+# Navigate to code directory
+cd code
+
 # Copy environment variable configuration
 cp .env.example .env
 
@@ -95,6 +101,9 @@ docker-compose down
 #### Using External Database
 
 ```bash
+# Navigate to code directory
+cd code
+
 # Copy and edit environment variables
 cp .env.example .env
 # Edit .env to set external database address
@@ -142,28 +151,6 @@ Seamlessly supports the following latest large models:
 - **Claude Sonnet 4/4.5** - Cost-effective choice, supported via Kiro
 - **Gemini 3 Pro** - Google's next-generation architecture preview, supported via Gemini Antigravity
 - **Gemini 3 Flash** - Fast response model, supported via Gemini Antigravity
-
----
-
-### Screenshots
-
-#### Home Overview
-![Index Page](https://github.com/CaiGaoQing/kiro-api-client/blob/main/index.png?raw=true)
-
-#### Statistics Panel
-![Index Page 2](https://github.com/CaiGaoQing/kiro-api-client/blob/main/index2.png?raw=true)
-
-#### OAuth Authentication
-![OAuth Authentication](https://github.com/CaiGaoQing/kiro-api-client/blob/main/oauth.png?raw=true)
-
-#### API Interface
-![API Interface](https://github.com/CaiGaoQing/kiro-api-client/blob/main/api.png?raw=true)
-
-#### Chat Interface
-![Chat Interface](https://github.com/CaiGaoQing/kiro-api-client/blob/main/chat.png?raw=true)
-
-#### Usage Statistics
-![Usage Statistics](https://github.com/CaiGaoQing/kiro-api-client/blob/main/usage.png?raw=true)
 
 ---
 
@@ -233,7 +220,8 @@ Uses PKCE flow with local HTTP callback server (ports 19876-19880) for authentic
 
 **CLI authentication:**
 ```bash
-node src/auth-cli.js
+cd code
+node src/kiro/auth-cli.js
 ```
 
 ### 2. Builder ID
@@ -499,21 +487,30 @@ console.log(response);
 ### Project Structure
 
 ```
-src/
-├── index.js              # Main entry, exports all modules
-├── client.js             # KiroClient class - API client
-├── api.js                # KiroAPI class - Stateless API service
-├── auth.js               # KiroAuth class - OAuth authentication
-├── auth-cli.js           # Interactive CLI login tool
-├── constants.js          # Constants configuration
-├── db.js                 # Database connection and table management
-├── logger.js             # Logging module
-├── proxy.js              # Proxy configuration module
-├── server.js             # Express web server
-├── kiro-service.js       # Kiro service wrapper
-├── gemini/
-│   └── antigravity-core.js  # Gemini Antigravity API core
-└── public/               # Web frontend files
+code/src/
+├── index.js                # Main entry, exports all modules
+├── server.js               # Express web server
+├── constants.js            # Constants and model mappings
+├── db.js                   # Database connection and management
+├── logger.js               # Logging module
+├── proxy.js                # Proxy configuration
+├── kiro/                   # Kiro (Claude via AWS) module
+│   ├── client.js           # KiroClient class
+│   ├── api.js              # KiroAPI stateless service
+│   ├── auth.js             # OAuth authentication
+│   ├── auth-cli.js         # CLI login tool
+│   └── kiro-service.js     # Service wrapper
+├── gemini/                 # Gemini Antigravity module
+│   ├── antigravity-core.js # Core API implementation
+│   └── gemini-routes.js    # API routes
+├── orchids/                # Orchids API module
+├── warp/                   # Warp API module
+├── vertex/                 # Vertex AI module
+├── bedrock/                # Amazon Bedrock module
+├── cluster/                # Clustering and load balancing
+│   ├── cluster.js          # Cluster startup script
+│   └── balancer.js         # Load balancer
+└── public/                 # Web UI (HTML/JS/CSS)
 ```
 
 </details>
@@ -570,12 +567,6 @@ curl -X POST 'http://localhost:13003/api/credentials/batch-import' \
 - Credentials with failed refresh are moved to the error credentials table and retried periodically
 - Message history requires alternating user/assistant roles; adjacent same-role messages are automatically merged
 - Default region is `us-east-1`
-
----
-
-## Star History
-
-[![Star History Chart](https://api.star-history.com/svg?repos=CaiGaoQing/kiro-api-client&type=date&legend=top-left)](https://www.star-history.com/#CaiGaoQing/kiro-api-client&type=date&legend=top-left)
 
 ---
 
