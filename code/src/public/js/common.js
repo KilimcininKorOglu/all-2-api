@@ -273,7 +273,7 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                         <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
-                    ${settings.siteName} Accounts
+                    Kiro Accounts
                     <span class="nav-badge" id="nav-accounts-count">${stats.total}</span>
                 </a>
                 <a href="#" class="nav-item" data-page="gemini">
@@ -481,7 +481,7 @@ async function updateSidebarStats() {
 
 // ============ Auto-Initialize Site Settings ============
 // Auto-update title when page loads (using cached settings)
-(function() {
+(function () {
     const settings = window.siteSettings;
     // Extract page name part from current title
     const currentTitle = document.title;
@@ -493,7 +493,7 @@ async function updateSidebarStats() {
 })();
 
 // After page fully loads, get latest settings from server and update
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     // Delay loading site settings to avoid blocking page rendering
     setTimeout(() => {
         loadSiteSettings();
