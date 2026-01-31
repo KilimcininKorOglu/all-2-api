@@ -369,7 +369,7 @@ export class KiroAuth {
 
         const redirectUri = `http://127.0.0.1:${port}/oauth/callback`;
 
-        // 1. Register OIDC client with PKCE support
+        // 1. Register OIDC client with PKCE support (startUrl required for IAM Identity Center)
         const regResponse = await fetch(`${ssoOidcEndpoint}/client/register`, {
             method: 'POST',
             headers: {
@@ -381,7 +381,8 @@ export class KiroAuth {
                 clientType: 'public',
                 scopes: KIRO_OAUTH_CONFIG.scopes,
                 grantTypes: ['authorization_code', 'refresh_token'],
-                redirectUris: [redirectUri]
+                redirectUris: [redirectUri],
+                issuerUrl: startUrl  // Required for IAM Identity Center
             })
         });
 
