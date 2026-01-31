@@ -86,6 +86,7 @@ function setupEventListeners() {
         if (e.key === 'Escape') {
             closeAddModal();
             closeBatchImportModal();
+            closeEditModal();
             hideContextMenu();
         }
     });
@@ -114,6 +115,14 @@ function setupEventListeners() {
 
     // Batch refresh quota
     document.getElementById('refresh-usage-btn').addEventListener('click', batchRefreshUsage);
+
+    // Edit modal
+    document.getElementById('edit-modal-close').addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-cancel').addEventListener('click', closeEditModal);
+    document.getElementById('edit-modal-submit').addEventListener('click', submitEditForm);
+    document.getElementById('edit-modal').addEventListener('click', (e) => {
+        if (e.target.id === 'edit-modal') closeEditModal();
+    });
 
     // Batch refresh Token
     document.getElementById('refresh-all-btn').addEventListener('click', refreshAllCredentials);
@@ -823,12 +832,32 @@ function closeDetailModal() {
     currentDetailId = null;
 }
 
-async function openEditModal(id) {
+function openEditModal(id) {
     const cred = credentials.find(c => c.id === id);
     if (!cred) return;
 
-    const newName = prompt('Enter new name:', cred.name || cred.email || '');
-    if (newName === null || newName.trim() === '') return;
+    document.getElementById('edit-account-id').value = cred.id;
+    document.getElementById('edit-account-name').value = cred.name || cred.email || '';
+    document.getElementById('edit-account-region').value = cred.region || 'us-east-1';
+    document.getElementById('edit-is-active').checked = cred.isActive;
+
+    document.getElementById('edit-modal').classList.add('active');
+}
+
+function closeEditModal() {
+    document.getElementById('edit-modal').classList.remove('active');
+}
+
+async function submitEditForm() {
+    const id = parseInt(document.getElementById('edit-account-id').value);
+    const name = document.getElementById('edit-account-name').value.trim();
+    const region = document.getElementById('edit-account-region').value;
+    const isActive = document.getElementById('edit-is-active').checked;
+
+    if (!name) {
+        showToast('Name is required', 'error');
+        return;
+    }
 
     try {
         const response = await fetch(`/api/credentials/${id}`, {
@@ -837,12 +866,13 @@ async function openEditModal(id) {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + authToken
             },
-            body: JSON.stringify({ name: newName.trim() })
+            body: JSON.stringify({ name, region, isActive })
         });
 
         const result = await response.json();
         if (result.success) {
             showToast('Account updated successfully', 'success');
+            closeEditModal();
             await loadCredentials();
         } else {
             showToast('Update failed: ' + result.error, 'error');
