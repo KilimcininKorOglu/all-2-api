@@ -1,23 +1,23 @@
 #!/bin/bash
 
 # ==============================================================================
-# Mihomo (Clash.Meta) 自动安装与配置脚本
+# Mihomo (Clash.Meta) Automatic Installation and Configuration Script
 #
-# 功能:
-# 1. 自动检测系统架构 (amd64/arm64)
-# 2. 从 GitHub 下载最新的 mihomo release 版本
-# 3. 下载指定的 Clash 订阅配置文件
-# 4. 配置并启用 systemd 服务，实现开机自启
-# 5. 启动服务并检查状态
+# Features:
+# 1. Automatically detect system architecture (amd64/arm64)
+# 2. Download the latest mihomo release from GitHub
+# 3. Download the specified Clash subscription configuration file
+# 4. Configure and enable systemd service for auto-start on boot
+# 5. Start the service and check status
 # ==============================================================================
 
-# --- 用户配置 ---
-# 请将下面的链接替换为你的 Clash 订阅链接
-SUBSCRIPTION_URL="在这里粘贴你的Clash订阅链接"
+# --- User Configuration ---
+# Replace the link below with your Clash subscription link
+SUBSCRIPTION_URL="Paste your Clash subscription link here"
 
 
-# --- 脚本常量 ---
-# 使用颜色输出，增加可读性
+# --- Script Constants ---
+# Use colored output to improve readability
 GREEN="\e[32m"
 RED="\e[31m"
 YELLOW="\e[33m"
@@ -28,10 +28,10 @@ MIHOMO_CONFIG_DIR="/etc/mihomo"
 MIHOMO_CONFIG_FILE="${MIHOMO_CONFIG_DIR}/config.yaml"
 SYSTEMD_SERVICE_FILE="/etc/systemd/system/mihomo.service"
 
-# 脚本出错时立即退出
+# Exit immediately if any command fails
 set -e
 
-# --- 函数定义 (使用 printf 替代 echo) ---
+# --- Function Definitions (using printf instead of echo) ---
 
 info() {
     printf "${GREEN}[INFO]${NC} %s\n" "$*"
@@ -42,109 +42,109 @@ warn() {
 }
 
 error() {
-    # 将错误信息输出到 stderr
+    # Output error message to stderr
     printf "${RED}[ERROR]${NC} %s\n" "$*" >&2
     exit 1
 }
 
-# --- 脚本主体 ---
+# --- Main Script ---
 
-# 1. 检查环境和权限
-info "开始执行 Mihomo 自动安装和配置脚本..."
+# 1. Check environment and permissions
+info "Starting Mihomo automatic installation and configuration script..."
 
 if [ "$(id -u)" -ne 0 ]; then
-    error "此脚本需要以 root 权限运行。请使用 'sudo ./install_mihomo.sh'。"
+    error "This script requires root privileges. Please use 'sudo ./install_mihomo.sh'."
 fi
 
-if [ "$SUBSCRIPTION_URL" = "在这里粘贴你的Clash订阅链接" ] || [ -z "$SUBSCRIPTION_URL" ]; then
-    error "请先编辑此脚本，将 SUBSCRIPTION_URL 变量替换为你的有效订阅链接。"
+if [ "$SUBSCRIPTION_URL" = "Paste your Clash subscription link here" ] || [ -z "$SUBSCRIPTION_URL" ]; then
+    error "Please edit this script first and replace the SUBSCRIPTION_URL variable with your valid subscription link."
 fi
 
-# 检查必要的命令
+# Check required commands
 for cmd in curl wget gunzip; do
     if ! command -v $cmd > /dev/null 2>&1; then
-        error "命令 '$cmd' 未找到。请先安装它 (例如: sudo apt update && sudo apt install $cmd)。"
+        error "Command '$cmd' not found. Please install it first (e.g., sudo apt update && sudo apt install $cmd)."
     fi
 done
 
-# 2. 安装 mihomo
-info "步骤 1: 安装 mihomo..."
+# 2. Install mihomo
+info "Step 1: Installing mihomo..."
 
-# 检测系统架构
+# Detect system architecture
 ARCH=""
 case $(uname -m) in
     x86_64) ARCH="amd64" ;;
     aarch64) ARCH="arm64" ;;
-    *) error "不支持的系统架构: $(uname -m)" ;;
+    *) error "Unsupported system architecture: $(uname -m)" ;;
 esac
-info "检测到系统架构: ${ARCH}"
+info "Detected system architecture: ${ARCH}"
 
-# 查找本地 mihomo 文件 (支持 .gz 压缩包或已解压的二进制文件)
+# Find local mihomo files (supports .gz archives or extracted binaries)
 LOCAL_GZ=$(ls mihomo-linux-${ARCH}-*.gz 2>/dev/null | head -n 1)
 LOCAL_BIN=$(ls mihomo-linux-${ARCH}-* 2>/dev/null | grep -v '\.gz$' | head -n 1)
 
 if [ -n "$LOCAL_GZ" ]; then
-    info "检测到本地文件: ${LOCAL_GZ}，使用本地文件安装..."
+    info "Detected local file: ${LOCAL_GZ}, installing from local file..."
     gunzip -f "$LOCAL_GZ"
     LOCAL_BIN=$(ls mihomo-linux-${ARCH}-* 2>/dev/null | grep -v '\.gz$' | head -n 1)
     chmod +x "$LOCAL_BIN"
     mv "$LOCAL_BIN" "$MIHOMO_INSTALL_PATH"
 elif [ -n "$LOCAL_BIN" ]; then
-    info "检测到本地文件: ${LOCAL_BIN}，使用本地文件安装..."
+    info "Detected local file: ${LOCAL_BIN}, installing from local file..."
     chmod +x "$LOCAL_BIN"
     mv "$LOCAL_BIN" "$MIHOMO_INSTALL_PATH"
 else
-    info "未检测到本地文件，从 GitHub 下载..."
-    # 从 GitHub API 获取最新版本号
+    info "No local file detected, downloading from GitHub..."
+    # Get the latest version from GitHub API
     LATEST_TAG=$(curl -sL "https://api.github.com/repos/MetaCubeX/mihomo/releases/latest" | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
     if [ -z "$LATEST_TAG" ]; then
-        error "无法从 GitHub API 获取最新版本号。请检查网络连接或 API 限制。"
+        error "Failed to get the latest version from GitHub API. Please check your network connection or API limits."
     fi
-    info "获取到最新版本: ${LATEST_TAG}"
+    info "Latest version found: ${LATEST_TAG}"
 
     FILENAME="mihomo-linux-${ARCH}-${LATEST_TAG}.gz"
 
-    # 构建下载链接并下载
+    # Build download URL and download
     MIHOMO_DOWNLOAD_URL="https://github.com/MetaCubeX/mihomo/releases/download/${LATEST_TAG}/${FILENAME}"
-    info "正在从以下链接下载: ${MIHOMO_DOWNLOAD_URL}"
+    info "Downloading from: ${MIHOMO_DOWNLOAD_URL}"
     wget -q -O mihomo.gz "$MIHOMO_DOWNLOAD_URL"
 
-    info "下载完成，正在解压..."
+    info "Download complete, extracting..."
     gunzip -f mihomo.gz
     chmod +x mihomo
     mv mihomo "$MIHOMO_INSTALL_PATH"
 fi
 
-# 验证安装
+# Verify installation
 if [ ! -x "$MIHOMO_INSTALL_PATH" ]; then
-    error "mihomo 安装失败，文件未找到或没有执行权限。"
+    error "mihomo installation failed, file not found or no execute permission."
 fi
-info "mihomo 安装成功! 版本信息:"
+info "mihomo installed successfully! Version info:"
 "$MIHOMO_INSTALL_PATH" -v
 echo ""
 
 
-# 3. 下载 Clash 订阅配置
-info "步骤 2: 下载订阅配置文件..."
+# 3. Download Clash subscription configuration
+info "Step 2: Downloading subscription configuration file..."
 
-info "创建配置目录: ${MIHOMO_CONFIG_DIR}"
+info "Creating configuration directory: ${MIHOMO_CONFIG_DIR}"
 mkdir -p "$MIHOMO_CONFIG_DIR"
 
-info "正在下载订阅文件到 ${MIHOMO_CONFIG_FILE}..."
+info "Downloading subscription file to ${MIHOMO_CONFIG_FILE}..."
 wget -q -O "$MIHOMO_CONFIG_FILE" "$SUBSCRIPTION_URL"
 
 if [ ! -s "$MIHOMO_CONFIG_FILE" ]; then
-    error "订阅文件下载失败或文件为空。请检查你的订阅链接是否正确以及网络是否通畅。"
+    error "Subscription file download failed or file is empty. Please check if your subscription link is correct and network is accessible."
 fi
-info "订阅文件下载成功。"
+info "Subscription file downloaded successfully."
 echo ""
 
 
-# 4. 配置 mihomo 为 service
-info "步骤 3: 创建并配置 systemd 服务..."
+# 4. Configure mihomo as a service
+info "Step 3: Creating and configuring systemd service..."
 
 if command -v systemctl > /dev/null 2>&1 && [ -d /run/systemd/system ]; then
-	info "检测到 systemd 环境,配置为systemd 服务"
+	info "Detected systemd environment, configuring as systemd service"
 
 	cat << EOF > "$SYSTEMD_SERVICE_FILE"
 [Unit]
@@ -162,40 +162,40 @@ RestartSec=10
 WantedBy=multi-user.target
 EOF
 
-	info "systemd 服务文件已创建: ${SYSTEMD_SERVICE_FILE}"
+	info "systemd service file created: ${SYSTEMD_SERVICE_FILE}"
 	echo ""
 
 
-	# 5. 启动服务
-	info "步骤 4: 启动 mihomo 服务..."
-	
-	info "重载 systemd 配置..."
+	# 5. Start the service
+	info "Step 4: Starting mihomo service..."
+
+	info "Reloading systemd configuration..."
 	systemctl daemon-reload
-	
-	info "设置 mihomo 开机自启..."
+
+	info "Enabling mihomo auto-start on boot..."
 	systemctl enable mihomo
-	
-	info "启动 mihomo 服务..."
+
+	info "Starting mihomo service..."
 	systemctl start mihomo
-	
-	# 稍等片刻让服务启动
+
+	# Wait a moment for the service to start
 	sleep 2
-	
-	info "脚本执行完毕！正在检查服务状态..."
+
+	info "Script execution complete! Checking service status..."
 	echo "=========================================================="
 	systemctl status mihomo --no-pager
 	echo "=========================================================="
 	echo ""
 	
-	info "Mihomo 已成功安装并启动！"
-	warn "要查看实时日志，请运行: journalctl -u mihomo -f"
-	warn "要停止服务，请运行: sudo systemctl stop mihomo"
-	warn "要重启服务，请运行: sudo systemctl restart mihomo"
+	info "Mihomo has been successfully installed and started!"
+	warn "To view live logs, run: journalctl -u mihomo -f"
+	warn "To stop the service, run: sudo systemctl stop mihomo"
+	warn "To restart the service, run: sudo systemctl restart mihomo"
 else
-	warn "未检测到 systemd，自动切换到 nohup 后台启动模式。"
+	warn "systemd not detected, automatically switching to nohup background startup mode."
     nohup ${MIHOMO_INSTALL_PATH} -d ${MIHOMO_CONFIG_DIR} > /var/log/mihomo.log 2>&1 &
-    info "已使用 nohup 启动 mihomo，并输出日志到 /var/log/mihomo.log"
-    info "Mihomo 已经安装并已后台启动！"
-    warn "要查看日志请运行: tail -f /var/log/mihomo.log"
-    warn "如需停止请使用: pkill -f '${MIHOMO_INSTALL_PATH} -d ${MIHOMO_CONFIG_DIR}'"
+    info "Started mihomo using nohup, logs output to /var/log/mihomo.log"
+    info "Mihomo has been installed and started in the background!"
+    warn "To view logs, run: tail -f /var/log/mihomo.log"
+    warn "To stop, use: pkill -f '${MIHOMO_INSTALL_PATH} -d ${MIHOMO_CONFIG_DIR}'"
 fi
