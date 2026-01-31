@@ -23,6 +23,48 @@ setInterval(() => {
     }
 }, 60 * 1000);
 
+/**
+ * Fetch and save quota data for a credential (async, non-blocking)
+ * @param {number} credentialId - Credential ID
+ * @param {object} geminiStore - GeminiCredentialStore instance
+ * @param {function} getTimestamp - Timestamp function for logging
+ */
+async function fetchAndSaveQuota(credentialId, geminiStore, getTimestamp) {
+    try {
+        const credential = await geminiStore.getById(credentialId);
+        if (!credential) return;
+
+        const service = AntigravityApiService.fromCredentials({
+            accessToken: credential.accessToken,
+            refreshToken: credential.refreshToken,
+            projectId: credential.projectId,
+            expiresAt: credential.expiresAt
+        });
+
+        const usage = await service.getUsageLimits();
+
+        // Update projectId if changed during initialization
+        if (service.projectId && service.projectId !== credential.projectId) {
+            await geminiStore.update(credentialId, { projectId: service.projectId });
+        }
+
+        // Save quota data
+        if (usage && usage.models) {
+            const quotaData = {};
+            for (const [modelId, modelUsage] of Object.entries(usage.models)) {
+                quotaData[modelId] = {
+                    remainingFraction: modelUsage.remainingFraction,
+                    resetTime: modelUsage.resetTime
+                };
+            }
+            await geminiStore.updateQuota(credentialId, quotaData);
+            console.log(`[${getTimestamp()}] [Gemini] Auto quota fetch completed for ID ${credentialId}`);
+        }
+    } catch (error) {
+        console.error(`[${getTimestamp()}] [Gemini] Auto quota fetch failed for ID ${credentialId}:`, error.message);
+    }
+}
+
 export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
     // Gemini OAuth start authorization
     app.post('/api/gemini/oauth/start', async (req, res) => {
@@ -93,6 +135,9 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
 
             console.log(`[${getTimestamp()}] [Gemini OAuth] New credential added: ${session.credentialName} (ID: ${id})`);
 
+            // Auto fetch quota in background (non-blocking)
+            fetchAndSaveQuota(id, geminiStore, getTimestamp).catch(() => {});
+
             res.send(generateSuccessPage());
         } catch (error) {
             console.error(`[${getTimestamp()}] [Gemini OAuth] Callback error:`, error.message);
@@ -160,6 +205,9 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
                 expiresAt
             });
 
+            // Auto fetch quota in background (non-blocking)
+            fetchAndSaveQuota(id, geminiStore, getTimestamp).catch(() => {});
+
             res.json({ success: true, data: { id } });
         } catch (error) {
             res.status(500).json({ success: false, error: error.message });
@@ -216,7 +264,7 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
                     }
 
                     // Add credential
-                    await geminiStore.add({
+                    const newId = await geminiStore.add({
                         name,
                         email,
                         accessToken,
@@ -224,6 +272,9 @@ export function setupGeminiRoutes(app, geminiStore, getTimestamp) {
                         projectId: null,
                         expiresAt
                     });
+
+                    // Auto fetch quota in background (non-blocking)
+                    fetchAndSaveQuota(newId, geminiStore, getTimestamp).catch(() => {});
 
                     results.success++;
                 } catch (err) {
