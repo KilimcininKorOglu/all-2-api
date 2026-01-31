@@ -1,4 +1,5 @@
 import mysql from 'mysql2/promise';
+import path from 'path';
 
 // MySQL connection configuration
 const DB_CONFIG = {
@@ -600,7 +601,30 @@ export class CredentialStore {
 
     async importFromFile(filePath, name) {
         const fs = await import('fs');
-        const content = fs.readFileSync(filePath, 'utf8');
+
+        // Security: Validate file path to prevent path traversal attacks
+        const normalizedPath = path.normalize(filePath);
+
+        // Block path traversal attempts
+        if (normalizedPath.includes('..')) {
+            throw new Error('Invalid file path: path traversal not allowed');
+        }
+
+        // Block access to sensitive system directories
+        const blockedPaths = ['/etc/', '/var/', '/proc/', '/sys/', '/root/', '/home/'];
+        const lowerPath = normalizedPath.toLowerCase();
+        for (const blocked of blockedPaths) {
+            if (lowerPath.startsWith(blocked)) {
+                throw new Error('Invalid file path: access to system directories not allowed');
+            }
+        }
+
+        // Verify file exists and is readable
+        if (!fs.existsSync(normalizedPath)) {
+            throw new Error('File does not exist');
+        }
+
+        const content = fs.readFileSync(normalizedPath, 'utf8');
         const creds = JSON.parse(content);
 
         return this.add({
