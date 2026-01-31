@@ -823,6 +823,35 @@ function closeDetailModal() {
     currentDetailId = null;
 }
 
+async function openEditModal(id) {
+    const cred = credentials.find(c => c.id === id);
+    if (!cred) return;
+
+    const newName = prompt('Enter new name:', cred.name || cred.email || '');
+    if (newName === null || newName.trim() === '') return;
+
+    try {
+        const response = await fetch(`/api/credentials/${id}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + authToken
+            },
+            body: JSON.stringify({ name: newName.trim() })
+        });
+
+        const result = await response.json();
+        if (result.success) {
+            showToast('Account updated successfully', 'success');
+            await loadCredentials();
+        } else {
+            showToast('Update failed: ' + result.error, 'error');
+        }
+    } catch (error) {
+        showToast('Update failed: ' + error.message, 'error');
+    }
+}
+
 function formatDateTime(dateStr) {
     if (!dateStr) return '-';
     return new Date(dateStr).toLocaleString();

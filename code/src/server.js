@@ -3251,6 +3251,29 @@ app.delete('/api/credentials/:id', authMiddleware, async (req, res) => {
     }
 });
 
+// Update credential
+app.put('/api/credentials/:id', authMiddleware, async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const { name, region, isActive } = req.body;
+
+        const credential = await store.getById(id);
+        if (!credential) {
+            return res.status(404).json({ success: false, error: 'Credential not found' });
+        }
+
+        const updateData = {};
+        if (name !== undefined) updateData.name = name;
+        if (region !== undefined) updateData.region = region;
+        if (isActive !== undefined) updateData.isActive = isActive;
+
+        await store.update(id, updateData);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Toggle credential active status (enable/disable in pool)
 app.post('/api/credentials/:id/toggle-active', authMiddleware, async (req, res) => {
     try {
