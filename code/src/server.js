@@ -182,29 +182,26 @@ function canAttemptRecovery(credentialId) {
 
 // ============ Credential Token Refresh Lock ============
 // Prevent concurrent token refresh for the same credential
-const credentialRefreshLocks = new Map();
+// Single source of truth for refresh operations - using promises map only
 const credentialRefreshPromises = new Map();
 
 /**
  * Token refresh with lock, ensuring only one refresh operation at a time for the same credential
+ * Uses promise-based locking to prevent race conditions
  * @returns {Promise<{success: boolean, credential?: object, error?: string}>}
  */
 async function refreshTokenWithLock(credential, store) {
     const credentialId = credential.id;
 
-    // If a refresh operation is already in progress, wait for it to complete
-    if (credentialRefreshLocks.get(credentialId)) {
+    // Check if refresh is already in progress - single atomic check
+    const existingPromise = credentialRefreshPromises.get(credentialId);
+    if (existingPromise) {
         // console.log(`[${getTimestamp()}] [Token Refresh] Credential ${credentialId} is refreshing, waiting...`);
-        const existingPromise = credentialRefreshPromises.get(credentialId);
-        if (existingPromise) {
-            return existingPromise;
-        }
+        return existingPromise;
     }
 
-    // Set lock
-    credentialRefreshLocks.set(credentialId, true);
-
-    // Create refresh Promise
+    // Create refresh Promise and store it immediately (before any async operations)
+    // This prevents race condition where two calls could both pass the check above
     const refreshPromise = (async () => {
         try {
             const refreshResult = await KiroAPI.refreshToken(credential);
@@ -225,12 +222,12 @@ async function refreshTokenWithLock(credential, store) {
             // console.log(`[${getTimestamp()}] [Token Refresh] Credential ${credentialId} refresh exception: ${error.message}`);
             return { success: false, error: error.message };
         } finally {
-            // Release lock
-            credentialRefreshLocks.set(credentialId, false);
+            // Release lock by removing promise
             credentialRefreshPromises.delete(credentialId);
         }
     })();
 
+    // Store promise immediately after creation (synchronous operation)
     credentialRefreshPromises.set(credentialId, refreshPromise);
     return refreshPromise;
 }
