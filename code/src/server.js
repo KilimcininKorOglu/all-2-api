@@ -5305,7 +5305,8 @@ async function start() {
         kiro: store,
         gemini: geminiStore,
         orchids: orchidsStore,
-        warp: warpStore
+        warp: warpStore,
+        anthropic: anthropicStore
     });
 
     // Start log cleanup task (clean logs older than 30 days daily)

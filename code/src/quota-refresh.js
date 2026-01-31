@@ -1,12 +1,13 @@
 /**
  * Unified Background Quota Refresh Module
- * Periodically refreshes quota information for all vendors (Kiro, Gemini, Orchids, Warp)
+ * Periodically refreshes quota information for all vendors (Kiro, Gemini, Orchids, Warp, Anthropic)
  */
 
 import { KiroClient } from './kiro/client.js';
 import { AntigravityApiService } from './gemini/antigravity-core.js';
 import { OrchidsAPI } from './orchids/orchids-service.js';
 import { WarpService, getRequestLimit } from './warp/warp-service.js';
+import { verifyCredentials as verifyAnthropicCredentials } from './anthropic/anthropic-service.js';
 
 // Configuration
 const QUOTA_REFRESH_INTERVAL = 5 * 60 * 1000;   // 5 minutes
@@ -246,6 +247,60 @@ async function refreshWarpQuotas(store) {
 }
 
 /**
+ * Refresh rate limits for all Anthropic credentials
+ * Sends a minimal test message to Haiku and captures rate limit headers
+ * @param {Object} store - Anthropic credential store
+ * @returns {Promise<{success: number, failed: number}>}
+ */
+async function refreshAnthropicQuotas(store) {
+    const result = { success: 0, failed: 0 };
+
+    try {
+        const credentials = await store.getActive();
+        if (credentials.length === 0) {
+            return result;
+        }
+
+        for (const cred of credentials) {
+            try {
+                const verification = await verifyAnthropicCredentials(cred.accessToken, cred.apiBaseUrl);
+
+                if (verification.rateLimits) {
+                    await store.updateRateLimits(cred.id, verification.rateLimits);
+                    result.success++;
+
+                    // Log low quota warnings for OAuth unified limits
+                    const limits = verification.rateLimits;
+                    if (limits.unified5h?.utilization !== null && limits.unified5h?.utilization !== undefined) {
+                        const remaining = Math.round((1 - limits.unified5h.utilization) * 100);
+                        if (remaining <= 5) {
+                            console.warn(`[${getTimestamp()}] [Quota] CRITICAL: ${cred.name} (Anthropic 5h): ${remaining}% remaining`);
+                        } else if (remaining <= 20) {
+                            console.log(`[${getTimestamp()}] [Quota] LOW: ${cred.name} (Anthropic 5h): ${remaining}% remaining`);
+                        }
+                    }
+                } else if (!verification.valid) {
+                    result.failed++;
+                    console.error(`[${getTimestamp()}] [Quota Refresh] Anthropic ${cred.name}: ${verification.error}`);
+                } else {
+                    // Valid but no rate limits returned
+                    result.success++;
+                }
+            } catch (error) {
+                result.failed++;
+                console.error(`[${getTimestamp()}] [Quota Refresh] Anthropic ${cred.name}: ${error.message}`);
+            }
+
+            await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_CREDENTIALS));
+        }
+    } catch (error) {
+        console.error(`[${getTimestamp()}] [Quota Refresh] Anthropic task error: ${error.message}`);
+    }
+
+    return result;
+}
+
+/**
  * Refresh quotas for all vendors
  * @param {Object} stores - Object containing all vendor stores
  * @returns {Promise<void>}
@@ -255,7 +310,8 @@ async function refreshAllQuotas(stores) {
         kiro: { success: 0, failed: 0 },
         gemini: { success: 0, failed: 0 },
         orchids: { success: 0, failed: 0 },
-        warp: { success: 0, failed: 0 }
+        warp: { success: 0, failed: 0 },
+        anthropic: { success: 0, failed: 0 }
     };
 
     // Kiro
@@ -279,6 +335,12 @@ async function refreshAllQuotas(stores) {
     // Warp
     if (stores.warp) {
         results.warp = await refreshWarpQuotas(stores.warp);
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_VENDORS));
+    }
+
+    // Anthropic
+    if (stores.anthropic) {
+        results.anthropic = await refreshAnthropicQuotas(stores.anthropic);
     }
 
     // Log summary
@@ -315,5 +377,6 @@ export {
     refreshGeminiQuotas,
     refreshOrchidsQuotas,
     refreshWarpQuotas,
+    refreshAnthropicQuotas,
     refreshAllQuotas
 };
