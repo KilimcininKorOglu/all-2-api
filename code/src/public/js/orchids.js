@@ -8,10 +8,10 @@ const OrchidsState = {
     detailTarget: null,
     importTab: 'json',
     isLoading: false,
-    healthStatus: {}, // 账号健康状态: { accountId: boolean }
+    healthStatus: {}, // Account health status: { accountId: boolean }
     registerTaskId: null,
     registerEventSource: null,
-    usageData: null // 用量数据
+    usageData: null // Usage data
 };
 
 // DOM Elements
@@ -34,22 +34,22 @@ const DOM = {
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    // 生成并插入侧边栏
+    // Generate and insert sidebar
     const sidebarContainer = document.getElementById('sidebar-container');
     if (sidebarContainer && typeof getSidebarHTML === 'function') {
         sidebarContainer.innerHTML = getSidebarHTML();
     }
-    
-    // 初始化侧边栏导航
+
+    // Initialize sidebar navigation
     if (typeof initSidebar === 'function') {
         initSidebar('orchids');
     }
-    
+
     initDOMReferences();
     setupEventListeners();
     await loadCredentials();
-    
-    // 更新侧边栏统计
+
+    // Update sidebar stats
     if (typeof updateSidebarStats === 'function') {
         updateSidebarStats();
     }
@@ -69,7 +69,7 @@ function initDOMReferences() {
     DOM.searchInput = document.getElementById('search-input');
 }
 
-// 认证检查（使用 common.js 的 checkAuth）
+// Auth check (using common.js checkAuth)
 async function checkAuthAndRedirect() {
     const token = localStorage.getItem('authToken');
     if (!token) {
@@ -149,7 +149,7 @@ function setupEventListeners() {
             const text = await navigator.clipboard.readText();
             document.getElementById('client-jwt').value = text;
         } catch (err) {
-            showToast('无法读取剪贴板', 'error');
+            showToast('Unable to read clipboard', 'error');
         }
     });
 
@@ -174,13 +174,13 @@ async function loadCredentials() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
 
-        if (!response.ok) throw new Error('加载失败');
+        if (!response.ok) throw new Error('Load failed');
 
         const data = await response.json();
-        // 兼容不同的返回格式
+        // Compatible with different return formats
         OrchidsState.credentials = Array.isArray(data) ? data : (data.data || []);
-        
-        // 并行加载用量数据和健康状态
+
+        // Load usage data and health status in parallel
         await Promise.all([loadUsageData(), fetchHealthStatus()]);
         renderCredentials();
     } catch (error) {
@@ -226,15 +226,15 @@ function renderCredentials() {
 function createCardHTML(cred) {
     const isHealthy = OrchidsState.healthStatus[cred.id] !== false;
     const statusClass = !cred.isActive ? 'disabled' : (isHealthy ? 'healthy' : 'error');
-    const statusText = !cred.isActive ? '已禁用' : (isHealthy ? '正常' : '异常');
-    
-    // 获取用量数据
+    const statusText = !cred.isActive ? 'Disabled' : (isHealthy ? 'Normal' : 'Error');
+
+    // Get usage data
     const usageInfo = OrchidsState.usageData?.accounts?.find(a => a.id === cred.id);
     const usage = usageInfo?.usage || { used: 0, limit: 150000, percentage: 0 };
     const usagePercent = usage.percentage || 0;
     const progressClass = usagePercent >= 90 ? 'danger' : (usagePercent >= 70 ? 'warning' : '');
-    
-    // 截断邮箱显示
+
+    // Truncate email display
     const email = cred.email || cred.name || 'Unknown';
     const displayEmail = email.length > 28 ? email.substring(0, 25) + '...' : email;
 
@@ -251,7 +251,7 @@ function createCardHTML(cred) {
                     <div class="card-meta">
                         <span>Free</span>
                         <span class="card-meta-divider"></span>
-                        <span>权重: ${cred.weight || 1}</span>
+                        <span>Weight: ${cred.weight || 1}</span>
                     </div>
                 </div>
             </div>
@@ -264,8 +264,8 @@ function createCardHTML(cred) {
                     <div class="usage-progress-bar ${progressClass}" style="width: ${usagePercent}%"></div>
                 </div>
                 <div class="usage-details">
-                    <span class="usage-used">已用 ${usagePercent}%</span>
-                    <span class="usage-remaining">剩余 ${formatCredits(usage.remaining || (usage.limit - usage.used))}</span>
+                    <span class="usage-used">Used ${usagePercent}%</span>
+                    <span class="usage-remaining">Remaining ${formatCredits(usage.remaining || (usage.limit - usage.used))}</span>
                 </div>
             </div>
             <div class="card-footer">
@@ -279,18 +279,18 @@ function createCardHTML(cred) {
                     </div>
                 </div>
                 <div class="card-actions">
-                    <button class="card-action-btn" data-action="chat" title="对话" onclick="event.stopPropagation(); openChat(${cred.id})">
+                    <button class="card-action-btn" data-action="chat" title="Chat" onclick="event.stopPropagation(); openChat(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                         </svg>
                     </button>
-                    <button class="card-action-btn" data-action="test" title="测试" onclick="event.stopPropagation(); testAccount(${cred.id})">
+                    <button class="card-action-btn" data-action="test" title="Test" onclick="event.stopPropagation(); testAccount(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
                             <polyline points="22 4 12 14.01 9 11.01"/>
                         </svg>
                     </button>
-                    <button class="card-action-btn danger" data-action="delete" title="删除" onclick="event.stopPropagation(); deleteAccount(${cred.id})">
+                    <button class="card-action-btn danger" data-action="delete" title="Delete" onclick="event.stopPropagation(); deleteAccount(${cred.id})">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                             <polyline points="3 6 5 6 21 6"/>
                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
@@ -306,14 +306,14 @@ function createListItemHTML(cred) {
     return createCardHTML(cred); 
 }
 
-// 辅助函数：打开对话
+// Helper function: open chat
 function openChat(id) {
     window.location.href = `/pages/chat.html?type=orchids&id=${id}`;
 }
 
-// 辅助函数：测试账号
+// Helper function: test account
 async function testAccount(id) {
-    showToast('正在测试账号...', 'info');
+    showToast('Testing account...', 'info');
     try {
         const res = await fetch(`/api/orchids/credentials/${id}/test`, {
             method: 'POST',
@@ -321,28 +321,28 @@ async function testAccount(id) {
         });
         const data = await res.json();
         if (data.valid) {
-            showToast('账号测试通过', 'success');
+            showToast('Account test passed', 'success');
         } else {
-            showToast('账号测试失败: ' + (data.error || '未知错误'), 'error');
+            showToast('Account test failed: ' + (data.error || 'Unknown error'), 'error');
         }
         await loadCredentials();
     } catch (e) {
-        showToast('测试失败: ' + e.message, 'error');
+        showToast('Test failed: ' + e.message, 'error');
     }
 }
 
-// 辅助函数：删除账号
+// Helper function: delete account
 async function deleteAccount(id) {
     const cred = OrchidsState.credentials.find(c => c.id === id);
     if (!cred) return;
-    if (!confirm(`确定要删除账号 "${cred.name}" 吗？`)) return;
+    if (!confirm(`Are you sure you want to delete account "${cred.name}"?`)) return;
 
     try {
         await fetch(`/api/orchids/credentials/${id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
-        showToast('删除成功', 'success');
+        showToast('Deleted successfully', 'success');
         await loadCredentials();
         await loadUsageData();
     } catch (error) {
@@ -374,7 +374,7 @@ function openDetailModal(id) {
     document.getElementById('detail-failure-count').textContent = cred.failureCount || 0;
     
     const isHealthy = OrchidsState.healthStatus[cred.id] !== false;
-    const statusText = !cred.isActive ? '已禁用' : (isHealthy ? '正常' : '异常');
+    const statusText = !cred.isActive ? 'Disabled' : (isHealthy ? 'Normal' : 'Error');
     const statusClass = !cred.isActive ? 'disabled' : (isHealthy ? 'success' : 'error');
     
     const statusEl = document.getElementById('detail-status');
@@ -396,7 +396,7 @@ async function handleAddAccount(e) {
     const name = document.getElementById('account-name').value.trim();
     const weight = parseInt(document.getElementById('account-weight').value) || 1;
 
-    if (!jwt) return showToast('请输入 Client Cookie', 'error');
+    if (!jwt) return showToast('Please enter Client Cookie', 'error');
 
     setLoading(true);
     try {
@@ -410,9 +410,9 @@ async function handleAddAccount(e) {
         });
 
         const data = await response.json();
-        if (!response.ok) throw new Error(data.error || '添加失败');
+        if (!response.ok) throw new Error(data.error || 'Add failed');
 
-        showToast('账号添加成功', 'success');
+        showToast('Account added successfully', 'success');
         closeAddModal();
         await loadCredentials();
     } catch (error) {
@@ -424,14 +424,14 @@ async function handleAddAccount(e) {
 
 async function handleDeleteAccount() {
     if (!OrchidsState.detailTarget) return;
-    if (!confirm(`确定要删除账号 "${OrchidsState.detailTarget.name}" 吗？`)) return;
+    if (!confirm(`Are you sure you want to delete account "${OrchidsState.detailTarget.name}"?`)) return;
 
     try {
         await fetch(`/api/orchids/credentials/${OrchidsState.detailTarget.id}`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
-        showToast('删除成功', 'success');
+        showToast('Deleted successfully', 'success');
         closeDetailModal();
         await loadCredentials();
     } catch (error) {
@@ -441,11 +441,11 @@ async function handleDeleteAccount() {
 
 async function handleEditWeight() {
     if (!OrchidsState.detailTarget) return;
-    const newWeight = prompt(`请输入新权重 (当前: ${OrchidsState.detailTarget.weight}):`, OrchidsState.detailTarget.weight);
+    const newWeight = prompt(`Enter new weight (current: ${OrchidsState.detailTarget.weight}):`, OrchidsState.detailTarget.weight);
     if (newWeight === null) return;
-    
+
     const weight = parseInt(newWeight);
-    if (isNaN(weight) || weight < 1) return showToast('无效权重', 'error');
+    if (isNaN(weight) || weight < 1) return showToast('Invalid weight', 'error');
 
     try {
         await fetch(`/api/orchids/credentials/${OrchidsState.detailTarget.id}/weight`, {
@@ -456,7 +456,7 @@ async function handleEditWeight() {
             },
             body: JSON.stringify({ weight })
         });
-        showToast('权重更新成功', 'success');
+        showToast('Weight updated successfully', 'success');
         closeDetailModal();
         await loadCredentials();
     } catch (error) {
@@ -466,14 +466,14 @@ async function handleEditWeight() {
 
 async function handleResetStats() {
     if (!OrchidsState.detailTarget) return;
-    if (!confirm('确定重置统计数据？')) return;
+    if (!confirm('Are you sure you want to reset statistics?')) return;
 
     try {
         await fetch(`/api/orchids/credentials/${OrchidsState.detailTarget.id}/reset-stats`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
-        showToast('统计已重置', 'success');
+        showToast('Statistics reset', 'success');
         closeDetailModal();
         await loadCredentials();
     } catch (error) {
@@ -484,17 +484,17 @@ async function handleResetStats() {
 async function handleBatchImport(e) {
     e.preventDefault();
     const type = OrchidsState.importTab;
-    const content = type === 'json' 
-        ? document.getElementById('batch-import-json').value 
+    const content = type === 'json'
+        ? document.getElementById('batch-import-json').value
         : document.getElementById('batch-import-text').value;
 
-    if (!content.trim()) return showToast('请输入要导入的数据', 'error');
+    if (!content.trim()) return showToast('Please enter data to import', 'error');
 
     let accounts = [];
     try {
         if (type === 'json') {
             accounts = JSON.parse(content);
-            if (!Array.isArray(accounts)) throw new Error('JSON必须是数组格式');
+            if (!Array.isArray(accounts)) throw new Error('JSON must be in array format');
         } else {
             accounts = content.split('\n')
                 .filter(line => line.trim())
@@ -508,7 +508,7 @@ async function handleBatchImport(e) {
         .filter(Boolean);
         }
     } catch (err) {
-        return showToast('数据格式错误: ' + err.message, 'error');
+        return showToast('Data format error: ' + err.message, 'error');
 }
 
     setLoading(true);
@@ -524,11 +524,11 @@ async function handleBatchImport(e) {
 
         const result = await response.json();
         if (result.success) {
-            showToast(`成功导入 ${result.count} 个账号`, 'success');
+            showToast(`Successfully imported ${result.count} accounts`, 'success');
             closeBatchImportModal();
             await loadCredentials();
         } else {
-            showToast(result.error || '导入失败', 'error');
+            showToast(result.error || 'Import failed', 'error');
         }
     } catch (error) {
         showToast(error.message, 'error');
@@ -538,12 +538,12 @@ async function handleBatchImport(e) {
 }
 
 function handleRefreshAll() {
-    if(!confirm('确定刷新所有账号？')) return;
+    if(!confirm('Are you sure you want to refresh all accounts?')) return;
     fetch('/api/orchids/refresh-all', {
         method: 'POST',
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
     }).then(() => {
-        showToast('刷新任务已启动', 'success');
+        showToast('Refresh task started', 'success');
         setTimeout(loadCredentials, 2000);
     }).catch(e => showToast(e.message, 'error'));
 }
@@ -559,7 +559,7 @@ async function loadUsageData() {
             headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
         });
 
-        if (!response.ok) throw new Error('加载用量失败');
+        if (!response.ok) throw new Error('Failed to load usage');
 
         const result = await response.json();
         if (result.success) {
@@ -567,7 +567,7 @@ async function loadUsageData() {
             updateUsageDisplay();
         }
     } catch (error) {
-        console.error('加载用量数据失败:', error);
+        console.error('Failed to load usage data:', error);
     }
 }
 
@@ -628,15 +628,15 @@ async function handleRefreshUsage() {
     }
 
     try {
-        // 使用 SSE 流式刷新
+        // Use SSE streaming refresh
         const eventSource = new EventSource('/api/orchids/usage/refresh/stream');
-        
+
         eventSource.onmessage = async (event) => {
             try {
                 const data = JSON.parse(event.data);
-                
+
                 if (data.type === 'progress') {
-                    // 实时更新显示
+                    // Real-time display update
                     const progressText = `${data.current}/${data.total}`;
                     if (btn) btn.innerHTML = `
                         <svg class="btn-icon spinning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -646,16 +646,16 @@ async function handleRefreshUsage() {
                     `;
                 } else if (data.type === 'complete') {
                     eventSource.close();
-                    showToast(`用量刷新完成：成功 ${data.success}，失败 ${data.failed}`, 'success');
+                    showToast(`Usage refresh complete: ${data.success} succeeded, ${data.failed} failed`, 'success');
                     await loadUsageData();
                     resetRefreshButton();
                 } else if (data.type === 'error') {
                     eventSource.close();
-                    showToast('刷新失败: ' + data.error, 'error');
+                    showToast('Refresh failed: ' + data.error, 'error');
                     resetRefreshButton();
                 }
             } catch (e) {
-                console.error('解析 SSE 消息失败:', e);
+                console.error('Failed to parse SSE message:', e);
             }
         };
 
@@ -665,7 +665,7 @@ async function handleRefreshUsage() {
         };
 
     } catch (error) {
-        showToast('刷新用量失败: ' + error.message, 'error');
+        showToast('Usage refresh failed: ' + error.message, 'error');
         resetRefreshButton();
     }
 
@@ -676,13 +676,13 @@ async function handleRefreshUsage() {
                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/>
                 </svg>
-                刷新用量
+                Refresh Usage
             `;
         }
     }
 }
 
-// 获取健康状态（用于卡片渲染）
+// Get health status (for card rendering)
 async function fetchHealthStatus() {
     try {
         const res = await fetch('/api/orchids/credentials/health', {
@@ -693,8 +693,8 @@ async function fetchHealthStatus() {
             OrchidsState.healthStatus = {};
             healthData.accounts?.forEach(h => OrchidsState.healthStatus[h.account_id] = h.is_healthy);
         }
-    } catch (e) { 
-        console.error('获取健康状态失败:', e); 
+    } catch (e) {
+        console.error('Failed to get health status:', e);
     }
 }
 
@@ -727,7 +727,7 @@ function openRegisterModal() {
 }
 
 function closeRegisterModal() {
-    if (OrchidsState.registerTaskId && !confirm('确定关闭？')) return;
+    if (OrchidsState.registerTaskId && !confirm('Are you sure you want to close?')) return;
     if (OrchidsState.registerEventSource) {
         OrchidsState.registerEventSource.close();
         OrchidsState.registerEventSource = null;

@@ -1,18 +1,18 @@
-// ============ 账号管理页面 JS ============
+// ============ Account Management Page JS ============
 
-// 状态变量
+// State variables
 let credentials = [];
 let selectedIds = new Set();
 let currentFilter = 'all';
 let searchQuery = '';
 let contextMenuTarget = null;
 
-// DOM 元素
+// DOM Elements
 let cardsGrid, emptyState, addModal, batchImportModal, contextMenu, searchInput;
 
-// 初始化
+// Initialization
 document.addEventListener('DOMContentLoaded', async () => {
-    // 获取 DOM 元素
+    // Get DOM elements
     cardsGrid = document.getElementById('cards-grid');
     emptyState = document.getElementById('empty-state');
     addModal = document.getElementById('add-modal');
@@ -20,19 +20,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     contextMenu = document.getElementById('context-menu');
     searchInput = document.getElementById('search-input');
 
-    // 先加载站点设置
+    // Load site settings first
     await loadSiteSettings();
 
-    // 注入侧边栏
+    // Inject sidebar
     document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
     initSidebar('accounts');
 
-    // 更新页面标题和副标题
+    // Update page title and subtitle
     const settings = window.siteSettings;
-    document.title = `账号管理 - ${settings.siteName} ${settings.siteSubtitle}`;
+    document.title = `Account Management - ${settings.siteName} ${settings.siteSubtitle}`;
     const pageSubtitle = document.querySelector('.page-subtitle');
     if (pageSubtitle) {
-        pageSubtitle.textContent = `管理您的 ${settings.siteName} API 凭证`;
+        pageSubtitle.textContent = `Manage your ${settings.siteName} API credentials`;
     }
 
     if (!await checkAuth()) return;
@@ -42,13 +42,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateSidebarStats();
 });
 
-// 事件监听器
+// Event Listeners
 function setupEventListeners() {
-    // 添加账号按钮
+    // Add account button
     document.getElementById('add-account-btn').addEventListener('click', openAddModal);
     document.getElementById('empty-add-btn')?.addEventListener('click', openAddModal);
 
-    // 批量导入按钮
+    // Batch import button
     document.getElementById('batch-import-btn').addEventListener('click', openBatchImportModal);
     document.getElementById('batch-modal-close').addEventListener('click', closeBatchImportModal);
     document.getElementById('batch-modal-cancel').addEventListener('click', closeBatchImportModal);
@@ -57,7 +57,7 @@ function setupEventListeners() {
         if (e.target === batchImportModal) closeBatchImportModal();
     });
 
-    // 模态框控制
+    // Modal controls
     document.getElementById('modal-close').addEventListener('click', closeAddModal);
     document.getElementById('modal-cancel').addEventListener('click', closeAddModal);
     document.getElementById('modal-submit').addEventListener('click', handleAddAccount);
@@ -65,19 +65,19 @@ function setupEventListeners() {
         if (e.target === addModal) closeAddModal();
     });
 
-    // 认证方式切换
+    // Auth method switch
     document.getElementById('auth-method').addEventListener('change', (e) => {
         const clientCreds = document.getElementById('client-credentials');
         clientCreds.style.display = ['builder-id', 'IdC'].includes(e.target.value) ? 'block' : 'none';
     });
 
-    // 搜索
+    // Search
     searchInput.addEventListener('input', (e) => {
         searchQuery = e.target.value.toLowerCase();
         renderCards();
     });
 
-    // 键盘快捷键
+    // Keyboard shortcuts
     document.addEventListener('keydown', (e) => {
         if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
             e.preventDefault();
@@ -90,7 +90,7 @@ function setupEventListeners() {
         }
     });
 
-    // 筛选标签
+    // Filter tabs
     document.querySelectorAll('.header-tab').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.header-tab').forEach(t => t.classList.remove('active'));
@@ -100,7 +100,7 @@ function setupEventListeners() {
         });
     });
 
-    // 全选
+    // Select all
     document.getElementById('select-all').addEventListener('change', (e) => {
         const filtered = getFilteredCredentials();
         if (e.target.checked) {
@@ -112,23 +112,23 @@ function setupEventListeners() {
         updateBatchDeleteBtn();
     });
 
-    // 批量刷新额度
+    // Batch refresh quota
     document.getElementById('refresh-usage-btn').addEventListener('click', batchRefreshUsage);
 
-    // 批量刷新Token
+    // Batch refresh Token
     document.getElementById('refresh-all-btn').addEventListener('click', refreshAllCredentials);
 
-    // 批量删除
+    // Batch delete
     document.getElementById('batch-delete-btn').addEventListener('click', batchDelete);
 
-    // 右键菜单
+    // Context menu
     document.addEventListener('click', hideContextMenu);
     contextMenu.querySelectorAll('.context-menu-item').forEach(item => {
         item.addEventListener('click', () => handleContextAction(item.dataset.action));
     });
 }
 
-// API 函数
+// API Functions
 async function loadCredentials() {
     try {
         const res = await fetch('/api/credentials', {
@@ -140,13 +140,13 @@ async function loadCredentials() {
         renderCards();
     } catch (err) {
         console.error('Load credentials error:', err);
-        showToast('加载账号失败', 'error');
+        showToast('Failed to load accounts', 'error');
     }
 }
 
-// 批量刷新额度
+// Batch refresh quota
 async function batchRefreshUsage() {
-    showToast('正在批量刷新额度...', 'warning');
+    showToast('Batch refreshing quota...', 'warning');
     let successCount = 0;
     let failCount = 0;
 
@@ -161,7 +161,7 @@ async function batchRefreshUsage() {
                 updateCardUsage(cred.id, result.data);
                 successCount++;
             } else {
-                updateCardUsageError(cred.id, result.error || '获取失败');
+                updateCardUsageError(cred.id, result.error || 'Failed to get');
                 failCount++;
             }
         } catch (err) {
@@ -171,20 +171,20 @@ async function batchRefreshUsage() {
     }
 
     if (failCount > 0) {
-        showToast('刷新完成: ' + successCount + ' 成功, ' + failCount + ' 失败', 'warning');
+        showToast('Refresh complete: ' + successCount + ' succeeded, ' + failCount + ' failed', 'warning');
     } else {
-        showToast('刷新完成: ' + successCount + ' 个账户', 'success');
+        showToast('Refresh complete: ' + successCount + ' accounts', 'success');
     }
 
-    // 更新统计卡片
+    // Update stats cards
     updateStatsCards();
 }
 
-// 刷新单个账户额度
+// Refresh single account quota
 async function refreshSingleUsage(id) {
     const card = document.querySelector('.account-card[data-id="' + id + '"]');
     const usageValue = card?.querySelector('.usage-value');
-    if (usageValue) usageValue.textContent = '加载中...';
+    if (usageValue) usageValue.textContent = 'Loading...';
 
     try {
         const res = await fetch('/api/credentials/' + id + '/usage', {
@@ -197,25 +197,25 @@ async function refreshSingleUsage(id) {
                 cred.usage = result.data;
                 cred.usageData = result.data;
             }
-            showToast('额度刷新成功', 'success');
+            showToast('Quota refresh successful', 'success');
             renderCards();
         } else {
-            showToast('额度刷新失败: ' + (result.error || '获取失败'), 'error');
-            // 刷新失败可能账户已被移到异常表，重新加载列表
+            showToast('Quota refresh failed: ' + (result.error || 'Failed to get'), 'error');
+            // Refresh failure may mean account was moved to error table, reload list
             await loadCredentials();
             updateSidebarStats();
         }
     } catch (err) {
-        showToast('额度刷新失败: ' + err.message, 'error');
-        // 刷新失败可能账户已被移到异常表，重新加载列表
+        showToast('Quota refresh failed: ' + err.message, 'error');
+        // Refresh failure may mean account was moved to error table, reload list
         await loadCredentials();
         updateSidebarStats();
     }
 }
 
-// 刷新单个账户Token
+// Refresh single account Token
 async function refreshSingleToken(id) {
-    showToast('正在刷新Token...', 'warning');
+    showToast('Refreshing Token...', 'warning');
     try {
         const res = await fetch('/api/credentials/' + id + '/refresh', {
             method: 'POST',
@@ -223,29 +223,29 @@ async function refreshSingleToken(id) {
         });
         const result = await res.json();
         if (result.success) {
-            showToast('Token刷新成功', 'success');
+            showToast('Token refresh successful', 'success');
             await loadCredentials();
         } else {
-            showToast('Token刷新失败: ' + (result.error || '未知错误'), 'error');
+            showToast('Token refresh failed: ' + (result.error || 'Unknown error'), 'error');
         }
     } catch (err) {
-        showToast('Token刷新失败: ' + err.message, 'error');
+        showToast('Token refresh failed: ' + err.message, 'error');
     }
 }
 
-// 显示额度加载错误
+// Show quota loading error
 function updateCardUsageError(id, errorMsg) {
     const card = document.querySelector('.account-card[data-id="' + id + '"]');
     if (!card) return;
     const usageValue = card.querySelector('.usage-value');
     if (usageValue) {
-        usageValue.textContent = '获取失败';
+        usageValue.textContent = 'Failed to get';
         usageValue.style.color = 'var(--accent-danger)';
         usageValue.title = errorMsg;
     }
 }
 
-// 更新卡片用量显示
+// Update card usage display
 function updateCardUsage(id, usage) {
     const card = document.querySelector('.account-card[data-id="' + id + '"]');
     if (!card) return;
@@ -282,7 +282,7 @@ function updateCardUsage(id, usage) {
 
     const usageClass = usagePercent > 80 ? 'danger' : usagePercent > 50 ? 'warning' : '';
     const resetText = nextReset ? formatResetDate(nextReset) : '';
-    const trialBadge = isFreeTrialActive ? '<span style="background: var(--accent-success-bg); color: var(--accent-success); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;">试用中</span>' : '';
+    const trialBadge = isFreeTrialActive ? '<span style="background: var(--accent-success-bg); color: var(--accent-success); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;">Trial</span>' : '';
 
     usageSection.innerHTML = '<div class="usage-header">' +
         '<span class="usage-label">' + displayName + trialBadge + '</span>' +
@@ -292,8 +292,8 @@ function updateCardUsage(id, usage) {
         '<div class="usage-bar-fill ' + usageClass + '" style="width: ' + Math.min(usagePercent, 100) + '%"></div>' +
         '</div>' +
         '<div class="usage-details">' +
-        '<span class="usage-used">已用 ' + usedCount.toFixed(2) + ' / ' + totalCount + '</span>' +
-        '<span class="usage-remaining">' + (resetText ? '重置: ' + resetText : '剩余 ' + (totalCount - usedCount).toFixed(2)) + '</span>' +
+        '<span class="usage-used">Used ' + usedCount.toFixed(2) + ' / ' + totalCount + '</span>' +
+        '<span class="usage-remaining">' + (resetText ? 'Reset: ' + resetText : 'Remaining ' + (totalCount - usedCount).toFixed(2)) + '</span>' +
         '</div>';
 }
 
@@ -301,10 +301,10 @@ function formatResetDate(date) {
     const now = new Date();
     const diff = date - now;
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-    if (days < 0) return '已重置';
-    if (days === 0) return '今天';
-    if (days === 1) return '明天';
-    return days + '天后';
+    if (days < 0) return 'Reset';
+    if (days === 0) return 'Today';
+    if (days === 1) return 'Tomorrow';
+    return 'In ' + days + ' days';
 }
 
 async function handleAddAccount(e) {
@@ -333,21 +333,21 @@ async function handleAddAccount(e) {
         });
 
         if (res.ok) {
-            showToast('账号添加成功', 'success');
+            showToast('Account added successfully', 'success');
             closeAddModal();
             loadCredentials();
             updateSidebarStats();
         } else {
             const err = await res.json();
-            showToast(err.error || '添加失败', 'error');
+            showToast(err.error || 'Failed to add', 'error');
         }
     } catch (err) {
-        showToast('网络错误', 'error');
+        showToast('Network error', 'error');
     }
 }
 
 async function refreshAllCredentials() {
-    showToast('正在刷新所有账号...', 'warning');
+    showToast('Refreshing all accounts...', 'warning');
     for (const cred of credentials) {
         try {
             await fetch('/api/credentials/' + cred.id + '/refresh', {
@@ -357,12 +357,12 @@ async function refreshAllCredentials() {
         } catch (err) {}
     }
     await loadCredentials();
-    showToast('刷新完成', 'success');
+    showToast('Refresh complete', 'success');
 }
 
 async function batchDelete() {
     if (selectedIds.size === 0) return;
-    if (!confirm('确定要删除选中的 ' + selectedIds.size + ' 个账号吗？')) return;
+    if (!confirm('Are you sure you want to delete ' + selectedIds.size + ' selected accounts?')) return;
 
     for (const id of selectedIds) {
         try {
@@ -374,12 +374,12 @@ async function batchDelete() {
     }
     selectedIds.clear();
     await loadCredentials();
-    showToast('批量删除完成', 'success');
+    showToast('Batch delete complete', 'success');
     updateBatchDeleteBtn();
     updateSidebarStats();
 }
 
-// 右键菜单操作
+// Context menu actions
 async function handleContextAction(action) {
     if (!contextMenuTarget) return;
     const id = contextMenuTarget;
@@ -390,24 +390,24 @@ async function handleContextAction(action) {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + authToken }
             });
-            showToast('已设为活跃账号', 'success');
+            showToast('Set as active account', 'success');
             break;
         case 'refresh':
-            showToast('正在刷新令牌...', 'warning');
+            showToast('Refreshing token...', 'warning');
             await fetch('/api/credentials/' + id + '/refresh', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + authToken }
             });
-            showToast('令牌刷新成功', 'success');
+            showToast('Token refresh successful', 'success');
             break;
         case 'test':
-            showToast('正在测试连接...', 'warning');
+            showToast('Testing connection...', 'warning');
             const testRes = await fetch('/api/credentials/' + id + '/test', {
                 method: 'POST',
                 headers: { 'Authorization': 'Bearer ' + authToken }
             });
             const testData = await testRes.json();
-            showToast(testData.success ? '连接测试成功' : '连接测试失败', testData.success ? 'success' : 'error');
+            showToast(testData.success ? 'Connection test successful' : 'Connection test failed', testData.success ? 'success' : 'error');
             break;
         case 'usage':
             const usageRes = await fetch('/api/credentials/' + id + '/usage', {
@@ -417,12 +417,12 @@ async function handleContextAction(action) {
             alert(JSON.stringify(usage, null, 2));
             break;
         case 'delete':
-            if (confirm('确定要删除此账号吗？')) {
+            if (confirm('Are you sure you want to delete this account?')) {
                 await fetch('/api/credentials/' + id, {
                     method: 'DELETE',
                     headers: { 'Authorization': 'Bearer ' + authToken }
                 });
-                showToast('账号已删除', 'success');
+                showToast('Account deleted', 'success');
                 updateSidebarStats();
             }
             break;
@@ -434,7 +434,7 @@ async function handleContextAction(action) {
     hideContextMenu();
 }
 
-// 渲染函数
+// Rendering functions
 function getFilteredCredentials() {
     return credentials.filter(function(c) {
         const matchesFilter = currentFilter === 'all' ||
@@ -461,7 +461,7 @@ function renderCards() {
 
     cardsGrid.innerHTML = filtered.map(function(cred) { return createCardHTML(cred); }).join('');
 
-    // 添加事件监听器
+    // Add event listeners
     cardsGrid.querySelectorAll('.account-card').forEach(function(card) {
         const id = parseInt(card.dataset.id);
 
@@ -517,15 +517,15 @@ function renderCards() {
     });
 }
 
-// 生成用量显示HTML
+// Generate usage display HTML
 function generateUsageHTML(usage) {
     if (!usage) {
-        return '<div class="usage-header"><span class="usage-label">额度</span><span class="usage-value" style="color: var(--text-muted);">点击刷新</span></div>' +
+        return '<div class="usage-header"><span class="usage-label">Quota</span><span class="usage-value" style="color: var(--text-muted);">Click to refresh</span></div>' +
             '<div class="usage-bar"><div class="usage-bar-fill" style="width: 0%"></div></div>' +
             '<div class="usage-details"><span class="usage-used">--</span>' +
             '<span class="usage-remaining">' +
-            '<button class="btn-refresh-usage" style="background: none; border: none; color: var(--accent-primary); cursor: pointer; font-size: 12px; padding: 2px 6px;">刷新额度</button>' +
-            '<button class="btn-refresh-token" style="background: none; border: none; color: var(--accent-warning); cursor: pointer; font-size: 12px; padding: 2px 6px;">刷新Token</button>' +
+            '<button class="btn-refresh-usage" style="background: none; border: none; color: var(--accent-primary); cursor: pointer; font-size: 12px; padding: 2px 6px;">Refresh Quota</button>' +
+            '<button class="btn-refresh-token" style="background: none; border: none; color: var(--accent-warning); cursor: pointer; font-size: 12px; padding: 2px 6px;">Refresh Token</button>' +
             '</span></div>';
     }
 
@@ -558,7 +558,7 @@ function generateUsageHTML(usage) {
 
     const usageClass = usagePercent > 80 ? 'danger' : usagePercent > 50 ? 'warning' : '';
     const resetText = nextReset ? formatResetDate(nextReset) : '';
-    const trialBadge = isFreeTrialActive ? '<span style="background: var(--accent-success-bg); color: var(--accent-success); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;">试用中</span>' : '';
+    const trialBadge = isFreeTrialActive ? '<span style="background: var(--accent-success-bg); color: var(--accent-success); padding: 2px 6px; border-radius: 4px; font-size: 10px; margin-left: 6px;">Trial</span>' : '';
 
     return '<div class="usage-header">' +
         '<span class="usage-label">' + displayName + trialBadge + '</span>' +
@@ -568,8 +568,8 @@ function generateUsageHTML(usage) {
         '<div class="usage-bar-fill ' + usageClass + '" style="width: ' + Math.min(usagePercent, 100) + '%"></div>' +
         '</div>' +
         '<div class="usage-details">' +
-        '<span class="usage-used">已用 ' + usedCount.toFixed(2) + ' / ' + totalCount + '</span>' +
-        '<span class="usage-remaining">' + (resetText ? '重置: ' + resetText : '剩余 ' + (totalCount - usedCount).toFixed(2)) + '</span>' +
+        '<span class="usage-used">Used ' + usedCount.toFixed(2) + ' / ' + totalCount + '</span>' +
+        '<span class="usage-remaining">' + (resetText ? 'Reset: ' + resetText : 'Remaining ' + (totalCount - usedCount).toFixed(2)) + '</span>' +
         '</div>';
 }
 
@@ -577,9 +577,9 @@ function createCardHTML(cred) {
     const isSelected = selectedIds.has(cred.id);
     const email = cred.email || cred.name || 'Unknown';
     const statusClass = cred.status === 'error' ? 'error' : cred.status === 'warning' ? 'warning' : 'normal';
-    const statusText = statusClass === 'normal' ? '正常' : statusClass === 'warning' ? '警告' : '异常';
+    const statusText = statusClass === 'normal' ? 'Normal' : statusClass === 'warning' ? 'Warning' : 'Error';
 
-    // 截断邮箱显示（保留前缀和域名）
+    // Truncate email display (keep prefix and domain)
     const truncateEmail = function(email, maxLen) {
         if (email.length <= maxLen) return email;
         const atIndex = email.indexOf('@');
@@ -627,7 +627,7 @@ function createCardHTML(cred) {
     return html;
 }
 
-// 辅助函数
+// Helper functions
 function updateCounts() {
     const total = credentials.length;
     const google = credentials.filter(function(c) { return c.provider && c.provider.toLowerCase() === 'google'; }).length;
@@ -637,11 +637,11 @@ function updateCounts() {
     document.getElementById('tab-count-google').textContent = google;
     document.getElementById('tab-count-github').textContent = github;
 
-    // 更新统计卡片
+    // Update stats cards
     updateStatsCards();
 }
 
-// 更新统计卡片
+// Update stats cards
 function updateStatsCards() {
     let totalQuota = 0;
     let totalUsed = 0;
@@ -677,7 +677,7 @@ function updateStatsCards() {
     document.getElementById('stat-total-remaining').textContent = totalRemaining.toFixed(2);
     document.getElementById('stat-avg-usage').textContent = avgUsage + '%';
 
-    // 根据使用率设置颜色
+    // Set color based on usage rate
     const avgUsageEl = document.getElementById('stat-avg-usage');
     avgUsageEl.className = 'stat-value';
     if (avgUsage > 80) {
@@ -693,17 +693,17 @@ function updateBatchDeleteBtn() {
 }
 
 function formatExpireDate(dateStr) {
-    if (!dateStr) return '未知';
+    if (!dateStr) return 'Unknown';
     const date = new Date(dateStr);
     const now = new Date();
     const diff = date - now;
     const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 0) return '已过期';
-    if (hours < 24) return hours + '小时后';
-    return Math.floor(hours / 24) + '天后';
+    if (hours < 0) return 'Expired';
+    if (hours < 24) return 'In ' + hours + ' hours';
+    return 'In ' + Math.floor(hours / 24) + ' days';
 }
 
-// 模态框函数
+// Modal functions
 function openAddModal() {
     addModal.classList.add('active');
     document.getElementById('add-account-form').reset();
@@ -729,7 +729,7 @@ async function handleBatchImport() {
     const provider = document.getElementById('batch-provider').value;
 
     if (!inputText) {
-        showToast('请输入账号数据', 'error');
+        showToast('Please enter account data', 'error');
         return;
     }
 
@@ -739,7 +739,7 @@ async function handleBatchImport() {
         try {
             accounts = JSON.parse(inputText);
         } catch (err) {
-            showToast('JSON 格式错误: ' + err.message, 'error');
+            showToast('JSON format error: ' + err.message, 'error');
             return;
         }
     } else {
@@ -751,7 +751,7 @@ async function handleBatchImport() {
 
             const spaceIndex = line.indexOf(' ');
             if (spaceIndex === -1) {
-                showToast('第 ' + (i + 1) + ' 行格式错误', 'error');
+                showToast('Line ' + (i + 1) + ' format error', 'error');
                 return;
             }
 
@@ -759,7 +759,7 @@ async function handleBatchImport() {
             const refreshToken = line.substring(spaceIndex + 1).trim();
 
             if (!email || !refreshToken) {
-                showToast('第 ' + (i + 1) + ' 行数据不完整', 'error');
+                showToast('Line ' + (i + 1) + ' data incomplete', 'error');
                 return;
             }
 
@@ -771,7 +771,7 @@ async function handleBatchImport() {
         return Object.assign({}, acc, { provider: provider });
     });
 
-    showToast('正在导入 ' + accounts.length + ' 个账号...', 'warning');
+    showToast('Importing ' + accounts.length + ' accounts...', 'warning');
 
     try {
         const res = await fetch('/api/credentials/batch-import', {
@@ -785,19 +785,19 @@ async function handleBatchImport() {
 
         const result = await res.json();
         if (result.success) {
-            showToast('导入完成: 成功 ' + result.data.success + ', 失败 ' + result.data.failed, 'success');
+            showToast('Import complete: ' + result.data.success + ' succeeded, ' + result.data.failed + ' failed', 'success');
             closeBatchImportModal();
             loadCredentials();
             updateSidebarStats();
         } else {
-            showToast(result.error || '导入失败', 'error');
+            showToast(result.error || 'Import failed', 'error');
         }
     } catch (err) {
-        showToast('网络错误: ' + err.message, 'error');
+        showToast('Network error: ' + err.message, 'error');
     }
 }
 
-// 右键菜单函数
+// Context menu functions
 function showContextMenu(e, id) {
     contextMenuTarget = id;
     contextMenu.style.left = e.clientX + 'px';
