@@ -3,15 +3,15 @@ import mysql from 'mysql2/promise';
 // MySQL connection configuration
 const DB_CONFIG = {
     host: process.env.MYSQL_HOST || '127.0.0.1',
-    port: parseInt(process.env.MYSQL_PORT || '13306'),
+    port: parseInt(process.env.MYSQL_PORT || '3306'),
     user: process.env.MYSQL_USER || 'root',
-    password: process.env.MYSQL_PASSWORD || '',
+    password: process.env.MYSQL_PASSWORD,
     database: process.env.MYSQL_DATABASE || 'kiro_api',
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0,
-    timezone: '+08:00',
-    dateStrings: true  // Return date strings instead of Date objects, avoiding timezone conversion issues
+    timezone: process.env.MYSQL_TIMEZONE || '+00:00',
+    dateStrings: true
 };
 
 let pool = null;
