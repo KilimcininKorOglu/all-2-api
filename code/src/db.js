@@ -353,6 +353,8 @@ export async function initDatabase() {
             disable_credential_lock TINYINT DEFAULT 0,
             warp_debug TINYINT DEFAULT 0,
             orchids_debug TINYINT DEFAULT 0,
+            token_refresh_interval INT DEFAULT 30 COMMENT 'Token refresh interval in minutes',
+            token_refresh_threshold INT DEFAULT 10 COMMENT 'Refresh tokens expiring within N minutes',
             updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
@@ -364,7 +366,9 @@ export async function initDatabase() {
         { name: 'log_console', sql: 'ADD COLUMN log_console TINYINT DEFAULT 1' },
         { name: 'disable_credential_lock', sql: 'ADD COLUMN disable_credential_lock TINYINT DEFAULT 0' },
         { name: 'warp_debug', sql: 'ADD COLUMN warp_debug TINYINT DEFAULT 0' },
-        { name: 'orchids_debug', sql: 'ADD COLUMN orchids_debug TINYINT DEFAULT 0' }
+        { name: 'orchids_debug', sql: 'ADD COLUMN orchids_debug TINYINT DEFAULT 0' },
+        { name: 'token_refresh_interval', sql: "ADD COLUMN token_refresh_interval INT DEFAULT 30 COMMENT 'Token refresh interval in minutes'" },
+        { name: 'token_refresh_threshold', sql: "ADD COLUMN token_refresh_threshold INT DEFAULT 10 COMMENT 'Refresh tokens expiring within N minutes'" }
     ];
     for (const col of newColumns) {
         try {
@@ -3159,7 +3163,9 @@ export class SiteSettingsStore {
                 logConsole: true,
                 disableCredentialLock: false,
                 warpDebug: false,
-                orchidsDebug: false
+                orchidsDebug: false,
+                tokenRefreshInterval: 30,
+                tokenRefreshThreshold: 10
             };
         }
         return this._mapRow(rows[0]);
@@ -3178,6 +3184,8 @@ export class SiteSettingsStore {
         if (settings.disableCredentialLock !== undefined) { fields.push('disable_credential_lock = ?'); values.push(settings.disableCredentialLock ? 1 : 0); }
         if (settings.warpDebug !== undefined) { fields.push('warp_debug = ?'); values.push(settings.warpDebug ? 1 : 0); }
         if (settings.orchidsDebug !== undefined) { fields.push('orchids_debug = ?'); values.push(settings.orchidsDebug ? 1 : 0); }
+        if (settings.tokenRefreshInterval !== undefined) { fields.push('token_refresh_interval = ?'); values.push(settings.tokenRefreshInterval); }
+        if (settings.tokenRefreshThreshold !== undefined) { fields.push('token_refresh_threshold = ?'); values.push(settings.tokenRefreshThreshold); }
 
         if (fields.length > 0) {
             await this.db.execute(`UPDATE site_settings SET ${fields.join(', ')} WHERE id = 1`, values);
@@ -3196,6 +3204,8 @@ export class SiteSettingsStore {
             disableCredentialLock: row.disable_credential_lock === 1,
             warpDebug: row.warp_debug === 1,
             orchidsDebug: row.orchids_debug === 1,
+            tokenRefreshInterval: row.token_refresh_interval || 30,
+            tokenRefreshThreshold: row.token_refresh_threshold || 10,
             updatedAt: row.updated_at
         };
     }

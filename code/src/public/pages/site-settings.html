@@ -375,6 +375,20 @@
                             <div class="form-hint">Enable detailed logging for Orchids API</div>
                         </div>
 
+                        <div class="settings-section-title" style="margin-top: 24px;">Token Refresh</div>
+
+                        <div class="form-group">
+                            <label class="form-label">Refresh Interval (minutes)</label>
+                            <input type="number" class="form-input" id="token-refresh-interval" min="1" max="1440" value="30">
+                            <div class="form-hint">How often to check and refresh tokens (1-1440 minutes)</div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Refresh Threshold (minutes)</label>
+                            <input type="number" class="form-input" id="token-refresh-threshold" min="1" max="60" value="10">
+                            <div class="form-hint">Refresh tokens expiring within this time (1-60 minutes)</div>
+                        </div>
+
                         <div class="form-actions">
                             <button type="submit" class="btn btn-primary" id="system-submit-btn">
                                 <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -433,6 +447,8 @@
             document.getElementById('disable-credential-lock').checked = settings.disableCredentialLock === true;
             document.getElementById('warp-debug').checked = settings.warpDebug === true;
             document.getElementById('orchids-debug').checked = settings.orchidsDebug === true;
+            document.getElementById('token-refresh-interval').value = settings.tokenRefreshInterval || 30;
+            document.getElementById('token-refresh-threshold').value = settings.tokenRefreshThreshold || 10;
         }
 
         // Bind events
@@ -541,6 +557,18 @@
             const disableCredentialLock = document.getElementById('disable-credential-lock').checked;
             const warpDebug = document.getElementById('warp-debug').checked;
             const orchidsDebug = document.getElementById('orchids-debug').checked;
+            const tokenRefreshInterval = parseInt(document.getElementById('token-refresh-interval').value) || 30;
+            const tokenRefreshThreshold = parseInt(document.getElementById('token-refresh-threshold').value) || 10;
+
+            // Validate
+            if (tokenRefreshInterval < 1 || tokenRefreshInterval > 1440) {
+                showToast('Refresh interval must be between 1 and 1440 minutes', 'error');
+                return;
+            }
+            if (tokenRefreshThreshold < 1 || tokenRefreshThreshold > 60) {
+                showToast('Refresh threshold must be between 1 and 60 minutes', 'error');
+                return;
+            }
 
             const submitBtn = document.getElementById('system-submit-btn');
             submitBtn.disabled = true;
@@ -562,7 +590,9 @@
                         logConsole,
                         disableCredentialLock,
                         warpDebug,
-                        orchidsDebug
+                        orchidsDebug,
+                        tokenRefreshInterval,
+                        tokenRefreshThreshold
                     })
                 });
 

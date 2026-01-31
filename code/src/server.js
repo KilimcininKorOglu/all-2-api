@@ -254,12 +254,23 @@ const credentialQueues = new Map();
 let systemSettings = {
     disableCredentialLock: process.env.DISABLE_CREDENTIAL_LOCK === 'true',
     warpDebug: process.env.WARP_DEBUG === 'true',
-    orchidsDebug: process.env.ORCHIDS_DEBUG === 'true'
+    orchidsDebug: process.env.ORCHIDS_DEBUG === 'true',
+    tokenRefreshInterval: 30,  // minutes
+    tokenRefreshThreshold: 10  // minutes
 };
 
 // Check if credential lock is disabled (dynamic)
 function isCredentialLockDisabled() {
     return systemSettings.disableCredentialLock;
+}
+
+// Get token refresh settings (dynamic)
+function getTokenRefreshInterval() {
+    return systemSettings.tokenRefreshInterval * 60 * 1000; // convert to ms
+}
+
+function getTokenRefreshThreshold() {
+    return systemSettings.tokenRefreshThreshold;
 }
 
 /**
@@ -273,6 +284,8 @@ async function loadSystemSettings() {
         systemSettings.disableCredentialLock = settings.disableCredentialLock;
         systemSettings.warpDebug = settings.warpDebug;
         systemSettings.orchidsDebug = settings.orchidsDebug;
+        systemSettings.tokenRefreshInterval = settings.tokenRefreshInterval || 30;
+        systemSettings.tokenRefreshThreshold = settings.tokenRefreshThreshold || 10;
 
         // Apply to logger
         updateLoggerSettings({
@@ -281,7 +294,7 @@ async function loadSystemSettings() {
             logConsole: settings.logConsole
         });
 
-        console.log(`[${getTimestamp()}] [Settings] Loaded from DB: logLevel=${settings.logLevel}, credentialLock=${!settings.disableCredentialLock}`);
+        console.log(`[${getTimestamp()}] [Settings] Loaded from DB: logLevel=${settings.logLevel}, tokenRefresh=${settings.tokenRefreshInterval}min`);
     } catch (error) {
         console.error(`[${getTimestamp()}] [Settings] Failed to load from DB: ${error.message}`);
     }
@@ -1099,7 +1112,8 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
         const {
             siteName, siteLogo, siteSubtitle,
             logLevel, logEnabled, logConsole,
-            disableCredentialLock, warpDebug, orchidsDebug
+            disableCredentialLock, warpDebug, orchidsDebug,
+            tokenRefreshInterval, tokenRefreshThreshold
         } = req.body;
 
         // Validate siteLogo length
@@ -1113,6 +1127,14 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
             return res.status(400).json({ success: false, error: 'Invalid log level' });
         }
 
+        // Validate token refresh settings
+        if (tokenRefreshInterval !== undefined && (tokenRefreshInterval < 1 || tokenRefreshInterval > 1440)) {
+            return res.status(400).json({ success: false, error: 'Token refresh interval must be between 1 and 1440 minutes' });
+        }
+        if (tokenRefreshThreshold !== undefined && (tokenRefreshThreshold < 1 || tokenRefreshThreshold > 60)) {
+            return res.status(400).json({ success: false, error: 'Token refresh threshold must be between 1 and 60 minutes' });
+        }
+
         // Build update object (only include provided fields)
         const updateData = {};
         if (siteName !== undefined) updateData.siteName = siteName || 'Hermes';
@@ -1124,6 +1146,8 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
         if (disableCredentialLock !== undefined) updateData.disableCredentialLock = disableCredentialLock;
         if (warpDebug !== undefined) updateData.warpDebug = warpDebug;
         if (orchidsDebug !== undefined) updateData.orchidsDebug = orchidsDebug;
+        if (tokenRefreshInterval !== undefined) updateData.tokenRefreshInterval = tokenRefreshInterval;
+        if (tokenRefreshThreshold !== undefined) updateData.tokenRefreshThreshold = tokenRefreshThreshold;
 
         const settings = await siteSettingsStore.update(updateData);
 
@@ -1131,6 +1155,8 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
         systemSettings.disableCredentialLock = settings.disableCredentialLock;
         systemSettings.warpDebug = settings.warpDebug;
         systemSettings.orchidsDebug = settings.orchidsDebug;
+        systemSettings.tokenRefreshInterval = settings.tokenRefreshInterval;
+        systemSettings.tokenRefreshThreshold = settings.tokenRefreshThreshold;
 
         // Apply logger settings dynamically
         updateLoggerSettings({
@@ -5577,18 +5603,17 @@ function getTimestamp() {
 }
 
 // ============ Unified Token Refresh Task (All Providers) ============
-const TOKEN_REFRESH_INTERVAL = 30 * 60 * 1000; // 30 minutes
-const TOKEN_EXPIRY_THRESHOLD = 10; // Refresh if expiring within 10 minutes
 
 /**
- * Check if token is expiring soon
+ * Check if token is expiring soon (uses dynamic threshold from settings)
  */
-function isTokenExpiringSoon(expiresAt, minutes = TOKEN_EXPIRY_THRESHOLD) {
+function isTokenExpiringSoon(expiresAt, minutes = null) {
+    const threshold = minutes !== null ? minutes : getTokenRefreshThreshold();
     if (!expiresAt) return false;
     try {
         const expirationTime = new Date(expiresAt);
         const currentTime = new Date();
-        const thresholdTime = new Date(currentTime.getTime() + minutes * 60 * 1000);
+        const thresholdTime = new Date(currentTime.getTime() + threshold * 60 * 1000);
         return expirationTime.getTime() <= thresholdTime.getTime();
     } catch {
         return false;
@@ -5811,7 +5836,7 @@ async function runUnifiedTokenRefresh() {
     try {
         const warpCredentials = await warpStore.getAll();
         for (const cred of warpCredentials) {
-            if (cred.refreshToken && cred.accessToken && isTokenExpired(cred.accessToken, TOKEN_EXPIRY_THRESHOLD)) {
+            if (cred.refreshToken && cred.accessToken && isTokenExpired(cred.accessToken, getTokenRefreshThreshold())) {
                 stats.warp.total++;
                 if (await refreshWarpCredential(cred)) {
                     stats.warp.refreshed++;
@@ -5836,16 +5861,24 @@ async function runUnifiedTokenRefresh() {
 }
 
 /**
- * Start unified token refresh task
+ * Start unified token refresh task (uses dynamic interval from settings)
  */
 function startUnifiedTokenRefreshTask() {
-    console.log(`[${getTimestamp()}] [Token Refresh] Task started (interval: 30min, threshold: ${TOKEN_EXPIRY_THRESHOLD}min)`);
+    const interval = systemSettings.tokenRefreshInterval;
+    const threshold = systemSettings.tokenRefreshThreshold;
+    console.log(`[${getTimestamp()}] [Token Refresh] Task started (interval: ${interval}min, threshold: ${threshold}min)`);
 
     // Run immediately on startup (after 5 seconds)
     setTimeout(() => runUnifiedTokenRefresh(), 5000);
 
-    // Then run every 30 minutes
-    setInterval(() => runUnifiedTokenRefresh(), TOKEN_REFRESH_INTERVAL);
+    // Schedule next run using dynamic interval (re-reads interval each time)
+    const scheduleNext = () => {
+        setTimeout(async () => {
+            await runUnifiedTokenRefresh();
+            scheduleNext();
+        }, getTokenRefreshInterval());
+    };
+    scheduleNext();
 }
 
 start();
