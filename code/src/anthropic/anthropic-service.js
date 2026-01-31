@@ -102,6 +102,11 @@ export async function sendMessage(request, account) {
         request.model = resolveModelAlias(request.model);
     }
 
+    // OAuth tokens require the Claude Code system prompt
+    if (isOAuthToken(account.accessToken) && !request.system) {
+        request.system = CLAUDE_CODE_SYSTEM_PROMPT;
+    }
+
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT);
 
@@ -160,6 +165,11 @@ export async function* sendMessageStream(request, account) {
     // Resolve model alias
     if (request.model) {
         request.model = resolveModelAlias(request.model);
+    }
+
+    // OAuth tokens require the Claude Code system prompt
+    if (isOAuthToken(account.accessToken) && !request.system) {
+        request.system = CLAUDE_CODE_SYSTEM_PROMPT;
     }
 
     const controller = new AbortController();

@@ -1781,6 +1781,114 @@ app.post('/v1/messages', async (req, res) => {
             return;
         }
 
+        // ============ Check if routing to Anthropic is needed ============
+        const isAnthropicProvider = modelProvider.toLowerCase() === 'anthropic' ||
+                                    (model && isAnthropicModel(model) && !isGeminiProvider && !isOrchidsProvider);
+
+        if (isAnthropicProvider) {
+            console.log(`[${getTimestamp()}] [API] Request routed to Anthropic Provider | Model: ${model}`);
+            logData.path = '/v1/messages (anthropic)';
+
+            const { messages, max_tokens, stream, system, tools, thinking } = req.body;
+
+            // Get Anthropic credentials
+            const anthropicCredentials = await anthropicStore.getActive();
+            if (anthropicCredentials.length === 0) {
+                decrementConcurrent(keyRecord.id, clientIp);
+                logData.statusCode = 503;
+                logData.errorMessage = 'No available Anthropic credentials';
+                await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
+                return res.status(503).json({ error: { type: 'service_error', message: 'No available Anthropic credentials' } });
+            }
+
+            // Select credential (round-robin or least-used)
+            const anthropicCredential = anthropicCredentials.reduce((a, b) =>
+                (a.useCount || 0) <= (b.useCount || 0) ? a : b
+            );
+
+            console.log(`[${getTimestamp()}] [Anthropic] Using account: ${anthropicCredential.name}`);
+            logData.credentialId = anthropicCredential.id;
+            logData.credentialName = anthropicCredential.name;
+            logData.model = model || 'claude-sonnet-4-20250514';
+            logData.stream = !!stream;
+
+            // Build request body
+            const anthropicRequest = {
+                model: model || 'claude-sonnet-4-20250514',
+                messages,
+                max_tokens: max_tokens || 4096
+            };
+            if (system) anthropicRequest.system = system;
+            if (tools) anthropicRequest.tools = tools;
+            if (thinking) anthropicRequest.thinking = thinking;
+
+            try {
+                if (stream) {
+                    // Streaming response
+                    res.setHeader('Content-Type', 'text/event-stream');
+                    res.setHeader('Cache-Control', 'no-cache');
+                    res.setHeader('Connection', 'keep-alive');
+                    res.setHeader('X-Accel-Buffering', 'no');
+
+                    let outputTokens = 0;
+                    try {
+                        for await (const event of sendAnthropicMessageStream(anthropicRequest, anthropicCredential)) {
+                            if (event.type === 'rate_limits') {
+                                // Update rate limits in DB
+                                if (event.rateLimits) {
+                                    await anthropicStore.updateRateLimits(anthropicCredential.id, event.rateLimits);
+                                }
+                                continue;
+                            }
+                            res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+                            if (event.type === 'message_delta' && event.usage?.output_tokens) {
+                                outputTokens = event.usage.output_tokens;
+                            }
+                        }
+                        logData.outputTokens = outputTokens;
+                        logData.statusCode = 200;
+                        await anthropicStore.recordUsage(anthropicCredential.id);
+                    } catch (streamError) {
+                        console.error(`[${getTimestamp()}] [Anthropic] Stream error:`, streamError.message);
+                        const errorEvent = {
+                            type: 'error',
+                            error: { type: 'api_error', message: streamError.message }
+                        };
+                        res.write(`event: error\ndata: ${JSON.stringify(errorEvent)}\n\n`);
+                        logData.statusCode = streamError.status || 500;
+                        logData.errorMessage = streamError.message;
+                        await anthropicStore.recordError(anthropicCredential.id, streamError.message);
+                    }
+                    res.end();
+                } else {
+                    // Non-streaming response
+                    const result = await sendAnthropicMessage(anthropicRequest, anthropicCredential);
+                    logData.outputTokens = result.data?.usage?.output_tokens || 0;
+                    logData.statusCode = 200;
+                    await anthropicStore.recordUsage(anthropicCredential.id);
+
+                    // Update rate limits
+                    if (result.rateLimits) {
+                        await anthropicStore.updateRateLimits(anthropicCredential.id, result.rateLimits);
+                    }
+
+                    res.json(result.data);
+                }
+            } catch (error) {
+                console.error(`[${getTimestamp()}] [Anthropic] Error:`, error.message);
+                logData.statusCode = error.status || 500;
+                logData.errorMessage = error.message;
+                await anthropicStore.recordError(anthropicCredential.id, error.message);
+                res.status(error.status || 500).json({
+                    error: { type: 'api_error', message: error.message }
+                });
+            } finally {
+                decrementConcurrent(keyRecord.id, clientIp);
+                await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
+            }
+            return;
+        }
+
         // ============ Default to Kiro/Claude Provider ============
         const { messages, max_tokens, stream, system, tools, thinking } = req.body;
 
@@ -2868,6 +2976,153 @@ app.post('/v1/chat/completions', async (req, res) => {
         await apiKeyStore.updateLastUsed(keyRecord.id);
 
         const { model, messages, max_tokens, stream, temperature, top_p, tools, tool_choice } = req.body;
+
+        // ============ Model-Provider Routing Support ============
+        const modelProvider = req.headers['model-provider'] || req.headers['x-model-provider'] || '';
+
+        // Check if routing to Anthropic is needed
+        const isAnthropicProvider = modelProvider.toLowerCase() === 'anthropic' ||
+                                    (model && isAnthropicModel(model) && modelProvider.toLowerCase() !== 'kiro');
+
+        if (isAnthropicProvider) {
+            console.log(`[${getTimestamp()}] [OpenAI API] Request routed to Anthropic Provider | Model: ${model}`);
+            logData.path = '/v1/chat/completions (anthropic)';
+
+            // Get Anthropic credentials
+            const anthropicCredentials = await anthropicStore.getActive();
+            if (anthropicCredentials.length === 0) {
+                decrementConcurrent(keyRecord.id, clientIp);
+                logData.statusCode = 503;
+                logData.errorMessage = 'No available Anthropic credentials';
+                await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
+                return res.status(503).json({ error: { message: 'No available Anthropic credentials', type: 'service_error' } });
+            }
+
+            // Select credential (least-used)
+            const anthropicCredential = anthropicCredentials.reduce((a, b) =>
+                (a.useCount || 0) <= (b.useCount || 0) ? a : b
+            );
+
+            console.log(`[${getTimestamp()}] [Anthropic] Using account: ${anthropicCredential.name}`);
+            logData.credentialId = anthropicCredential.id;
+            logData.credentialName = anthropicCredential.name;
+            logData.model = model || 'claude-sonnet-4-20250514';
+            logData.stream = !!stream;
+
+            // Convert OpenAI messages to Claude format
+            let systemPrompt = '';
+            const convertedMsgs = [];
+            for (const msg of messages) {
+                if (msg.role === 'system') {
+                    systemPrompt += (systemPrompt ? '\n' : '') + (typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content));
+                } else if (msg.role === 'user' || msg.role === 'assistant') {
+                    convertedMsgs.push({ role: msg.role, content: msg.content });
+                }
+            }
+
+            // Build Anthropic request
+            const anthropicRequest = {
+                model: model || 'claude-sonnet-4-20250514',
+                messages: convertedMsgs,
+                max_tokens: max_tokens || 4096
+            };
+            if (systemPrompt) anthropicRequest.system = systemPrompt;
+            if (tools) {
+                anthropicRequest.tools = tools.map(t => ({
+                    name: t.function?.name || t.name,
+                    description: t.function?.description || t.description || '',
+                    input_schema: t.function?.parameters || t.input_schema || {}
+                }));
+            }
+
+            try {
+                if (stream) {
+                    res.setHeader('Content-Type', 'text/event-stream');
+                    res.setHeader('Cache-Control', 'no-cache');
+                    res.setHeader('Connection', 'keep-alive');
+
+                    let fullText = '';
+                    let outputTokens = 0;
+
+                    for await (const event of sendAnthropicMessageStream(anthropicRequest, anthropicCredential)) {
+                        if (event.type === 'rate_limits') {
+                            if (event.rateLimits) await anthropicStore.updateRateLimits(anthropicCredential.id, event.rateLimits);
+                            continue;
+                        }
+                        // Convert to OpenAI SSE format
+                        if (event.type === 'content_block_delta' && event.delta?.text) {
+                            fullText += event.delta.text;
+                            const openAIChunk = {
+                                id: requestId,
+                                object: 'chat.completion.chunk',
+                                created: Math.floor(Date.now() / 1000),
+                                model: model,
+                                choices: [{
+                                    index: 0,
+                                    delta: { content: event.delta.text },
+                                    finish_reason: null
+                                }]
+                            };
+                            res.write(`data: ${JSON.stringify(openAIChunk)}\n\n`);
+                        } else if (event.type === 'message_delta' && event.usage) {
+                            outputTokens = event.usage.output_tokens || 0;
+                        } else if (event.type === 'message_stop') {
+                            const finalChunk = {
+                                id: requestId,
+                                object: 'chat.completion.chunk',
+                                created: Math.floor(Date.now() / 1000),
+                                model: model,
+                                choices: [{ index: 0, delta: {}, finish_reason: 'stop' }]
+                            };
+                            res.write(`data: ${JSON.stringify(finalChunk)}\n\n`);
+                        }
+                    }
+                    res.write('data: [DONE]\n\n');
+                    res.end();
+
+                    logData.outputTokens = outputTokens;
+                    logData.statusCode = 200;
+                    await anthropicStore.recordUsage(anthropicCredential.id);
+                } else {
+                    const result = await sendAnthropicMessage(anthropicRequest, anthropicCredential);
+                    if (result.rateLimits) await anthropicStore.updateRateLimits(anthropicCredential.id, result.rateLimits);
+
+                    // Convert to OpenAI format
+                    const content = result.data.content?.map(c => c.text).join('') || '';
+                    const openAIResponse = {
+                        id: requestId,
+                        object: 'chat.completion',
+                        created: Math.floor(Date.now() / 1000),
+                        model: model,
+                        choices: [{
+                            index: 0,
+                            message: { role: 'assistant', content },
+                            finish_reason: result.data.stop_reason === 'end_turn' ? 'stop' : result.data.stop_reason
+                        }],
+                        usage: {
+                            prompt_tokens: result.data.usage?.input_tokens || 0,
+                            completion_tokens: result.data.usage?.output_tokens || 0,
+                            total_tokens: (result.data.usage?.input_tokens || 0) + (result.data.usage?.output_tokens || 0)
+                        }
+                    };
+
+                    logData.outputTokens = result.data.usage?.output_tokens || 0;
+                    logData.statusCode = 200;
+                    await anthropicStore.recordUsage(anthropicCredential.id);
+                    res.json(openAIResponse);
+                }
+            } catch (error) {
+                console.error(`[${getTimestamp()}] [Anthropic] Error:`, error.message);
+                logData.statusCode = error.status || 500;
+                logData.errorMessage = error.message;
+                await anthropicStore.recordError(anthropicCredential.id, error.message);
+                res.status(error.status || 500).json({ error: { message: error.message, type: 'api_error' } });
+            } finally {
+                decrementConcurrent(keyRecord.id, clientIp);
+                await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
+            }
+            return;
+        }
 
         // Convert OpenAI message format to Claude format
         let systemPrompt = '';
