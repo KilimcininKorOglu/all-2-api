@@ -37,6 +37,9 @@ import bedrockRoutes from './bedrock/bedrock-routes.js';
 import { ANTHROPIC_MODELS, isAnthropicModel, sendMessage as sendAnthropicMessage, sendMessageStream as sendAnthropicMessageStream, verifyCredentials as verifyAnthropicCredentials } from './anthropic/index.js';
 import { startUnifiedQuotaRefreshTask } from './quota-refresh.js';
 import { updateLoggerSettings } from './logger.js';
+import swaggerUi from 'swagger-ui-express';
+import publicApiSpec from './swagger/public-api.js';
+import adminApiSpec from './swagger/admin-api.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -1003,6 +1006,32 @@ async function authMiddleware(req, res, next) {
     req.user = await userStore.getById(session.userId);
     next();
 }
+
+// ============ Swagger API Documentation ============
+
+// Public API Documentation
+app.use('/api-docs', swaggerUi.serveFiles(publicApiSpec), swaggerUi.setup(publicApiSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Kiro API - Public API Documentation',
+    swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true
+    }
+}));
+
+// Admin API Documentation
+app.use('/admin-docs', swaggerUi.serveFiles(adminApiSpec), swaggerUi.setup(adminApiSpec, {
+    customCss: '.swagger-ui .topbar { display: none }',
+    customSiteTitle: 'Kiro API - Admin API Documentation',
+    swaggerOptions: {
+        persistAuthorization: true,
+        displayRequestDuration: true
+    }
+}));
+
+// OpenAPI spec endpoints (for programmatic access)
+app.get('/api/openapi/public', (req, res) => res.json(publicApiSpec));
+app.get('/api/openapi/admin', (req, res) => res.json(adminApiSpec));
 
 // ============ Public API Endpoints (No Authentication Required) ============
 
