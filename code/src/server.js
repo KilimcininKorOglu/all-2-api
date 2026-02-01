@@ -3035,6 +3035,9 @@ app.post('/v1/chat/completions', async (req, res) => {
                 }));
             }
 
+            // Calculate input tokens for logging
+            logData.inputTokens = Math.ceil(JSON.stringify(messages).length / 4);
+
             try {
                 if (stream) {
                     res.setHeader('Content-Type', 'text/event-stream');
@@ -3106,6 +3109,7 @@ app.post('/v1/chat/completions', async (req, res) => {
                         }
                     };
 
+                    logData.inputTokens = result.data.usage?.input_tokens || logData.inputTokens;
                     logData.outputTokens = result.data.usage?.output_tokens || 0;
                     logData.statusCode = 200;
                     await anthropicStore.recordUsage(anthropicCredential.id);

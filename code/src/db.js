@@ -1355,13 +1355,15 @@ export class ApiLogStore {
         return rows.map(row => this._mapRow(row));
     }
 
-    async getStats(apiKeyId = null, startDate = null, endDate = null) {
+    async getStats(options = {}) {
+        const { apiKeyId, startDate, endDate } = options;
         let query = `
             SELECT
                 COUNT(*) as total_requests,
-                SUM(input_tokens) as total_input_tokens,
-                SUM(output_tokens) as total_output_tokens,
-                AVG(duration_ms) as avg_duration_ms
+                COALESCE(SUM(input_tokens), 0) as total_input_tokens,
+                COALESCE(SUM(output_tokens), 0) as total_output_tokens,
+                COALESCE(AVG(duration_ms), 0) as avg_duration_ms,
+                SUM(CASE WHEN status_code >= 400 THEN 1 ELSE 0 END) as error_count
             FROM api_logs
             WHERE 1=1
         `;
@@ -1381,7 +1383,14 @@ export class ApiLogStore {
         }
 
         const [rows] = await this.db.execute(query, params);
-        return rows[0];
+        const row = rows[0];
+        return {
+            totalRequests: Number(row.total_requests) || 0,
+            totalInputTokens: Number(row.total_input_tokens) || 0,
+            totalOutputTokens: Number(row.total_output_tokens) || 0,
+            avgDuration: Math.round(Number(row.avg_duration_ms) || 0),
+            errorCount: Number(row.error_count) || 0
+        };
     }
 
     _mapRow(row) {
