@@ -764,7 +764,62 @@ export class KiroService {
     _finalizeToolCall(toolCall) {
         let input = toolCall.input;
         try { input = JSON.parse(toolCall.input); } catch (e) { }
+
+        // Check for Write/Create tool truncation (content field missing or empty)
+        if (this._isWriteToolTruncated(toolCall.name, input)) {
+            return this._createTruncatedWriteError(toolCall, input);
+        }
+
         return { toolUseId: toolCall.toolUseId, name: toolCall.name, input };
+    }
+
+    /**
+     * Check if Write/Create tool input was truncated by Kiro API
+     * This happens when file content is too large to transmit
+     */
+    _isWriteToolTruncated(toolName, input) {
+        const writeTools = ['Write', 'write', 'Create', 'create', 'write_file', 'create_file'];
+        if (!writeTools.includes(toolName)) return false;
+
+        // Check for truncation scenarios:
+        // 1. Empty input (no input transmitted at all)
+        if (!input || (typeof input === 'string' && input.trim() === '')) {
+            return true;
+        }
+
+        // 2. Object with file_path but no content field
+        if (typeof input === 'object') {
+            const hasPath = input.file_path || input.path || input.filename;
+            const hasContent = input.content !== undefined && input.content !== null && input.content !== '';
+            if (hasPath && !hasContent) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Create a Bash tool that echoes error message for truncated Write tool
+     * This allows Claude Code to see the error and retry with smaller chunks
+     */
+    _createTruncatedWriteError(toolCall, input) {
+        const filePath = typeof input === 'object' ? (input.file_path || input.path || input.filename || '') : '';
+
+        let errorMsg;
+        if (filePath) {
+            errorMsg = `echo '[WRITE TOOL ERROR] The file content for "${filePath}" is too large to be transmitted by the upstream API. You MUST retry by writing the file in smaller chunks: First use Write to create the file with the first 700 lines, then use multiple Edit operations to append the remaining content in chunks of ~700 lines each.'`;
+        } else {
+            errorMsg = `echo '[WRITE TOOL ERROR] The file content is too large to be transmitted by the upstream API. The Write tool input was truncated. You MUST retry by writing the file in smaller chunks: First use Write to create the file with the first 700 lines, then use multiple Edit operations to append the remaining content in chunks of ~700 lines each.'`;
+        }
+
+        log.warn(`[KiroService] Write tool truncated for file: ${filePath || 'unknown'}, converting to Bash error`);
+
+        return {
+            toolUseId: toolCall.toolUseId,
+            name: 'Bash',
+            input: { command: errorMsg }
+        };
     }
 
     listModels() {
