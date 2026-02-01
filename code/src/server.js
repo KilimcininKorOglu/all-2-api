@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, SessionStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, SessionStore, ModelAliasStore, initDatabase } from './db.js';
 import { StrategyFactory, getStrategyManager, ThinkingBlocksParser } from './selection/index.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
@@ -104,6 +104,7 @@ let selectionConfigStore = null;
 let thinkingSignatureCacheStore = null;
 let sessionStore = null;
 let thinkingBlocksParser = null;
+let modelAliasStore = null;
 
 // Credential 403 error counter
 const credential403Counter = new Map();
@@ -258,7 +259,11 @@ let systemSettings = {
     tokenRefreshInterval: 30,   // minutes
     tokenRefreshThreshold: 10,  // minutes
     quotaRefreshInterval: 5,    // minutes
-    selectionStrategy: 'hybrid' // hybrid, sticky, round-robin
+    selectionStrategy: 'hybrid', // hybrid, sticky, round-robin
+    defaultProvider: 'kiro',
+    enabledProviders: ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'],
+    providerPriority: ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'],
+    modelRouting: {}
 };
 
 // Check if credential lock is disabled (dynamic)
@@ -285,6 +290,90 @@ function getSelectionStrategy() {
     return systemSettings.selectionStrategy;
 }
 
+// Check if provider is enabled
+function isProviderEnabled(provider) {
+    return systemSettings.enabledProviders.includes(provider);
+}
+
+// Get provider for model based on routing rules and settings
+function getProviderForModel(model, headerProvider) {
+    // 1. If header explicitly specifies a provider, use it (if enabled)
+    if (headerProvider) {
+        const normalizedHeader = headerProvider.toLowerCase();
+        if (isProviderEnabled(normalizedHeader)) {
+            return normalizedHeader;
+        }
+    }
+
+    // 2. Check custom model routing rules
+    if (model && systemSettings.modelRouting) {
+        for (const [pattern, provider] of Object.entries(systemSettings.modelRouting)) {
+            // Support wildcard patterns (e.g., "gpt-4*", "claude-*")
+            const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$', 'i');
+            if (regex.test(model) && isProviderEnabled(provider)) {
+                return provider;
+            }
+        }
+    }
+
+    // 3. Return default provider if enabled
+    if (isProviderEnabled(systemSettings.defaultProvider)) {
+        return systemSettings.defaultProvider;
+    }
+
+    // 4. Fallback to first enabled provider
+    return systemSettings.enabledProviders[0] || 'kiro';
+}
+
+// Model alias cache (refreshed periodically)
+let modelAliasCache = {};
+let modelAliasCacheTime = 0;
+const MODEL_ALIAS_CACHE_TTL = 60000; // 1 minute
+
+/**
+ * Load model aliases from database into cache
+ */
+async function refreshModelAliasCache() {
+    try {
+        if (!modelAliasStore) return;
+        modelAliasCache = await modelAliasStore.getAliasMap();
+        modelAliasCacheTime = Date.now();
+    } catch (error) {
+        console.error(`[${getTimestamp()}] [ModelAlias] Failed to refresh cache: ${error.message}`);
+    }
+}
+
+/**
+ * Resolve model alias to actual model name
+ * Priority: Database aliases > Hardcoded mappings > Original model name
+ * @param {string} model - Input model name
+ * @param {string} provider - Target provider (optional, for provider-specific aliases)
+ * @returns {string} Resolved model name
+ */
+async function resolveModelAlias(model, provider = null) {
+    if (!model) return model;
+
+    // Refresh cache if stale
+    if (Date.now() - modelAliasCacheTime > MODEL_ALIAS_CACHE_TTL) {
+        await refreshModelAliasCache();
+    }
+
+    // 1. Check database aliases (provider-specific first, then global)
+    if (provider && modelAliasCache[provider] && modelAliasCache[provider][model]) {
+        return modelAliasCache[provider][model];
+    }
+
+    // Check all providers for this alias
+    for (const [p, aliases] of Object.entries(modelAliasCache)) {
+        if (aliases[model]) {
+            return aliases[model];
+        }
+    }
+
+    // 2. Return original model name (hardcoded mappings are handled in each provider's service)
+    return model;
+}
+
 /**
  * Load and apply system settings from database
  */
@@ -300,6 +389,10 @@ async function loadSystemSettings() {
         systemSettings.tokenRefreshThreshold = settings.tokenRefreshThreshold || 10;
         systemSettings.quotaRefreshInterval = settings.quotaRefreshInterval || 5;
         systemSettings.selectionStrategy = settings.selectionStrategy || 'hybrid';
+        systemSettings.defaultProvider = settings.defaultProvider || 'kiro';
+        systemSettings.enabledProviders = settings.enabledProviders || ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
+        systemSettings.providerPriority = settings.providerPriority || ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
+        systemSettings.modelRouting = settings.modelRouting || {};
 
         // Apply to logger
         updateLoggerSettings({
@@ -308,7 +401,7 @@ async function loadSystemSettings() {
             logConsole: settings.logConsole
         });
 
-        console.log(`[${getTimestamp()}] [Settings] Loaded from DB: strategy=${settings.selectionStrategy}, quotaRefresh=${settings.quotaRefreshInterval}min`);
+        console.log(`[${getTimestamp()}] [Settings] Loaded from DB: strategy=${settings.selectionStrategy}, defaultProvider=${settings.defaultProvider}, quotaRefresh=${settings.quotaRefreshInterval}min`);
     } catch (error) {
         console.error(`[${getTimestamp()}] [Settings] Failed to load from DB: ${error.message}`);
     }
@@ -1201,6 +1294,253 @@ app.put('/api/site-settings', authMiddleware, async (req, res) => {
     }
 });
 
+// ============ Provider Settings ============
+
+const ALL_PROVIDERS = ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
+
+// Get provider settings
+app.get('/api/provider-settings', authMiddleware, async (req, res) => {
+    try {
+        const settings = await siteSettingsStore.get();
+        res.json({
+            success: true,
+            data: {
+                defaultProvider: settings.defaultProvider,
+                enabledProviders: settings.enabledProviders,
+                providerPriority: settings.providerPriority,
+                modelRouting: settings.modelRouting
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update provider settings
+app.put('/api/provider-settings', authMiddleware, async (req, res) => {
+    try {
+        const { defaultProvider, enabledProviders, providerPriority, modelRouting } = req.body;
+
+        // Validate defaultProvider
+        if (defaultProvider && !ALL_PROVIDERS.includes(defaultProvider)) {
+            return res.status(400).json({ success: false, error: 'Invalid default provider' });
+        }
+
+        // Validate enabledProviders
+        if (enabledProviders) {
+            if (!Array.isArray(enabledProviders)) {
+                return res.status(400).json({ success: false, error: 'enabledProviders must be an array' });
+            }
+            for (const p of enabledProviders) {
+                if (!ALL_PROVIDERS.includes(p)) {
+                    return res.status(400).json({ success: false, error: `Invalid provider: ${p}` });
+                }
+            }
+        }
+
+        // Validate providerPriority
+        if (providerPriority) {
+            if (!Array.isArray(providerPriority)) {
+                return res.status(400).json({ success: false, error: 'providerPriority must be an array' });
+            }
+            for (const p of providerPriority) {
+                if (!ALL_PROVIDERS.includes(p)) {
+                    return res.status(400).json({ success: false, error: `Invalid provider in priority: ${p}` });
+                }
+            }
+        }
+
+        // Validate modelRouting
+        if (modelRouting && typeof modelRouting !== 'object') {
+            return res.status(400).json({ success: false, error: 'modelRouting must be an object' });
+        }
+
+        const updateData = {};
+        if (defaultProvider !== undefined) updateData.defaultProvider = defaultProvider;
+        if (enabledProviders !== undefined) updateData.enabledProviders = enabledProviders;
+        if (providerPriority !== undefined) updateData.providerPriority = providerPriority;
+        if (modelRouting !== undefined) updateData.modelRouting = modelRouting;
+
+        const settings = await siteSettingsStore.update(updateData);
+
+        // Update system settings cache
+        systemSettings.defaultProvider = settings.defaultProvider;
+        systemSettings.enabledProviders = settings.enabledProviders;
+        systemSettings.providerPriority = settings.providerPriority;
+        systemSettings.modelRouting = settings.modelRouting;
+
+        res.json({
+            success: true,
+            data: {
+                defaultProvider: settings.defaultProvider,
+                enabledProviders: settings.enabledProviders,
+                providerPriority: settings.providerPriority,
+                modelRouting: settings.modelRouting
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// ============ Model Aliases ============
+
+const VALID_PROVIDERS = ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
+
+// Get all model aliases
+app.get('/api/model-aliases', authMiddleware, async (req, res) => {
+    try {
+        const { provider } = req.query;
+        let aliases;
+
+        if (provider) {
+            aliases = await modelAliasStore.getByProvider(provider);
+        } else {
+            aliases = await modelAliasStore.getAll();
+        }
+
+        res.json({ success: true, data: aliases });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get alias map (for quick lookup)
+app.get('/api/model-aliases/map', authMiddleware, async (req, res) => {
+    try {
+        const { provider } = req.query;
+        const map = await modelAliasStore.getAliasMap(provider || null);
+        res.json({ success: true, data: map });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Create new model alias
+app.post('/api/model-aliases', authMiddleware, async (req, res) => {
+    try {
+        const { alias, provider, targetModel, description, priority } = req.body;
+
+        if (!alias || !provider || !targetModel) {
+            return res.status(400).json({ success: false, error: 'alias, provider, and targetModel are required' });
+        }
+
+        if (!VALID_PROVIDERS.includes(provider)) {
+            return res.status(400).json({ success: false, error: `Invalid provider. Must be one of: ${VALID_PROVIDERS.join(', ')}` });
+        }
+
+        const id = await modelAliasStore.create({
+            alias: alias.trim(),
+            provider,
+            targetModel: targetModel.trim(),
+            description: description?.trim() || null,
+            priority: priority || 0
+        });
+
+        const created = await modelAliasStore.getById(id);
+        res.json({ success: true, data: created });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ success: false, error: 'This alias already exists for the specified provider' });
+        }
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update model alias
+app.put('/api/model-aliases/:id', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { alias, provider, targetModel, description, isActive, priority } = req.body;
+
+        const existing = await modelAliasStore.getById(id);
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Alias not found' });
+        }
+
+        if (provider && !VALID_PROVIDERS.includes(provider)) {
+            return res.status(400).json({ success: false, error: `Invalid provider. Must be one of: ${VALID_PROVIDERS.join(', ')}` });
+        }
+
+        await modelAliasStore.update(id, {
+            alias: alias?.trim(),
+            provider,
+            targetModel: targetModel?.trim(),
+            description: description?.trim(),
+            isActive,
+            priority
+        });
+
+        const updated = await modelAliasStore.getById(id);
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(400).json({ success: false, error: 'This alias already exists for the specified provider' });
+        }
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete model alias
+app.delete('/api/model-aliases/:id', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const existing = await modelAliasStore.getById(id);
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Alias not found' });
+        }
+
+        await modelAliasStore.delete(id);
+        res.json({ success: true, message: 'Alias deleted' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Toggle alias active status
+app.post('/api/model-aliases/:id/toggle', authMiddleware, async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const existing = await modelAliasStore.getById(id);
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Alias not found' });
+        }
+
+        const isActive = await modelAliasStore.toggleActive(id);
+        res.json({ success: true, data: { id: parseInt(id), isActive } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Bulk import aliases
+app.post('/api/model-aliases/bulk', authMiddleware, async (req, res) => {
+    try {
+        const { aliases } = req.body;
+
+        if (!Array.isArray(aliases) || aliases.length === 0) {
+            return res.status(400).json({ success: false, error: 'aliases array is required' });
+        }
+
+        // Validate all aliases
+        for (const alias of aliases) {
+            if (!alias.alias || !alias.provider || !alias.targetModel) {
+                return res.status(400).json({ success: false, error: 'Each alias must have alias, provider, and targetModel' });
+            }
+            if (!VALID_PROVIDERS.includes(alias.provider)) {
+                return res.status(400).json({ success: false, error: `Invalid provider: ${alias.provider}` });
+            }
+        }
+
+        const result = await modelAliasStore.bulkCreate(aliases);
+        res.json({ success: true, data: result });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ API Key Management ============
 
 // Get current user's API key list
@@ -1502,7 +1842,7 @@ async function executeWithFallback(options) {
 
     for (let attempt = 0; attempt < maxRetries && attempt < credentials.length; attempt++) {
         // Select credential (excluding already tried ones)
-        const credential = selectBestCredential(credentials, triedCredentialIds);
+        const credential = await selectBestCredential(credentials, triedCredentialIds);
         if (!credential) {
             break;
         }
@@ -3161,8 +3501,8 @@ app.post('/v1/chat/completions', async (req, res) => {
         }
 
         // Smart credential selection (prefer idle ones, if all busy select shortest queue)
-        let credential = selectBestCredential(credentials);
-        // console.log(`[${getTimestamp()}] [Credential Dispatch] Selected credential ${credential.id} (${credential.name}) | Available credentials: ${credentials.length}`);
+        let credential = await selectBestCredential(credentials);
+        console.log(`[${getTimestamp()}] [OpenAI API] Using Kiro account: ${credential.id} - ${credential.name}`);
         logData.credentialId = credential.id;
         logData.credentialName = credential.name;
 
@@ -3300,6 +3640,9 @@ app.post('/v1/chat/completions', async (req, res) => {
                 // Release credential lock
                 releaseCredentialLock(credential.id);
 
+                // Increment use count
+                await store.incrementUseCount(credential.id);
+
                 // console.log(`[${getTimestamp()}] [OpenAI] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${durationMs}ms | in:${inputTokens} out:${outputTokens}`);
 
             } catch (streamError) {
@@ -3332,6 +3675,9 @@ app.post('/v1/chat/completions', async (req, res) => {
 
             // Release credential lock
             releaseCredentialLock(credential.id);
+
+            // Increment use count
+            await store.incrementUseCount(credential.id);
 
             // console.log(`[${getTimestamp()}] [OpenAI] ${requestId} | ${keyRecord.keyPrefix} | ${clientIp} | ${durationMs}ms | in:${inputTokens} out:${outputTokens}`);
 
@@ -5820,6 +6166,7 @@ async function start() {
 
     pricingStore = await ModelPricingStore.create();
     anthropicStore = await AnthropicCredentialStore.create();
+    modelAliasStore = await ModelAliasStore.create();
 
     // Initialize selection module stores
     accountHealthStore = await AccountHealthStore.create();

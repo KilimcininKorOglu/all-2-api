@@ -223,6 +223,8 @@ function navigateTo(page) {
         'oauth': '/pages/oauth.html',
         'change-password': '/pages/change-password.html',
         'site-settings': '/pages/site-settings.html',
+        'providers': '/pages/providers.html',
+        'model-aliases': '/pages/model-aliases.html',
         'pricing': '/pages/pricing.html',
         'dashboard': '/pages/accounts.html',
         'rules': '/pages/accounts.html',
@@ -369,6 +371,22 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <line x1="9" y1="21" x2="9" y2="9"/>
                     </svg>
                     Site Settings
+                </a>
+                <a href="#" class="nav-item" data-page="providers">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                        <path d="M2 17l10 5 10-5"/>
+                        <path d="M2 12l10 5 10-5"/>
+                    </svg>
+                    Provider Settings
+                </a>
+                <a href="#" class="nav-item" data-page="model-aliases">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                        <line x1="12" y1="22.08" x2="12" y2="12"/>
+                    </svg>
+                    Model Aliases
                 </a>
                 <a href="#" class="nav-item" data-page="pricing">
                     <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

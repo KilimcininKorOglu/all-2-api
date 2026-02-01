@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Model Aliases - Hermes Account Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .aliases-container {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .filter-bar .form-select {
+            width: 200px;
+            padding: 10px 14px;
+        }
+        .aliases-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .aliases-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .aliases-card-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .aliases-card-title h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+        .provider-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+        .provider-badge.kiro { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+        .provider-badge.anthropic { background: rgba(217, 119, 6, 0.15); color: #d97706; }
+        .provider-badge.gemini { background: rgba(34, 197, 94, 0.15); color: #22c55e; }
+        .provider-badge.orchids { background: rgba(236, 72, 153, 0.15); color: #ec4899; }
+        .provider-badge.warp { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
+        .provider-badge.vertex { background: rgba(234, 67, 53, 0.15); color: #ea4335; }
+        .provider-badge.bedrock { background: rgba(255, 153, 0, 0.15); color: #ff9900; }
+        .aliases-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .aliases-table th,
+        .aliases-table td {
+            padding: 14px 24px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .aliases-table th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            background: var(--bg-tertiary);
+        }
+        .aliases-table td {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .aliases-table tr:last-child td {
+            border-bottom: none;
+        }
+        .aliases-table tr:hover {
+            background: var(--bg-tertiary);
+        }
+        .model-name {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
+            background: var(--bg-tertiary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .alias-arrow {
+            color: var(--text-muted);
+            margin: 0 12px;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        .status-badge.active {
+            background: rgba(34, 197, 94, 0.15);
+            color: #22c55e;
+        }
+        .status-badge.inactive {
+            background: rgba(107, 114, 128, 0.15);
+            color: #6b7280;
+        }
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+        }
+        .actions-cell {
+            display: flex;
+            gap: 8px;
+            justify-content: flex-end;
+        }
+        .btn-icon-only {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-icon-only:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        .btn-icon-only.danger:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        .btn-icon-only svg {
+            width: 16px;
+            height: 16px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: var(--text-muted);
+        }
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 16px;
+            opacity: 0.4;
+        }
+        .empty-state p {
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-overlay.active {
+            display: flex;
+        }
+        .modal {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            width: 500px;
+            max-width: 90vw;
+            max-height: 90vh;
+            overflow: auto;
+        }
+        .modal-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .modal-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            cursor: pointer;
+            padding: 4px;
+        }
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+        .modal-body {
+            padding: 24px;
+        }
+        .modal-footer {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            padding: 16px 24px;
+            border-top: 1px solid var(--border-color);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        .form-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+        .hardcoded-section {
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border-color);
+        }
+        .hardcoded-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .hardcoded-title svg {
+            width: 16px;
+            height: 16px;
+        }
+        .hardcoded-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .hardcoded-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 14px;
+            background: var(--bg-tertiary);
+            border-radius: 6px;
+            font-size: 13px;
+        }
+        .hardcoded-item .model-name {
+            background: var(--bg-secondary);
+        }
+    </style>
+</head>
+<body>
+    <div id="toast-container"></div>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <div class="page-title-section">
+                        <div class="page-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                                <line x1="12" y1="22.08" x2="12" y2="12"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="page-title">Model Aliases</h1>
+                            <p class="page-subtitle">Map model names to provider-specific models</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary" onclick="openAddModal()">
+                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Alias
+                    </button>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div class="aliases-container">
+                    <div class="filter-bar">
+                        <select class="form-select" id="provider-filter" onchange="filterByProvider()">
+                            <option value="">All Providers</option>
+                            <option value="kiro">Kiro</option>
+                            <option value="anthropic">Anthropic</option>
+                            <option value="gemini">Gemini</option>
+                            <option value="orchids">Orchids</option>
+                            <option value="warp">Warp</option>
+                            <option value="vertex">Vertex AI</option>
+                            <option value="bedrock">Bedrock</option>
+                        </select>
+                        <span class="text-muted" id="alias-count">0 aliases</span>
+                    </div>
+
+                    <div class="aliases-card">
+                        <div class="aliases-card-header">
+                            <div class="aliases-card-title">
+                                <h3>Custom Aliases</h3>
+                            </div>
+                        </div>
+                        <div id="aliases-content">
+                            <table class="aliases-table" id="aliases-table">
+                                <thead>
+                                    <tr>
+                                        <th>Alias</th>
+                                        <th>Provider</th>
+                                        <th>Target Model</th>
+                                        <th>Status</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="aliases-tbody">
+                                </tbody>
+                            </table>
+                            <div class="empty-state" id="empty-state" style="display: none;">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
+                                    <line x1="12" y1="22.08" x2="12" y2="12"/>
+                                </svg>
+                                <p>No custom aliases defined yet</p>
+                                <button class="btn btn-primary" onclick="openAddModal()">Add Your First Alias</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="aliases-card">
+                        <div class="aliases-card-header">
+                            <div class="aliases-card-title">
+                                <h3>Built-in Aliases</h3>
+                                <span class="text-muted">(Read-only, defined in code)</span>
+                            </div>
+                        </div>
+                        <div id="hardcoded-content">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <div class="modal-overlay" id="alias-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <span class="modal-title" id="modal-title">Add Alias</span>
+                <button class="modal-close" onclick="closeModal()">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"/>
+                        <line x1="6" y1="6" x2="18" y2="18"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="edit-id">
+                <div class="form-group">
+                    <label class="form-label">Alias Name</label>
+                    <input type="text" class="form-input" id="alias-name" placeholder="e.g., opus-4.5, gpt-4-turbo">
+                    <span class="form-hint">The model name users will send in API requests</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Provider</label>
+                    <select class="form-select" id="alias-provider">
+                        <option value="kiro">Kiro</option>
+                        <option value="anthropic">Anthropic</option>
+                        <option value="gemini">Gemini</option>
+                        <option value="orchids">Orchids</option>
+                        <option value="warp">Warp</option>
+                        <option value="vertex">Vertex AI</option>
+                        <option value="bedrock">Bedrock</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Target Model</label>
+                    <input type="text" class="form-input" id="target-model" placeholder="e.g., claude-opus-4-5-20251101">
+                    <span class="form-hint">The actual model name sent to the provider</span>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description (optional)</label>
+                    <input type="text" class="form-input" id="alias-description" placeholder="e.g., Latest Opus model">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                <button class="btn btn-primary" id="save-btn" onclick="saveAlias()">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/common.js"></script>
+    <script>
+        let aliases = [];
+        let currentFilter = '';
+
+        const HARDCODED_ALIASES = {
+            kiro: {
+                'claude-sonnet-4-5': 'CLAUDE_SONNET_4_5_20250929_V1_0',
+                'claude-sonnet-4-20250514': 'CLAUDE_SONNET_4_20250514_V1_0',
+                'claude-3-7-sonnet-20250219': 'CLAUDE_3_7_SONNET_20250219_V1_0',
+                'claude-opus-4-5': 'claude-opus-4.5'
+            },
+            anthropic: {
+                'claude-opus-4.5': 'claude-opus-4-5-20250514',
+                'claude-sonnet-4.5': 'claude-sonnet-4-5-20250514',
+                'claude-sonnet-4': 'claude-sonnet-4-20250514'
+            },
+            bedrock: {
+                'claude-opus-4-5': 'anthropic.claude-opus-4-5-20251101-v1:0',
+                'claude-sonnet-4-5': 'anthropic.claude-sonnet-4-5-20250929-v1:0',
+                'claude-sonnet-4': 'anthropic.claude-sonnet-4-20250514-v1:0'
+            },
+            warp: {
+                'claude-opus-4-5-20251101': 'claude-4-5-opus',
+                'claude-sonnet-4-20250514': 'claude-4-sonnet'
+            },
+            vertex: {
+                'gemini-3-pro': 'gemini-3-pro-preview',
+                'gemini-3-flash': 'gemini-3-flash-preview'
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSiteSettings();
+            document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
+            initSidebar('model-aliases');
+            updateSidebarStats();
+
+            await loadAliases();
+            renderHardcodedAliases();
+        });
+
+        async function loadAliases() {
+            try {
+                const url = currentFilter 
+                    ? `/api/model-aliases?provider=${currentFilter}`
+                    : '/api/model-aliases';
+                const res = await fetch(url, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    aliases = result.data;
+                    renderAliases();
+                }
+            } catch (error) {
+                showToast('Failed to load aliases', 'error');
+            }
+        }
+
+        function renderAliases() {
+            const tbody = document.getElementById('aliases-tbody');
+            const emptyState = document.getElementById('empty-state');
+            const table = document.getElementById('aliases-table');
+            const countEl = document.getElementById('alias-count');
+
+            countEl.textContent = `${aliases.length} alias${aliases.length !== 1 ? 'es' : ''}`;
+
+            if (aliases.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+
+            tbody.innerHTML = aliases.map(alias => `
+                <tr>
+                    <td><span class="model-name">${alias.alias}</span></td>
+                    <td><span class="provider-badge ${alias.provider}">${alias.provider}</span></td>
+                    <td><span class="model-name">${alias.targetModel}</span></td>
+                    <td>
+                        <span class="status-badge ${alias.isActive ? 'active' : 'inactive'}">
+                            <span class="status-dot"></span>
+                            ${alias.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>
+                        <div class="actions-cell">
+                            <button class="btn-icon-only" onclick="toggleAlias(${alias.id})" title="${alias.isActive ? 'Deactivate' : 'Activate'}">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    ${alias.isActive 
+                                        ? '<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>'
+                                        : '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'}
+                                </svg>
+                            </button>
+                            <button class="btn-icon-only" onclick="editAlias(${alias.id})" title="Edit">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                </svg>
+                            </button>
+                            <button class="btn-icon-only danger" onclick="deleteAlias(${alias.id})" title="Delete">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <polyline points="3 6 5 6 21 6"/>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function renderHardcodedAliases() {
+            const container = document.getElementById('hardcoded-content');
+            let html = '';
+
+            for (const [provider, aliasMap] of Object.entries(HARDCODED_ALIASES)) {
+                if (currentFilter && currentFilter !== provider) continue;
+
+                const entries = Object.entries(aliasMap);
+                if (entries.length === 0) continue;
+
+                html += `
+                    <div class="hardcoded-section" style="border-top: none; padding: 20px 24px;">
+                        <div class="hardcoded-title">
+                            <span class="provider-badge ${provider}">${provider}</span>
+                        </div>
+                        <div class="hardcoded-list">
+                            ${entries.map(([alias, target]) => `
+                                <div class="hardcoded-item">
+                                    <span class="model-name">${alias}</span>
+                                    <span class="alias-arrow">→</span>
+                                    <span class="model-name">${target}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            }
+
+            container.innerHTML = html || '<div class="empty-state"><p>No built-in aliases for selected provider</p></div>';
+        }
+
+        function filterByProvider() {
+            currentFilter = document.getElementById('provider-filter').value;
+            loadAliases();
+            renderHardcodedAliases();
+        }
+
+        function openAddModal() {
+            document.getElementById('modal-title').textContent = 'Add Alias';
+            document.getElementById('edit-id').value = '';
+            document.getElementById('alias-name').value = '';
+            document.getElementById('alias-provider').value = 'kiro';
+            document.getElementById('target-model').value = '';
+            document.getElementById('alias-description').value = '';
+            document.getElementById('alias-modal').classList.add('active');
+        }
+
+        function editAlias(id) {
+            const alias = aliases.find(a => a.id === id);
+            if (!alias) return;
+
+            document.getElementById('modal-title').textContent = 'Edit Alias';
+            document.getElementById('edit-id').value = id;
+            document.getElementById('alias-name').value = alias.alias;
+            document.getElementById('alias-provider').value = alias.provider;
+            document.getElementById('target-model').value = alias.targetModel;
+            document.getElementById('alias-description').value = alias.description || '';
+            document.getElementById('alias-modal').classList.add('active');
+        }
+
+        function closeModal() {
+            document.getElementById('alias-modal').classList.remove('active');
+        }
+
+        async function saveAlias() {
+            const id = document.getElementById('edit-id').value;
+            const alias = document.getElementById('alias-name').value.trim();
+            const provider = document.getElementById('alias-provider').value;
+            const targetModel = document.getElementById('target-model').value.trim();
+            const description = document.getElementById('alias-description').value.trim();
+
+            if (!alias || !targetModel) {
+                showToast('Alias name and target model are required', 'error');
+                return;
+            }
+
+            try {
+                const url = id ? `/api/model-aliases/${id}` : '/api/model-aliases';
+                const method = id ? 'PUT' : 'POST';
+
+                const res = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({ alias, provider, targetModel, description })
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    showToast(id ? 'Alias updated' : 'Alias created', 'success');
+                    closeModal();
+                    loadAliases();
+                } else {
+                    showToast(result.error || 'Failed to save', 'error');
+                }
+            } catch (error) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function toggleAlias(id) {
+            try {
+                const res = await fetch(`/api/model-aliases/${id}/toggle`, {
+                    method: 'POST',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showToast(`Alias ${result.data.isActive ? 'activated' : 'deactivated'}`, 'success');
+                    loadAliases();
+                } else {
+                    showToast(result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Network error', 'error');
+            }
+        }
+
+        async function deleteAlias(id) {
+            if (!confirm('Delete this alias?')) return;
+
+            try {
+                const res = await fetch(`/api/model-aliases/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    showToast('Alias deleted', 'success');
+                    loadAliases();
+                } else {
+                    showToast(result.error, 'error');
+                }
+            } catch (error) {
+                showToast('Network error', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

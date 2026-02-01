@@ -1,0 +1,747 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Provider Settings - Hermes Account Manager</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/common.css">
+    <link rel="stylesheet" href="/css/styles.css">
+    <style>
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 24px;
+        }
+        @media (max-width: 1200px) {
+            .settings-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        .settings-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 24px;
+        }
+        .settings-card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 20px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .settings-card-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-purple));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        .settings-card-icon svg {
+            width: 20px;
+            height: 20px;
+        }
+        .settings-card-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+        .settings-card-subtitle {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+        .form-label {
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+        }
+        .form-select {
+            width: 100%;
+            padding: 12px 14px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .form-select:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+            box-shadow: 0 0 0 3px var(--accent-primary-glow);
+        }
+        .form-hint {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+        .form-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 8px;
+        }
+        .provider-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .provider-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 16px;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.15s ease;
+        }
+        .provider-item:hover {
+            border-color: var(--accent-primary);
+        }
+        .provider-item.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .provider-item.drag-over {
+            border-color: var(--accent-primary);
+            background: rgba(var(--accent-primary-rgb), 0.1);
+        }
+        .provider-drag-handle {
+            color: var(--text-muted);
+            cursor: grab;
+        }
+        .provider-drag-handle svg {
+            width: 16px;
+            height: 16px;
+        }
+        .provider-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 12px;
+            color: white;
+        }
+        .provider-icon.kiro { background: linear-gradient(135deg, #3b82f6, #8b5cf6); }
+        .provider-icon.anthropic { background: linear-gradient(135deg, #d97706, #dc2626); }
+        .provider-icon.gemini { background: linear-gradient(135deg, #4285f4, #34a853); }
+        .provider-icon.orchids { background: linear-gradient(135deg, #ec4899, #8b5cf6); }
+        .provider-icon.warp { background: linear-gradient(135deg, #06b6d4, #3b82f6); }
+        .provider-icon.vertex { background: linear-gradient(135deg, #4285f4, #ea4335); }
+        .provider-icon.bedrock { background: linear-gradient(135deg, #ff9900, #232f3e); }
+        .provider-info {
+            flex: 1;
+        }
+        .provider-name {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
+        .provider-desc {
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-top: 2px;
+        }
+        .provider-toggle {
+            position: relative;
+            width: 44px;
+            height: 24px;
+        }
+        .provider-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .provider-toggle .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            transition: .2s;
+            border-radius: 24px;
+        }
+        .provider-toggle .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: var(--text-muted);
+            transition: .2s;
+            border-radius: 50%;
+        }
+        .provider-toggle input:checked + .slider {
+            background-color: var(--accent-primary);
+            border-color: var(--accent-primary);
+        }
+        .provider-toggle input:checked + .slider:before {
+            transform: translateX(20px);
+            background-color: white;
+        }
+        .provider-priority {
+            font-size: 12px;
+            color: var(--text-muted);
+            min-width: 20px;
+            text-align: center;
+        }
+        .routing-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .routing-table th,
+        .routing-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .routing-table th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            background: var(--bg-tertiary);
+        }
+        .routing-table td {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .routing-table .model-pattern {
+            font-family: monospace;
+            background: var(--bg-tertiary);
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+        .routing-table .actions {
+            text-align: right;
+        }
+        .btn-icon-only {
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: transparent;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+        .btn-icon-only:hover {
+            border-color: var(--accent-primary);
+            color: var(--accent-primary);
+        }
+        .btn-icon-only.danger:hover {
+            border-color: #ef4444;
+            color: #ef4444;
+        }
+        .btn-icon-only svg {
+            width: 16px;
+            height: 16px;
+        }
+        .add-rule-form {
+            display: none;
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        .add-rule-form.active {
+            display: block;
+        }
+        .add-rule-form .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr auto;
+            gap: 12px;
+            align-items: end;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            font-size: 14px;
+            font-family: inherit;
+        }
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 32px;
+            color: var(--text-muted);
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 12px;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div id="toast-container"></div>
+    <div class="app-container">
+        <div id="sidebar-container"></div>
+
+        <main class="main-content">
+            <header class="header">
+                <div class="header-left">
+                    <div class="page-title-section">
+                        <div class="page-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M12 2L2 7l10 5 10-5-10-5z"/>
+                                <path d="M2 17l10 5 10-5"/>
+                                <path d="M2 12l10 5 10-5"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="page-title">Provider Settings</h1>
+                            <p class="page-subtitle">Configure API providers and routing</p>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <div class="content-area">
+                <div class="settings-grid">
+                    <div>
+                        <div class="settings-card" style="margin-bottom: 24px;">
+                            <div class="settings-card-header">
+                                <div class="settings-card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <circle cx="12" cy="12" r="3"/>
+                                        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="settings-card-title">Default Provider</div>
+                                    <div class="settings-card-subtitle">Select the default API provider</div>
+                                </div>
+                            </div>
+
+                            <form id="default-provider-form">
+                                <div class="form-group">
+                                    <label class="form-label">Default Provider</label>
+                                    <select id="default-provider" class="form-select">
+                                        <option value="kiro">Kiro (AWS CodeWhisperer)</option>
+                                        <option value="anthropic">Anthropic</option>
+                                        <option value="gemini">Gemini Antigravity</option>
+                                        <option value="orchids">Orchids</option>
+                                        <option value="warp">Warp</option>
+                                        <option value="vertex">Vertex AI</option>
+                                        <option value="bedrock">AWS Bedrock</option>
+                                    </select>
+                                    <span class="form-hint">Used when no Model-Provider header is specified</span>
+                                </div>
+                                <div class="form-actions">
+                                    <button type="submit" class="btn btn-primary" id="save-default-btn">
+                                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                            <polyline points="17 21 17 13 7 13 7 21"/>
+                                            <polyline points="7 3 7 8 15 8"/>
+                                        </svg>
+                                        Save
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="8" y1="6" x2="21" y2="6"/>
+                                        <line x1="8" y1="12" x2="21" y2="12"/>
+                                        <line x1="8" y1="18" x2="21" y2="18"/>
+                                        <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                        <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                        <line x1="3" y1="18" x2="3.01" y2="18"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="settings-card-title">Provider Priority</div>
+                                    <div class="settings-card-subtitle">Drag to reorder fallback priority</div>
+                                </div>
+                            </div>
+
+                            <div class="provider-list" id="provider-list">
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 16px;">
+                                <button type="button" class="btn btn-primary" id="save-priority-btn">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                        <polyline points="17 21 17 13 7 13 7 21"/>
+                                        <polyline points="7 3 7 8 15 8"/>
+                                    </svg>
+                                    Save Priority
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div class="settings-card">
+                            <div class="settings-card-header">
+                                <div class="settings-card-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="settings-card-title">Model Routing Rules</div>
+                                    <div class="settings-card-subtitle">Custom model to provider mappings</div>
+                                </div>
+                            </div>
+
+                            <div id="routing-rules-container">
+                                <table class="routing-table" id="routing-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Model Pattern</th>
+                                            <th>Provider</th>
+                                            <th class="actions"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="routing-tbody">
+                                    </tbody>
+                                </table>
+
+                                <div class="empty-state" id="empty-rules" style="display: none;">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                    </svg>
+                                    <p>No custom routing rules defined</p>
+                                </div>
+                            </div>
+
+                            <div class="add-rule-form" id="add-rule-form">
+                                <div class="form-row">
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label">Model Pattern</label>
+                                        <input type="text" id="new-rule-pattern" class="form-input" placeholder="e.g., gpt-4*, claude-*">
+                                    </div>
+                                    <div class="form-group" style="margin-bottom: 0;">
+                                        <label class="form-label">Provider</label>
+                                        <select id="new-rule-provider" class="form-select">
+                                            <option value="kiro">Kiro</option>
+                                            <option value="anthropic">Anthropic</option>
+                                            <option value="gemini">Gemini</option>
+                                            <option value="orchids">Orchids</option>
+                                            <option value="warp">Warp</option>
+                                            <option value="vertex">Vertex AI</option>
+                                            <option value="bedrock">Bedrock</option>
+                                        </select>
+                                    </div>
+                                    <button type="button" class="btn btn-primary" id="add-rule-btn" style="height: 42px;">
+                                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                            <line x1="12" y1="5" x2="12" y2="19"/>
+                                            <line x1="5" y1="12" x2="19" y2="12"/>
+                                        </svg>
+                                        Add
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="form-actions" style="margin-top: 16px;">
+                                <button type="button" class="btn btn-secondary" id="toggle-add-rule-btn">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <line x1="12" y1="5" x2="12" y2="19"/>
+                                        <line x1="5" y1="12" x2="19" y2="12"/>
+                                    </svg>
+                                    Add Rule
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="/js/sidebar.js"></script>
+    <script src="/js/common.js"></script>
+    <script>
+        const PROVIDERS = {
+            kiro: { name: 'Kiro', desc: 'AWS CodeWhisperer' },
+            anthropic: { name: 'Anthropic', desc: 'Claude API' },
+            gemini: { name: 'Gemini', desc: 'Antigravity' },
+            orchids: { name: 'Orchids', desc: 'Orchids API' },
+            warp: { name: 'Warp', desc: 'Warp API' },
+            vertex: { name: 'Vertex AI', desc: 'Google Cloud' },
+            bedrock: { name: 'Bedrock', desc: 'AWS Bedrock' }
+        };
+
+        let providerSettings = {
+            defaultProvider: 'kiro',
+            enabledProviders: Object.keys(PROVIDERS),
+            providerPriority: Object.keys(PROVIDERS),
+            modelRouting: {}
+        };
+
+        let draggedItem = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadSiteSettings();
+            document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
+            initSidebar('providers');
+            updateSidebarStats();
+
+            await loadProviderSettings();
+            renderProviderList();
+            renderRoutingRules();
+            bindEvents();
+        });
+
+        async function loadProviderSettings() {
+            try {
+                const res = await fetch('/api/provider-settings', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const result = await res.json();
+                if (result.success) {
+                    providerSettings = { ...providerSettings, ...result.data };
+                    document.getElementById('default-provider').value = providerSettings.defaultProvider;
+                }
+            } catch (error) {
+                console.error('Failed to load provider settings:', error);
+            }
+        }
+
+        function renderProviderList() {
+            const container = document.getElementById('provider-list');
+            container.innerHTML = '';
+
+            providerSettings.providerPriority.forEach((providerId, index) => {
+                const provider = PROVIDERS[providerId];
+                const isEnabled = providerSettings.enabledProviders.includes(providerId);
+
+                const item = document.createElement('div');
+                item.className = 'provider-item';
+                item.dataset.provider = providerId;
+                item.draggable = true;
+                item.innerHTML = `
+                    <span class="provider-priority">${index + 1}</span>
+                    <div class="provider-drag-handle">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="8" y1="6" x2="8" y2="6.01"/>
+                            <line x1="16" y1="6" x2="16" y2="6.01"/>
+                            <line x1="8" y1="12" x2="8" y2="12.01"/>
+                            <line x1="16" y1="12" x2="16" y2="12.01"/>
+                            <line x1="8" y1="18" x2="8" y2="18.01"/>
+                            <line x1="16" y1="18" x2="16" y2="18.01"/>
+                        </svg>
+                    </div>
+                    <div class="provider-icon ${providerId}">${providerId.charAt(0).toUpperCase()}</div>
+                    <div class="provider-info">
+                        <div class="provider-name">${provider.name}</div>
+                        <div class="provider-desc">${provider.desc}</div>
+                    </div>
+                    <label class="provider-toggle">
+                        <input type="checkbox" ${isEnabled ? 'checked' : ''} data-provider="${providerId}">
+                        <span class="slider"></span>
+                    </label>
+                `;
+                container.appendChild(item);
+            });
+
+            initDragAndDrop();
+        }
+
+        function initDragAndDrop() {
+            const items = document.querySelectorAll('.provider-item');
+
+            items.forEach(item => {
+                item.addEventListener('dragstart', (e) => {
+                    draggedItem = item;
+                    item.classList.add('dragging');
+                    e.dataTransfer.effectAllowed = 'move';
+                });
+
+                item.addEventListener('dragend', () => {
+                    item.classList.remove('dragging');
+                    draggedItem = null;
+                    document.querySelectorAll('.provider-item').forEach(i => i.classList.remove('drag-over'));
+                });
+
+                item.addEventListener('dragover', (e) => {
+                    e.preventDefault();
+                    if (draggedItem && draggedItem !== item) {
+                        item.classList.add('drag-over');
+                    }
+                });
+
+                item.addEventListener('dragleave', () => {
+                    item.classList.remove('drag-over');
+                });
+
+                item.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    item.classList.remove('drag-over');
+
+                    if (draggedItem && draggedItem !== item) {
+                        const container = document.getElementById('provider-list');
+                        const items = Array.from(container.children);
+                        const draggedIndex = items.indexOf(draggedItem);
+                        const dropIndex = items.indexOf(item);
+
+                        if (draggedIndex < dropIndex) {
+                            item.after(draggedItem);
+                        } else {
+                            item.before(draggedItem);
+                        }
+
+                        updatePriorityFromDOM();
+                    }
+                });
+            });
+        }
+
+        function updatePriorityFromDOM() {
+            const items = document.querySelectorAll('.provider-item');
+            providerSettings.providerPriority = Array.from(items).map(item => item.dataset.provider);
+
+            items.forEach((item, index) => {
+                item.querySelector('.provider-priority').textContent = index + 1;
+            });
+        }
+
+        function renderRoutingRules() {
+            const tbody = document.getElementById('routing-tbody');
+            const emptyState = document.getElementById('empty-rules');
+            const table = document.getElementById('routing-table');
+
+            const rules = Object.entries(providerSettings.modelRouting || {});
+
+            if (rules.length === 0) {
+                table.style.display = 'none';
+                emptyState.style.display = 'block';
+                return;
+            }
+
+            table.style.display = 'table';
+            emptyState.style.display = 'none';
+
+            tbody.innerHTML = rules.map(([pattern, provider]) => `
+                <tr data-pattern="${pattern}">
+                    <td><span class="model-pattern">${pattern}</span></td>
+                    <td>${PROVIDERS[provider]?.name || provider}</td>
+                    <td class="actions">
+                        <button class="btn-icon-only danger" onclick="deleteRule('${pattern}')">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <polyline points="3 6 5 6 21 6"/>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                            </svg>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function bindEvents() {
+            document.getElementById('default-provider-form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                await saveSettings({ defaultProvider: document.getElementById('default-provider').value });
+            });
+
+            document.getElementById('save-priority-btn').addEventListener('click', async () => {
+                const enabledProviders = [];
+                document.querySelectorAll('.provider-toggle input').forEach(checkbox => {
+                    if (checkbox.checked) {
+                        enabledProviders.push(checkbox.dataset.provider);
+                    }
+                });
+                providerSettings.enabledProviders = enabledProviders;
+                await saveSettings({
+                    enabledProviders: providerSettings.enabledProviders,
+                    providerPriority: providerSettings.providerPriority
+                });
+            });
+
+            document.getElementById('toggle-add-rule-btn').addEventListener('click', () => {
+                const form = document.getElementById('add-rule-form');
+                form.classList.toggle('active');
+            });
+
+            document.getElementById('add-rule-btn').addEventListener('click', async () => {
+                const pattern = document.getElementById('new-rule-pattern').value.trim();
+                const provider = document.getElementById('new-rule-provider').value;
+
+                if (!pattern) {
+                    showToast('Please enter a model pattern', 'error');
+                    return;
+                }
+
+                providerSettings.modelRouting[pattern] = provider;
+                await saveSettings({ modelRouting: providerSettings.modelRouting });
+
+                document.getElementById('new-rule-pattern').value = '';
+                document.getElementById('add-rule-form').classList.remove('active');
+                renderRoutingRules();
+            });
+        }
+
+        async function deleteRule(pattern) {
+            if (!confirm(`Delete routing rule for "${pattern}"?`)) return;
+
+            delete providerSettings.modelRouting[pattern];
+            await saveSettings({ modelRouting: providerSettings.modelRouting });
+            renderRoutingRules();
+        }
+
+        async function saveSettings(data) {
+            try {
+                const res = await fetch('/api/provider-settings', {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+                if (result.success) {
+                    providerSettings = { ...providerSettings, ...result.data };
+                    showToast('Settings saved', 'success');
+                } else {
+                    showToast(result.error || 'Save failed', 'error');
+                }
+            } catch (error) {
+                showToast('Network error', 'error');
+            }
+        }
+    </script>
+</body>
+</html>

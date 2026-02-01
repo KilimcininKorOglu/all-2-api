@@ -382,7 +382,11 @@ export async function initDatabase() {
         { name: 'token_refresh_interval', sql: "ADD COLUMN token_refresh_interval INT DEFAULT 30 COMMENT 'Token refresh interval in minutes'" },
         { name: 'token_refresh_threshold', sql: "ADD COLUMN token_refresh_threshold INT DEFAULT 10 COMMENT 'Refresh tokens expiring within N minutes'" },
         { name: 'quota_refresh_interval', sql: "ADD COLUMN quota_refresh_interval INT DEFAULT 5 COMMENT 'Quota refresh interval in minutes'" },
-        { name: 'selection_strategy', sql: "ADD COLUMN selection_strategy ENUM('hybrid','sticky','round-robin') DEFAULT 'hybrid' COMMENT 'Pool selection strategy'" }
+        { name: 'selection_strategy', sql: "ADD COLUMN selection_strategy ENUM('hybrid','sticky','round-robin') DEFAULT 'hybrid' COMMENT 'Pool selection strategy'" },
+        { name: 'default_provider', sql: "ADD COLUMN default_provider VARCHAR(20) DEFAULT 'kiro' COMMENT 'Default provider for routing'" },
+        { name: 'enabled_providers', sql: "ADD COLUMN enabled_providers JSON COMMENT 'List of enabled providers'" },
+        { name: 'provider_priority', sql: "ADD COLUMN provider_priority JSON COMMENT 'Provider fallback priority order'" },
+        { name: 'model_routing', sql: "ADD COLUMN model_routing JSON COMMENT 'Custom model to provider mapping rules'" }
     ];
     for (const col of newColumns) {
         try {
@@ -446,6 +450,24 @@ export async function initDatabase() {
     try {
         await pool.execute(`ALTER TABLE model_pricing ADD COLUMN remote_updated_at DATETIME COMMENT 'When remote price was last synced'`);
     } catch (e) { /* Column already exists */ }
+
+    // Create model aliases table for unified model name mapping
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS model_aliases (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            alias VARCHAR(255) NOT NULL COMMENT 'User-facing model name (e.g., opus-4.5, gpt-4)',
+            provider VARCHAR(50) NOT NULL COMMENT 'Target provider (kiro, anthropic, gemini, etc.)',
+            target_model VARCHAR(255) NOT NULL COMMENT 'Actual model name for the provider',
+            description VARCHAR(500) COMMENT 'Optional description',
+            is_active TINYINT DEFAULT 1,
+            priority INT DEFAULT 0 COMMENT 'Higher priority aliases are checked first',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+            UNIQUE KEY uk_alias_provider (alias, provider),
+            INDEX idx_provider (provider),
+            INDEX idx_active (is_active)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
 
     // Note: remote_pricing_cache table is deprecated, keeping for backward compatibility
     await pool.execute(`
@@ -986,6 +1008,12 @@ export class CredentialStore {
 
     async deleteError(id) {
         await this.db.execute('DELETE FROM error_credentials WHERE id = ?', [id]);
+    }
+
+    async incrementUseCount(id) {
+        await this.db.execute(`
+            UPDATE credentials SET use_count = use_count + 1 WHERE id = ?
+        `, [id]);
     }
 
     async updateErrorToken(id, accessToken, refreshToken, expiresAt) {
@@ -3192,7 +3220,11 @@ export class SiteSettingsStore {
                 tokenRefreshInterval: 30,
                 tokenRefreshThreshold: 10,
                 quotaRefreshInterval: 5,
-                selectionStrategy: 'hybrid'
+                selectionStrategy: 'hybrid',
+                defaultProvider: 'kiro',
+                enabledProviders: ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'],
+                providerPriority: ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'],
+                modelRouting: {}
             };
         }
         return this._mapRow(rows[0]);
@@ -3215,6 +3247,10 @@ export class SiteSettingsStore {
         if (settings.tokenRefreshThreshold !== undefined) { fields.push('token_refresh_threshold = ?'); values.push(settings.tokenRefreshThreshold); }
         if (settings.quotaRefreshInterval !== undefined) { fields.push('quota_refresh_interval = ?'); values.push(settings.quotaRefreshInterval); }
         if (settings.selectionStrategy !== undefined) { fields.push('selection_strategy = ?'); values.push(settings.selectionStrategy); }
+        if (settings.defaultProvider !== undefined) { fields.push('default_provider = ?'); values.push(settings.defaultProvider); }
+        if (settings.enabledProviders !== undefined) { fields.push('enabled_providers = ?'); values.push(JSON.stringify(settings.enabledProviders)); }
+        if (settings.providerPriority !== undefined) { fields.push('provider_priority = ?'); values.push(JSON.stringify(settings.providerPriority)); }
+        if (settings.modelRouting !== undefined) { fields.push('model_routing = ?'); values.push(JSON.stringify(settings.modelRouting)); }
 
         if (fields.length > 0) {
             await this.db.execute(`UPDATE site_settings SET ${fields.join(', ')} WHERE id = 1`, values);
@@ -3223,6 +3259,35 @@ export class SiteSettingsStore {
     }
 
     _mapRow(row) {
+        const defaultProviders = ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
+        let enabledProviders = defaultProviders;
+        let providerPriority = defaultProviders;
+        let modelRouting = {};
+
+        try {
+            if (row.enabled_providers) {
+                enabledProviders = typeof row.enabled_providers === 'string' 
+                    ? JSON.parse(row.enabled_providers) 
+                    : row.enabled_providers;
+            }
+        } catch (e) { /* use default */ }
+
+        try {
+            if (row.provider_priority) {
+                providerPriority = typeof row.provider_priority === 'string'
+                    ? JSON.parse(row.provider_priority)
+                    : row.provider_priority;
+            }
+        } catch (e) { /* use default */ }
+
+        try {
+            if (row.model_routing) {
+                modelRouting = typeof row.model_routing === 'string'
+                    ? JSON.parse(row.model_routing)
+                    : row.model_routing;
+            }
+        } catch (e) { /* use default */ }
+
         return {
             siteName: row.site_name,
             siteLogo: row.site_logo,
@@ -3237,6 +3302,10 @@ export class SiteSettingsStore {
             tokenRefreshThreshold: row.token_refresh_threshold || 10,
             quotaRefreshInterval: row.quota_refresh_interval || 5,
             selectionStrategy: row.selection_strategy || 'hybrid',
+            defaultProvider: row.default_provider || 'kiro',
+            enabledProviders,
+            providerPriority,
+            modelRouting,
             updatedAt: row.updated_at
         };
     }
@@ -4543,5 +4612,157 @@ export class SessionStore {
     async cleanup() {
         const [result] = await this.db.execute('DELETE FROM sessions WHERE expires_at < NOW()');
         return result.affectedRows;
+    }
+}
+
+/**
+ * Model alias store for unified model name mapping
+ */
+export class ModelAliasStore {
+    constructor(database) {
+        this.db = database;
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new ModelAliasStore(database);
+    }
+
+    async getAll() {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM model_aliases ORDER BY provider, priority DESC, alias'
+        );
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async getActive() {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM model_aliases WHERE is_active = 1 ORDER BY provider, priority DESC, alias'
+        );
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async getByProvider(provider) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM model_aliases WHERE provider = ? ORDER BY priority DESC, alias',
+            [provider]
+        );
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async getById(id) {
+        const [rows] = await this.db.execute(
+            'SELECT * FROM model_aliases WHERE id = ?',
+            [id]
+        );
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async findAlias(alias, provider = null) {
+        let query = 'SELECT * FROM model_aliases WHERE alias = ? AND is_active = 1';
+        const params = [alias];
+
+        if (provider) {
+            query += ' AND provider = ?';
+            params.push(provider);
+        }
+
+        query += ' ORDER BY priority DESC LIMIT 1';
+
+        const [rows] = await this.db.execute(query, params);
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async create(aliasData) {
+        const [result] = await this.db.execute(`
+            INSERT INTO model_aliases (alias, provider, target_model, description, is_active, priority)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+            aliasData.alias,
+            aliasData.provider,
+            aliasData.targetModel,
+            aliasData.description || null,
+            aliasData.isActive !== false ? 1 : 0,
+            aliasData.priority || 0
+        ]);
+        return result.insertId;
+    }
+
+    async update(id, aliasData) {
+        const fields = [];
+        const values = [];
+
+        if (aliasData.alias !== undefined) { fields.push('alias = ?'); values.push(aliasData.alias); }
+        if (aliasData.provider !== undefined) { fields.push('provider = ?'); values.push(aliasData.provider); }
+        if (aliasData.targetModel !== undefined) { fields.push('target_model = ?'); values.push(aliasData.targetModel); }
+        if (aliasData.description !== undefined) { fields.push('description = ?'); values.push(aliasData.description); }
+        if (aliasData.isActive !== undefined) { fields.push('is_active = ?'); values.push(aliasData.isActive ? 1 : 0); }
+        if (aliasData.priority !== undefined) { fields.push('priority = ?'); values.push(aliasData.priority); }
+
+        if (fields.length === 0) return;
+
+        values.push(id);
+        await this.db.execute(
+            `UPDATE model_aliases SET ${fields.join(', ')} WHERE id = ?`,
+            values
+        );
+    }
+
+    async delete(id) {
+        await this.db.execute('DELETE FROM model_aliases WHERE id = ?', [id]);
+    }
+
+    async toggleActive(id) {
+        const [rows] = await this.db.execute('SELECT is_active FROM model_aliases WHERE id = ?', [id]);
+        if (rows.length === 0) return false;
+        const newStatus = rows[0].is_active === 1 ? 0 : 1;
+        await this.db.execute('UPDATE model_aliases SET is_active = ? WHERE id = ?', [newStatus, id]);
+        return newStatus === 1;
+    }
+
+    async bulkCreate(aliases) {
+        const results = { success: 0, failed: 0, errors: [] };
+
+        for (const alias of aliases) {
+            try {
+                await this.create(alias);
+                results.success++;
+            } catch (error) {
+                results.failed++;
+                results.errors.push({ alias: alias.alias, error: error.message });
+            }
+        }
+
+        return results;
+    }
+
+    async getAliasMap(provider = null) {
+        const aliases = provider ? await this.getByProvider(provider) : await this.getActive();
+        const map = {};
+
+        for (const alias of aliases) {
+            if (!map[alias.provider]) {
+                map[alias.provider] = {};
+            }
+            map[alias.provider][alias.alias] = alias.targetModel;
+        }
+
+        return map;
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            alias: row.alias,
+            provider: row.provider,
+            targetModel: row.target_model,
+            description: row.description,
+            isActive: row.is_active === 1,
+            priority: row.priority,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
     }
 }
