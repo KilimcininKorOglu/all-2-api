@@ -452,8 +452,9 @@ export class KiroService {
             const followupStart = remaining.indexOf('{"followupPrompt":', searchStart);
             const inputStart = remaining.indexOf('{"input":', searchStart);
             const stopStart = remaining.indexOf('{"stop":', searchStart);
+            const usageStart = remaining.indexOf('{"usage":', searchStart);
 
-            const candidates = [contentStart, nameStart, followupStart, inputStart, stopStart].filter(pos => pos >= 0);
+            const candidates = [contentStart, nameStart, followupStart, inputStart, stopStart, usageStart].filter(pos => pos >= 0);
             if (candidates.length === 0) break;
 
             const jsonStart = Math.min(...candidates);
@@ -497,6 +498,8 @@ export class KiroService {
                     events.push({ type: 'toolUseInput', data: { input: parsed.input } });
                 } else if (parsed.stop !== undefined) {
                     events.push({ type: 'toolUseStop', data: { stop: parsed.stop } });
+                } else if (parsed.usage !== undefined) {
+                    events.push({ type: 'usage', data: parsed.usage });
                 }
             } catch (e) { }
 
@@ -580,6 +583,8 @@ export class KiroService {
                                 yield { type: 'tool_use', toolUse: this._finalizeToolCall(currentToolCall) };
                                 currentToolCall = null;
                             }
+                        } else if (event.type === 'usage') {
+                            yield { type: 'usage', usage: event.data };
                         }
                     }
                 }
@@ -657,6 +662,7 @@ export class KiroService {
                 let fullContent = '';
                 const toolCalls = [];
                 let currentToolCall = null;
+                let usage = null;
 
                 const { events } = this.parseEventStreamBuffer(rawStr);
                 for (const event of events) {
@@ -683,11 +689,13 @@ export class KiroService {
                             toolCalls.push(this._finalizeToolCall(currentToolCall));
                             currentToolCall = null;
                         }
+                    } else if (event.type === 'usage') {
+                        usage = event.data;
                     }
                 }
 
                 if (currentToolCall) toolCalls.push(this._finalizeToolCall(currentToolCall));
-                return { content: fullContent, toolCalls };
+                return { content: fullContent, toolCalls, usage };
 
             } catch (error) {
                 const status = error.response?.status;

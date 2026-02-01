@@ -738,8 +738,9 @@ export class KiroClient {
             const nameStart = remaining.indexOf('{"name":', searchStart);
             const inputStart = remaining.indexOf('{"input":', searchStart);
             const stopStart = remaining.indexOf('{"stop":', searchStart);
+            const usageStart = remaining.indexOf('{"usage":', searchStart);
 
-            const candidates = [contentStart, followupStart, nameStart, inputStart, stopStart].filter(pos => pos >= 0);
+            const candidates = [contentStart, followupStart, nameStart, inputStart, stopStart, usageStart].filter(pos => pos >= 0);
             if (candidates.length === 0) break;
 
             const jsonStart = Math.min(...candidates);
@@ -820,6 +821,13 @@ export class KiroClient {
                         data: { stop: parsed.stop }
                     });
                 }
+                // Handle usage event
+                else if (parsed.usage !== undefined) {
+                    events.push({
+                        type: 'usage',
+                        data: parsed.usage
+                    });
+                }
             } catch (e) {
                 // JSON parse failed, skip
             }
@@ -846,6 +854,7 @@ export class KiroClient {
         let fullContent = '';
         const toolCalls = [];
         let currentToolCall = null;
+        let usage = null;
 
         const { events } = this._parseEventStreamBuffer(rawStr);
         for (const event of events) {
@@ -870,7 +879,7 @@ export class KiroClient {
                         this._finalizeToolCall(currentToolCall, toolCalls);
                         currentToolCall = null;
                     }
-         }
+                }
             } else if (event.type === 'toolUseInput') {
                 if (currentToolCall) {
                     currentToolCall.input += event.data.input || '';
@@ -880,6 +889,8 @@ export class KiroClient {
                     this._finalizeToolCall(currentToolCall, toolCalls);
                     currentToolCall = null;
                 }
+            } else if (event.type === 'usage') {
+                usage = event.data;
             }
         }
 
@@ -888,7 +899,7 @@ export class KiroClient {
             this._finalizeToolCall(currentToolCall, toolCalls);
         }
 
-        return { content: fullContent, toolCalls };
+        return { content: fullContent, toolCalls, usage };
     }
 
     /**
@@ -1188,6 +1199,8 @@ export class KiroClient {
                             yield { type: 'toolUse', toolUse: currentToolCall };
                             currentToolCall = null;
                         }
+                    } else if (event.type === 'usage') {
+                        yield { type: 'usage', usage: event.data };
                     }
                 }
             }

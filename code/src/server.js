@@ -2417,18 +2417,34 @@ app.post('/v1/messages', async (req, res) => {
                 streamStarted = true;
 
                 // Process streaming response
+                let apiUsage = null;
                 for await (const event of result.generator) {
                     if (event.type === 'content_block_delta' && event.delta?.text) {
                         fullText += event.delta.text;
-                        outputTokens += Math.ceil(event.delta.text.length / 4);
                         res.write(`event: content_block_delta\ndata: ${JSON.stringify({
                             type: 'content_block_delta',
                             index: 0,
                             delta: { type: 'text_delta', text: event.delta.text }
                         })}\n\n`);
-             } else if (event.type === 'tool_use' && event.toolUse) {
+                    } else if (event.type === 'tool_use' && event.toolUse) {
                         hasToolUse = true;
                         toolCalls.push(event.toolUse);
+                    } else if (event.type === 'usage' && event.usage) {
+                        apiUsage = event.usage;
+                    }
+                }
+
+                // Use API usage if available, otherwise estimate
+                if (apiUsage && apiUsage.outputTokenCount) {
+                    outputTokens = apiUsage.outputTokenCount;
+                    if (apiUsage.inputTokenCount) {
+                        inputTokens = apiUsage.inputTokenCount;
+                    }
+                } else {
+                    // Fallback: estimate from content
+                    outputTokens = Math.ceil(fullText.length / 4);
+                    for (const tc of toolCalls) {
+                        outputTokens += Math.ceil(JSON.stringify(tc.input || {}).length / 4);
                     }
                 }
 
@@ -2462,8 +2478,6 @@ app.post('/v1/messages', async (req, res) => {
                         })}\n\n`);
 
                         res.write(`event: content_block_stop\ndata: ${JSON.stringify({ type: 'content_block_stop', index: blockIndex })}\n\n`);
-
-                        outputTokens += Math.ceil(JSON.stringify(tc.input || {}).length / 4);
                     }
                 }
 
@@ -2557,23 +2571,39 @@ app.post('/v1/messages', async (req, res) => {
                 const content = [];
                 let outputTokens = 0;
                 let stopReason = 'end_turn';
-                let responseText = '';
+
+                // Try to get usage from API response first, fallback to estimation
+                if (response.usage && response.usage.outputTokenCount) {
+                    outputTokens = response.usage.outputTokenCount;
+                    // Also update inputTokens if available from API
+                    if (response.usage.inputTokenCount) {
+                        logData.inputTokens = response.usage.inputTokenCount;
+                    }
+                } else {
+                    // Fallback: estimate from content length
+                    if (response.content) {
+                        outputTokens += Math.ceil(response.content.length / 4);
+                    }
+                    if (response.toolCalls && response.toolCalls.length > 0) {
+                        for (const tc of response.toolCalls) {
+                            outputTokens += Math.ceil(JSON.stringify(tc.input || {}).length / 4);
+                        }
+                    }
+                }
 
                 if (response.content) {
                     content.push({ type: 'text', text: response.content });
-                    outputTokens += Math.ceil(response.content.length / 4);
                 }
 
                 if (response.toolCalls && response.toolCalls.length > 0) {
                     stopReason = 'tool_use';
                     for (const tc of response.toolCalls) {
                         content.push({ type: 'tool_use', id: tc.toolUseId, name: tc.name, input: tc.input });
-                        outputTokens += Math.ceil(JSON.stringify(tc.input || {}).length / 4);
                     }
                 }
 
                 const durationMs = Date.now() - startTime;
-                console.log(`  ✓ ${durationMs}ms | in=${inputTokens} out=${outputTokens}`);
+                console.log(`  ✓ ${durationMs}ms | in=${logData.inputTokens} out=${outputTokens}`);
 
                 await apiLogStore.create({ ...logData, outputTokens, durationMs });
 
