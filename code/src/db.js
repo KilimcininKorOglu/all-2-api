@@ -198,6 +198,14 @@ export async function initDatabase() {
         await pool.execute(`ALTER TABLE api_logs ADD INDEX idx_source (source)`);
     } catch (e) { /* Index may already exist */ }
 
+    // Add cache token columns to api_logs (migration)
+    try {
+        await pool.execute(`ALTER TABLE api_logs ADD COLUMN cache_creation_tokens INT DEFAULT 0 AFTER output_tokens`);
+    } catch (e) { /* Column may already exist */ }
+    try {
+        await pool.execute(`ALTER TABLE api_logs ADD COLUMN cache_read_tokens INT DEFAULT 0 AFTER cache_creation_tokens`);
+    } catch (e) { /* Column may already exist */ }
+
     // Create Gemini error credentials table
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS gemini_error_credentials (
@@ -1308,9 +1316,9 @@ export class ApiLogStore {
             INSERT INTO api_logs (
                 request_id, api_key_id, api_key_prefix, credential_id, credential_name,
                 ip_address, user_agent, method, path, model, stream,
-                input_tokens, output_tokens,
+                input_tokens, output_tokens, cache_creation_tokens, cache_read_tokens,
                 status_code, error_message, duration_ms, source
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `, [
             logData.requestId || null,
             logData.apiKeyId !== undefined ? logData.apiKeyId : null,
@@ -1325,6 +1333,8 @@ export class ApiLogStore {
             logData.isStream || logData.stream ? 1 : 0,
             logData.inputTokens || 0,
             logData.outputTokens || 0,
+            logData.cacheCreationTokens || 0,
+            logData.cacheReadTokens || 0,
             logData.statusCode || 200,
             logData.errorMessage !== undefined ? logData.errorMessage : null,
             logData.durationMs || 0,
@@ -1454,6 +1464,8 @@ export class ApiLogStore {
                 COUNT(*) as requestCount,
                 COALESCE(SUM(input_tokens), 0) as inputTokens,
                 COALESCE(SUM(output_tokens), 0) as outputTokens,
+                COALESCE(SUM(cache_creation_tokens), 0) as cacheCreationTokens,
+                COALESCE(SUM(cache_read_tokens), 0) as cacheReadTokens,
                 COALESCE(AVG(duration_ms), 0) as avgDurationMs
             FROM api_logs
             WHERE api_key_id = ?
@@ -1474,6 +1486,8 @@ export class ApiLogStore {
             requestCount: Number(rows[0].requestCount) || 0,
             inputTokens: Number(rows[0].inputTokens) || 0,
             outputTokens: Number(rows[0].outputTokens) || 0,
+            cacheCreationTokens: Number(rows[0].cacheCreationTokens) || 0,
+            cacheReadTokens: Number(rows[0].cacheReadTokens) || 0,
             avgDurationMs: Number(rows[0].avgDurationMs) || 0
         };
     }
@@ -1485,7 +1499,9 @@ export class ApiLogStore {
                 model,
                 COUNT(*) as requestCount,
                 COALESCE(SUM(input_tokens), 0) as inputTokens,
-                COALESCE(SUM(output_tokens), 0) as outputTokens
+                COALESCE(SUM(output_tokens), 0) as outputTokens,
+                COALESCE(SUM(cache_creation_tokens), 0) as cacheCreationTokens,
+                COALESCE(SUM(cache_read_tokens), 0) as cacheReadTokens
             FROM api_logs
             WHERE api_key_id = ?
         `;
@@ -1507,7 +1523,9 @@ export class ApiLogStore {
             model: row.model,
             requestCount: Number(row.requestCount) || 0,
             inputTokens: Number(row.inputTokens) || 0,
-            outputTokens: Number(row.outputTokens) || 0
+            outputTokens: Number(row.outputTokens) || 0,
+            cacheCreationTokens: Number(row.cacheCreationTokens) || 0,
+            cacheReadTokens: Number(row.cacheReadTokens) || 0
         }));
     }
 
@@ -1518,7 +1536,9 @@ export class ApiLogStore {
                 model,
                 COUNT(*) as requestCount,
                 COALESCE(SUM(input_tokens), 0) as inputTokens,
-                COALESCE(SUM(output_tokens), 0) as outputTokens
+                COALESCE(SUM(output_tokens), 0) as outputTokens,
+                COALESCE(SUM(cache_creation_tokens), 0) as cacheCreationTokens,
+                COALESCE(SUM(cache_read_tokens), 0) as cacheReadTokens
             FROM api_logs
             WHERE 1=1
         `;
@@ -1540,7 +1560,9 @@ export class ApiLogStore {
             model: row.model,
             requestCount: Number(row.requestCount) || 0,
             inputTokens: Number(row.inputTokens) || 0,
-            outputTokens: Number(row.outputTokens) || 0
+            outputTokens: Number(row.outputTokens) || 0,
+            cacheCreationTokens: Number(row.cacheCreationTokens) || 0,
+            cacheReadTokens: Number(row.cacheReadTokens) || 0
         }));
     }
 
@@ -1553,7 +1575,9 @@ export class ApiLogStore {
                 ak.key_prefix as apiKeyPrefix,
                 COUNT(*) as requestCount,
                 COALESCE(SUM(al.input_tokens), 0) as inputTokens,
-                COALESCE(SUM(al.output_tokens), 0) as outputTokens
+                COALESCE(SUM(al.output_tokens), 0) as outputTokens,
+                COALESCE(SUM(al.cache_creation_tokens), 0) as cacheCreationTokens,
+                COALESCE(SUM(al.cache_read_tokens), 0) as cacheReadTokens
             FROM api_logs al
             LEFT JOIN api_keys ak ON al.api_key_id = ak.id
             WHERE al.api_key_id IS NOT NULL
@@ -1578,7 +1602,9 @@ export class ApiLogStore {
             apiKeyPrefix: row.apiKeyPrefix || '',
             requestCount: Number(row.requestCount) || 0,
             inputTokens: Number(row.inputTokens) || 0,
-            outputTokens: Number(row.outputTokens) || 0
+            outputTokens: Number(row.outputTokens) || 0,
+            cacheCreationTokens: Number(row.cacheCreationTokens) || 0,
+            cacheReadTokens: Number(row.cacheReadTokens) || 0
         }));
     }
 

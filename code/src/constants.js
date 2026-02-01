@@ -440,10 +440,11 @@ export function isDynamicPricingValid() {
  * @param {string} model - Model name
  * @param {number} inputTokens - Number of input tokens
  * @param {number} outputTokens - Number of output tokens
+ * @param {number} cacheCreationTokens - Number of cache creation/write tokens (optional)
  * @param {number} cacheReadTokens - Number of cache read tokens (optional)
- * @returns {object} { inputCost, outputCost, cacheCost, totalCost }
+ * @returns {object} { inputCost, outputCost, cacheWriteCost, cacheReadCost, totalCost }
  */
-export function calculateTokenCost(model, inputTokens, outputTokens, cacheReadTokens = 0) {
+export function calculateTokenCost(model, inputTokens, outputTokens, cacheCreationTokens = 0, cacheReadTokens = 0) {
     const modelLower = model ? model.toLowerCase() : '';
 
     // Priority: dynamicPricing (db) > remotePricing > MODEL_PRICING > default
@@ -476,18 +477,23 @@ export function calculateTokenCost(model, inputTokens, outputTokens, cacheReadTo
         pricing = MODEL_PRICING['default'];
     }
 
-    // Cache read tokens are 90% cheaper
-    const cacheDiscount = 0.1;
+    // Cache pricing:
+    // - Cache write (creation) is 25% more expensive than input
+    // - Cache read is 90% cheaper than input
+    const cacheWriteMultiplier = 1.25;
+    const cacheReadMultiplier = 0.1;
 
     const inputCost = (inputTokens / 1000000) * pricing.input;
     const outputCost = (outputTokens / 1000000) * pricing.output;
-    const cacheCost = (cacheReadTokens / 1000000) * pricing.input * cacheDiscount;
+    const cacheWriteCost = (cacheCreationTokens / 1000000) * pricing.input * cacheWriteMultiplier;
+    const cacheReadCost = (cacheReadTokens / 1000000) * pricing.input * cacheReadMultiplier;
 
     return {
         inputCost,
         outputCost,
-        cacheCost,
-        totalCost: inputCost + outputCost + cacheCost
+        cacheWriteCost,
+        cacheReadCost,
+        totalCost: inputCost + outputCost + cacheWriteCost + cacheReadCost
     };
 }
 

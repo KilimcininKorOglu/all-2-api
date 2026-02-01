@@ -815,7 +815,7 @@ async function calculateApiKeyCost(apiKeyId, options = {}) {
     const modelStats = await apiLogStore.getStatsByModel(apiKeyId, options);
     let totalCost = 0;
     for (const stat of modelStats) {
-        const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens);
+        const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens, stat.cacheCreationTokens || 0, stat.cacheReadTokens || 0);
         totalCost += cost.totalCost;
     }
     return totalCost;
@@ -5731,23 +5731,35 @@ app.get('/api/keys/:id/cost', authMiddleware, async (req, res) => {
         // Calculate cost for each model
         let totalInputCost = 0;
         let totalOutputCost = 0;
+        let totalCacheWriteCost = 0;
+        let totalCacheReadCost = 0;
         let totalInputTokens = 0;
         let totalOutputTokens = 0;
+        let totalCacheCreationTokens = 0;
+        let totalCacheReadTokens = 0;
 
         const modelCosts = modelStats.map(stat => {
-            const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens);
+            const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens, stat.cacheCreationTokens || 0, stat.cacheReadTokens || 0);
             totalInputCost += cost.inputCost;
             totalOutputCost += cost.outputCost;
+            totalCacheWriteCost += cost.cacheWriteCost || 0;
+            totalCacheReadCost += cost.cacheReadCost || 0;
             totalInputTokens += stat.inputTokens;
             totalOutputTokens += stat.outputTokens;
+            totalCacheCreationTokens += stat.cacheCreationTokens || 0;
+            totalCacheReadTokens += stat.cacheReadTokens || 0;
 
             return {
                 model: stat.model,
                 requestCount: stat.requestCount,
                 inputTokens: stat.inputTokens,
                 outputTokens: stat.outputTokens,
+                cacheCreationTokens: stat.cacheCreationTokens || 0,
+                cacheReadTokens: stat.cacheReadTokens || 0,
                 inputCost: cost.inputCost,
                 outputCost: cost.outputCost,
+                cacheWriteCost: cost.cacheWriteCost || 0,
+                cacheReadCost: cost.cacheReadCost || 0,
                 totalCost: cost.totalCost
             };
         });
@@ -5760,9 +5772,13 @@ app.get('/api/keys/:id/cost', authMiddleware, async (req, res) => {
                     totalRequests: modelCosts.reduce((sum, m) => sum + m.requestCount, 0),
                     totalInputTokens,
                     totalOutputTokens,
+                    totalCacheCreationTokens,
+                    totalCacheReadTokens,
                     totalInputCost,
                     totalOutputCost,
-                    totalCost: totalInputCost + totalOutputCost
+                    totalCacheWriteCost,
+                    totalCacheReadCost,
+                    totalCost: totalInputCost + totalOutputCost + totalCacheWriteCost + totalCacheReadCost
                 }
             }
         });
@@ -5786,23 +5802,35 @@ app.get('/api/logs-stats/cost', authMiddleware, async (req, res) => {
         // Calculate cost
         let totalInputCost = 0;
         let totalOutputCost = 0;
+        let totalCacheWriteCost = 0;
+        let totalCacheReadCost = 0;
         let totalInputTokens = 0;
         let totalOutputTokens = 0;
+        let totalCacheCreationTokens = 0;
+        let totalCacheReadTokens = 0;
 
         const modelCosts = modelStats.map(stat => {
-            const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens);
+            const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens, stat.cacheCreationTokens || 0, stat.cacheReadTokens || 0);
             totalInputCost += cost.inputCost;
             totalOutputCost += cost.outputCost;
+            totalCacheWriteCost += cost.cacheWriteCost || 0;
+            totalCacheReadCost += cost.cacheReadCost || 0;
             totalInputTokens += stat.inputTokens;
             totalOutputTokens += stat.outputTokens;
+            totalCacheCreationTokens += stat.cacheCreationTokens || 0;
+            totalCacheReadTokens += stat.cacheReadTokens || 0;
 
             return {
                 model: stat.model,
                 requestCount: stat.requestCount,
                 inputTokens: stat.inputTokens,
                 outputTokens: stat.outputTokens,
+                cacheCreationTokens: stat.cacheCreationTokens || 0,
+                cacheReadTokens: stat.cacheReadTokens || 0,
                 inputCost: cost.inputCost,
                 outputCost: cost.outputCost,
+                cacheWriteCost: cost.cacheWriteCost || 0,
+                cacheReadCost: cost.cacheReadCost || 0,
                 totalCost: cost.totalCost
             };
         });
@@ -5814,7 +5842,7 @@ app.get('/api/logs-stats/cost', authMiddleware, async (req, res) => {
             const keyModelStats = await apiLogStore.getStatsByModel(stat.apiKeyId, { startDate, endDate });
             let keyCost = 0;
             keyModelStats.forEach(ms => {
-                keyCost += calculateTokenCost(ms.model, ms.inputTokens, ms.outputTokens).totalCost;
+                keyCost += calculateTokenCost(ms.model, ms.inputTokens, ms.outputTokens, ms.cacheCreationTokens || 0, ms.cacheReadTokens || 0).totalCost;
             });
 
             keyCosts.push({
@@ -5837,9 +5865,13 @@ app.get('/api/logs-stats/cost', authMiddleware, async (req, res) => {
                     totalRequests: modelCosts.reduce((sum, m) => sum + m.requestCount, 0),
                     totalInputTokens,
                     totalOutputTokens,
+                    totalCacheCreationTokens,
+                    totalCacheReadTokens,
                     totalInputCost,
                     totalOutputCost,
-                    totalCost: totalInputCost + totalOutputCost
+                    totalCacheWriteCost,
+                    totalCacheReadCost,
+                    totalCost: totalInputCost + totalOutputCost + totalCacheWriteCost + totalCacheReadCost
                 }
             }
         });
@@ -6122,14 +6154,18 @@ app.post('/api/public/usage', async (req, res) => {
         // Get statistics grouped by model
         const modelStats = await apiLogStore.getStatsByModel(keyRecord.id, {});
         const modelCosts = modelStats.map(stat => {
-            const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens);
+            const cost = calculateTokenCost(stat.model, stat.inputTokens, stat.outputTokens, stat.cacheCreationTokens || 0, stat.cacheReadTokens || 0);
             return {
                 model: stat.model,
                 requestCount: stat.requestCount,
                 inputTokens: stat.inputTokens,
                 outputTokens: stat.outputTokens,
+                cacheCreationTokens: stat.cacheCreationTokens || 0,
+                cacheReadTokens: stat.cacheReadTokens || 0,
                 inputCost: cost.inputCost,
                 outputCost: cost.outputCost,
+                cacheWriteCost: cost.cacheWriteCost || 0,
+                cacheReadCost: cost.cacheReadCost || 0,
                 totalCost: cost.totalCost
             };
         });
