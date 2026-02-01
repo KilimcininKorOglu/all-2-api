@@ -1533,7 +1533,13 @@ app.get('/api/model-aliases/builtin', authMiddleware, async (req, res) => {
                 'gemini-1.5-pro': 'gemini-1.5-pro',
                 'gemini-1.5-flash': 'gemini-1.5-flash',
                 'gemini-pro': 'gemini-1.5-pro',
-                'gemini-flash': 'gemini-1.5-flash'
+                'gemini-flash': 'gemini-1.5-flash',
+                'gemini-3-pro': 'gemini-3-pro-preview',
+                'gemini-3-flash': 'gemini-3-flash-preview',
+                // Claude models via Antigravity
+                'claude-sonnet-4-5': 'gemini-claude-sonnet-4-5',
+                'claude-sonnet-4-5-thinking': 'gemini-claude-sonnet-4-5-thinking',
+                'claude-opus-4-5-thinking': 'gemini-claude-opus-4-5-thinking'
             },
             vertex: VERTEX_GEMINI_MODEL_MAPPING,
             warp: {
