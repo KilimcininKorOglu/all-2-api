@@ -3250,7 +3250,6 @@ export class SiteSettingsStore {
         if (settings.defaultProvider !== undefined) { fields.push('default_provider = ?'); values.push(settings.defaultProvider); }
         if (settings.enabledProviders !== undefined) { fields.push('enabled_providers = ?'); values.push(JSON.stringify(settings.enabledProviders)); }
         if (settings.providerPriority !== undefined) { fields.push('provider_priority = ?'); values.push(JSON.stringify(settings.providerPriority)); }
-        if (settings.modelRouting !== undefined) { fields.push('model_routing = ?'); values.push(JSON.stringify(settings.modelRouting)); }
 
         if (fields.length > 0) {
             await this.db.execute(`UPDATE site_settings SET ${fields.join(', ')} WHERE id = 1`, values);
@@ -3262,7 +3261,6 @@ export class SiteSettingsStore {
         const defaultProviders = ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
         let enabledProviders = defaultProviders;
         let providerPriority = defaultProviders;
-        let modelRouting = {};
 
         try {
             if (row.enabled_providers) {
@@ -3277,14 +3275,6 @@ export class SiteSettingsStore {
                 providerPriority = typeof row.provider_priority === 'string'
                     ? JSON.parse(row.provider_priority)
                     : row.provider_priority;
-            }
-        } catch (e) { /* use default */ }
-
-        try {
-            if (row.model_routing) {
-                modelRouting = typeof row.model_routing === 'string'
-                    ? JSON.parse(row.model_routing)
-                    : row.model_routing;
             }
         } catch (e) { /* use default */ }
 
@@ -3305,7 +3295,6 @@ export class SiteSettingsStore {
             defaultProvider: row.default_provider || 'kiro',
             enabledProviders,
             providerPriority,
-            modelRouting,
             updatedAt: row.updated_at
         };
     }

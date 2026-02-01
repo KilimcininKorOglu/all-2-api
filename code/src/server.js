@@ -262,8 +262,7 @@ let systemSettings = {
     selectionStrategy: 'hybrid', // hybrid, sticky, round-robin
     defaultProvider: 'kiro',
     enabledProviders: ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'],
-    providerPriority: ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'],
-    modelRouting: {}
+    providerPriority: ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock']
 };
 
 // Check if credential lock is disabled (dynamic)
@@ -295,7 +294,7 @@ function isProviderEnabled(provider) {
     return systemSettings.enabledProviders.includes(provider);
 }
 
-// Get provider for model based on routing rules and settings
+// Get provider based on header or default settings (header-only routing)
 function getProviderForModel(model, headerProvider) {
     // 1. If header explicitly specifies a provider, use it (if enabled)
     if (headerProvider) {
@@ -305,23 +304,12 @@ function getProviderForModel(model, headerProvider) {
         }
     }
 
-    // 2. Check custom model routing rules
-    if (model && systemSettings.modelRouting) {
-        for (const [pattern, provider] of Object.entries(systemSettings.modelRouting)) {
-            // Support wildcard patterns (e.g., "gpt-4*", "claude-*")
-            const regex = new RegExp('^' + pattern.replace(/\*/g, '.*') + '$', 'i');
-            if (regex.test(model) && isProviderEnabled(provider)) {
-                return provider;
-            }
-        }
-    }
-
-    // 3. Return default provider if enabled
+    // 2. Return default provider if enabled
     if (isProviderEnabled(systemSettings.defaultProvider)) {
         return systemSettings.defaultProvider;
     }
 
-    // 4. Fallback to first enabled provider
+    // 3. Fallback to first enabled provider
     return systemSettings.enabledProviders[0] || 'kiro';
 }
 
@@ -392,7 +380,6 @@ async function loadSystemSettings() {
         systemSettings.defaultProvider = settings.defaultProvider || 'kiro';
         systemSettings.enabledProviders = settings.enabledProviders || ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
         systemSettings.providerPriority = settings.providerPriority || ['kiro', 'anthropic', 'gemini', 'orchids', 'warp', 'vertex', 'bedrock'];
-        systemSettings.modelRouting = settings.modelRouting || {};
 
         // Apply to logger
         updateLoggerSettings({
@@ -1307,8 +1294,7 @@ app.get('/api/provider-settings', authMiddleware, async (req, res) => {
             data: {
                 defaultProvider: settings.defaultProvider,
                 enabledProviders: settings.enabledProviders,
-                providerPriority: settings.providerPriority,
-                modelRouting: settings.modelRouting
+                providerPriority: settings.providerPriority
             }
         });
     } catch (error) {
@@ -1319,7 +1305,7 @@ app.get('/api/provider-settings', authMiddleware, async (req, res) => {
 // Update provider settings
 app.put('/api/provider-settings', authMiddleware, async (req, res) => {
     try {
-        const { defaultProvider, enabledProviders, providerPriority, modelRouting } = req.body;
+        const { defaultProvider, enabledProviders, providerPriority } = req.body;
 
         // Validate defaultProvider
         if (defaultProvider && !ALL_PROVIDERS.includes(defaultProvider)) {
@@ -1350,16 +1336,10 @@ app.put('/api/provider-settings', authMiddleware, async (req, res) => {
             }
         }
 
-        // Validate modelRouting
-        if (modelRouting && typeof modelRouting !== 'object') {
-            return res.status(400).json({ success: false, error: 'modelRouting must be an object' });
-        }
-
         const updateData = {};
         if (defaultProvider !== undefined) updateData.defaultProvider = defaultProvider;
         if (enabledProviders !== undefined) updateData.enabledProviders = enabledProviders;
         if (providerPriority !== undefined) updateData.providerPriority = providerPriority;
-        if (modelRouting !== undefined) updateData.modelRouting = modelRouting;
 
         const settings = await siteSettingsStore.update(updateData);
 
@@ -1367,15 +1347,13 @@ app.put('/api/provider-settings', authMiddleware, async (req, res) => {
         systemSettings.defaultProvider = settings.defaultProvider;
         systemSettings.enabledProviders = settings.enabledProviders;
         systemSettings.providerPriority = settings.providerPriority;
-        systemSettings.modelRouting = settings.modelRouting;
 
         res.json({
             success: true,
             data: {
                 defaultProvider: settings.defaultProvider,
                 enabledProviders: settings.enabledProviders,
-                providerPriority: settings.providerPriority,
-                modelRouting: settings.modelRouting
+                providerPriority: settings.providerPriority
             }
         });
     } catch (error) {
@@ -2121,9 +2099,8 @@ app.post('/v1/messages', async (req, res) => {
             return;
         }
 
-        // ============ Check if routing to Anthropic is needed ============
-        const isAnthropicProvider = modelProvider.toLowerCase() === 'anthropic' ||
-                                    (model && isAnthropicModel(model) && !isGeminiProvider && !isOrchidsProvider);
+        // ============ Check if routing to Anthropic is needed (header-only) ============
+        const isAnthropicProvider = modelProvider.toLowerCase() === 'anthropic';
 
         if (isAnthropicProvider) {
             console.log(`[${getTimestamp()}] [API] Request routed to Anthropic Provider | Model: ${model}`);
@@ -3320,9 +3297,8 @@ app.post('/v1/chat/completions', async (req, res) => {
         // ============ Model-Provider Routing Support ============
         const modelProvider = req.headers['model-provider'] || req.headers['x-model-provider'] || '';
 
-        // Check if routing to Anthropic is needed
-        const isAnthropicProvider = modelProvider.toLowerCase() === 'anthropic' ||
-                                    (model && isAnthropicModel(model) && modelProvider.toLowerCase() !== 'kiro');
+        // Check if routing to Anthropic is needed (header-only)
+        const isAnthropicProvider = modelProvider.toLowerCase() === 'anthropic';
 
         if (isAnthropicProvider) {
             console.log(`[${getTimestamp()}] [OpenAI API] Request routed to Anthropic Provider | Model: ${model}`);

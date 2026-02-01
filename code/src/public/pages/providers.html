@@ -416,73 +416,27 @@
                             <div class="settings-card-header">
                                 <div class="settings-card-icon">
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
+                                        <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
                                     </svg>
                                 </div>
                                 <div>
-                                    <div class="settings-card-title">Model Routing Rules</div>
-                                    <div class="settings-card-subtitle">Custom model to provider mappings</div>
+                                    <div class="settings-card-title">Model Name Mapping</div>
+                                    <div class="settings-card-subtitle">Map model names to provider-specific formats</div>
                                 </div>
                             </div>
 
-                            <div id="routing-rules-container">
-                                <table class="routing-table" id="routing-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Model Pattern</th>
-                                            <th>Provider</th>
-                                            <th class="actions"></th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="routing-tbody">
-                                    </tbody>
-                                </table>
+                            <p style="color: var(--text-secondary); margin: 0 0 16px 0;">
+                                Use Model Aliases to define custom model name mappings. For example, map <code>gpt-4</code> to <code>claude-sonnet-4</code> for Kiro provider.
+                            </p>
 
-                                <div class="empty-state" id="empty-rules" style="display: none;">
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>
-                                    </svg>
-                                    <p>No custom routing rules defined</p>
-                                </div>
-                            </div>
-
-                            <div class="add-rule-form" id="add-rule-form">
-                                <div class="form-row">
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label class="form-label">Model Pattern</label>
-                                        <input type="text" id="new-rule-pattern" class="form-input" placeholder="e.g., gpt-4*, claude-*">
-                                    </div>
-                                    <div class="form-group" style="margin-bottom: 0;">
-                                        <label class="form-label">Provider</label>
-                                        <select id="new-rule-provider" class="form-select">
-                                            <option value="kiro">Kiro</option>
-                                            <option value="anthropic">Anthropic</option>
-                                            <option value="gemini">Gemini</option>
-                                            <option value="orchids">Orchids</option>
-                                            <option value="warp">Warp</option>
-                                            <option value="vertex">Vertex AI</option>
-                                            <option value="bedrock">Bedrock</option>
-                                        </select>
-                                    </div>
-                                    <button type="button" class="btn btn-primary" id="add-rule-btn" style="height: 42px;">
-                                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <line x1="12" y1="5" x2="12" y2="19"/>
-                                            <line x1="5" y1="12" x2="19" y2="12"/>
-                                        </svg>
-                                        Add
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div class="form-actions" style="margin-top: 16px;">
-                                <button type="button" class="btn btn-secondary" id="toggle-add-rule-btn">
-                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                        <line x1="12" y1="5" x2="12" y2="19"/>
-                                        <line x1="5" y1="12" x2="19" y2="12"/>
-                                    </svg>
-                                    Add Rule
-                                </button>
-                            </div>
+                            <a href="/pages/model-aliases.html" class="btn btn-secondary">
+                                <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                                    <polyline points="15 3 21 3 21 9"/>
+                                    <line x1="10" y1="14" x2="21" y2="3"/>
+                                </svg>
+                                Manage Model Aliases
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -506,8 +460,7 @@
         let providerSettings = {
             defaultProvider: 'kiro',
             enabledProviders: Object.keys(PROVIDERS),
-            providerPriority: Object.keys(PROVIDERS),
-            modelRouting: {}
+            providerPriority: Object.keys(PROVIDERS)
         };
 
         let draggedItem = null;
@@ -520,7 +473,6 @@
 
             await loadProviderSettings();
             renderProviderList();
-            renderRoutingRules();
             bindEvents();
         });
 
@@ -531,7 +483,8 @@
                 });
                 const result = await res.json();
                 if (result.success) {
-                    providerSettings = { ...providerSettings, ...result.data };
+                    const { modelRouting, ...rest } = result.data;
+                    providerSettings = { ...providerSettings, ...rest };
                     document.getElementById('default-provider').value = providerSettings.defaultProvider;
                 }
             } catch (error) {
@@ -637,38 +590,6 @@
             });
         }
 
-        function renderRoutingRules() {
-            const tbody = document.getElementById('routing-tbody');
-            const emptyState = document.getElementById('empty-rules');
-            const table = document.getElementById('routing-table');
-
-            const rules = Object.entries(providerSettings.modelRouting || {});
-
-            if (rules.length === 0) {
-                table.style.display = 'none';
-                emptyState.style.display = 'block';
-                return;
-            }
-
-            table.style.display = 'table';
-            emptyState.style.display = 'none';
-
-            tbody.innerHTML = rules.map(([pattern, provider]) => `
-                <tr data-pattern="${pattern}">
-                    <td><span class="model-pattern">${pattern}</span></td>
-                    <td>${PROVIDERS[provider]?.name || provider}</td>
-                    <td class="actions">
-                        <button class="btn-icon-only danger" onclick="deleteRule('${pattern}')">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <polyline points="3 6 5 6 21 6"/>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                            </svg>
-                        </button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
         function bindEvents() {
             document.getElementById('default-provider-form').addEventListener('submit', async (e) => {
                 e.preventDefault();
@@ -689,35 +610,6 @@
                 });
             });
 
-            document.getElementById('toggle-add-rule-btn').addEventListener('click', () => {
-                const form = document.getElementById('add-rule-form');
-                form.classList.toggle('active');
-            });
-
-            document.getElementById('add-rule-btn').addEventListener('click', async () => {
-                const pattern = document.getElementById('new-rule-pattern').value.trim();
-                const provider = document.getElementById('new-rule-provider').value;
-
-                if (!pattern) {
-                    showToast('Please enter a model pattern', 'error');
-                    return;
-                }
-
-                providerSettings.modelRouting[pattern] = provider;
-                await saveSettings({ modelRouting: providerSettings.modelRouting });
-
-                document.getElementById('new-rule-pattern').value = '';
-                document.getElementById('add-rule-form').classList.remove('active');
-                renderRoutingRules();
-            });
-        }
-
-        async function deleteRule(pattern) {
-            if (!confirm(`Delete routing rule for "${pattern}"?`)) return;
-
-            delete providerSettings.modelRouting[pattern];
-            await saveSettings({ modelRouting: providerSettings.modelRouting });
-            renderRoutingRules();
         }
 
         async function saveSettings(data) {
