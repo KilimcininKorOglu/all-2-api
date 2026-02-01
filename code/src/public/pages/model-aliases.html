@@ -3,58 +3,131 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Model Aliases - Hermes Account Manager</title>
+    <title>Model Aliases - Kiro Account Manager</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/css/common.css">
     <link rel="stylesheet" href="/css/styles.css">
     <style>
-        .aliases-container {
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-        }
-        .filter-bar {
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            flex-wrap: wrap;
-        }
-        .filter-bar .form-select {
-            width: 200px;
-            padding: 10px 14px;
-        }
-        .aliases-card {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-        .aliases-card-header {
+        .toolbar {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 24px;
+            gap: 16px;
+            flex-wrap: wrap;
         }
-        .aliases-card-title {
+        .toolbar-left {
             display: flex;
             align-items: center;
             gap: 12px;
         }
-        .aliases-card-title h3 {
+        .toolbar-right {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .search-wrapper {
+            position: relative;
+        }
+        .search-wrapper svg {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 16px;
+            height: 16px;
+            color: var(--text-muted);
+        }
+        .search-input {
+            padding: 10px 12px 10px 40px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            width: 280px;
+        }
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        .alias-groups {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .alias-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.2s;
+        }
+        .alias-card:hover {
+            border-color: var(--primary);
+        }
+        .alias-card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 20px;
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .alias-card-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .alias-name {
             font-size: 16px;
             font-weight: 600;
             color: var(--text-primary);
-            margin: 0;
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+        .alias-description {
+            font-size: 13px;
+            color: var(--text-secondary);
+            margin-left: 8px;
+        }
+        .alias-card-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .alias-card-body {
+            padding: 16px 20px;
+        }
+        .provider-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+        .provider-item {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .provider-item.inactive {
+            opacity: 0.5;
+        }
+        .provider-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
         .provider-badge {
             padding: 4px 10px;
             border-radius: 6px;
-            font-size: 12px;
-            font-weight: 500;
+            font-size: 11px;
+            font-weight: 600;
             text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
         .provider-badge.kiro { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
         .provider-badge.anthropic { background: rgba(217, 119, 6, 0.15); color: #d97706; }
@@ -63,73 +136,23 @@
         .provider-badge.warp { background: rgba(6, 182, 212, 0.15); color: #06b6d4; }
         .provider-badge.vertex { background: rgba(234, 67, 53, 0.15); color: #ea4335; }
         .provider-badge.bedrock { background: rgba(255, 153, 0, 0.15); color: #ff9900; }
-        .aliases-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .aliases-table th,
-        .aliases-table td {
-            padding: 14px 24px;
-            text-align: left;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .aliases-table th {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            background: var(--bg-tertiary);
-        }
-        .aliases-table td {
-            font-size: 14px;
-            color: var(--text-primary);
-        }
-        .aliases-table tr:last-child td {
-            border-bottom: none;
-        }
-        .aliases-table tr:hover {
-            background: var(--bg-tertiary);
-        }
-        .model-name {
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', monospace;
-            background: var(--bg-tertiary);
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-        .alias-arrow {
-            color: var(--text-muted);
-            margin: 0 12px;
-        }
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 500;
-        }
-        .status-badge.active {
-            background: rgba(34, 197, 94, 0.15);
-            color: #22c55e;
-        }
-        .status-badge.inactive {
-            background: rgba(107, 114, 128, 0.15);
-            color: #6b7280;
-        }
         .status-dot {
-            width: 6px;
-            height: 6px;
+            width: 8px;
+            height: 8px;
             border-radius: 50%;
-            background: currentColor;
         }
-        .actions-cell {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
+        .status-dot.active { background: #22c55e; }
+        .status-dot.inactive { background: #6b7280; }
+        .provider-model {
+            font-family: 'SF Mono', Monaco, monospace;
+            font-size: 12px;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            padding: 6px 8px;
+            border-radius: 4px;
+            word-break: break-all;
         }
-        .btn-icon-only {
+        .btn-icon-sm {
             width: 32px;
             height: 32px;
             padding: 0;
@@ -141,24 +164,25 @@
             border-radius: 6px;
             color: var(--text-secondary);
             cursor: pointer;
-            transition: all 0.15s ease;
+            transition: all 0.15s;
         }
-        .btn-icon-only:hover {
-            border-color: var(--accent-primary);
-            color: var(--accent-primary);
+        .btn-icon-sm:hover {
+            border-color: var(--primary);
+            color: var(--primary);
         }
-        .btn-icon-only.danger:hover {
-            border-color: #ef4444;
-            color: #ef4444;
+        .btn-icon-sm.danger:hover {
+            border-color: var(--error);
+            color: var(--error);
         }
-        .btn-icon-only svg {
+        .btn-icon-sm svg {
             width: 16px;
             height: 16px;
         }
         .empty-state {
             text-align: center;
-            padding: 48px 24px;
-            color: var(--text-muted);
+            padding: 60px 24px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
         }
         .empty-state svg {
             width: 64px;
@@ -166,136 +190,152 @@
             margin-bottom: 16px;
             opacity: 0.4;
         }
-        .empty-state p {
-            font-size: 14px;
-            margin-bottom: 16px;
-        }
-        .modal-overlay {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: rgba(0, 0, 0, 0.6);
-            z-index: 1000;
-            align-items: center;
-            justify-content: center;
-        }
-        .modal-overlay.active {
-            display: flex;
-        }
-        .modal {
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            width: 500px;
-            max-width: 90vw;
-            max-height: 90vh;
-            overflow: auto;
-        }
-        .modal-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border-color);
-        }
-        .modal-title {
+        .empty-state h3 {
             font-size: 18px;
             font-weight: 600;
             color: var(--text-primary);
+            margin-bottom: 8px;
         }
-        .modal-close {
-            background: none;
-            border: none;
+        .empty-state p {
+            font-size: 14px;
             color: var(--text-secondary);
-            cursor: pointer;
-            padding: 4px;
-        }
-        .modal-close:hover {
-            color: var(--text-primary);
-        }
-        .modal-body {
-            padding: 24px;
-        }
-        .modal-footer {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            padding: 16px 24px;
-            border-top: 1px solid var(--border-color);
-        }
-        .form-group {
             margin-bottom: 20px;
         }
-        .form-label {
+        .stats-bar {
+            display: flex;
+            gap: 24px;
+            padding: 16px 20px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            margin-bottom: 24px;
+        }
+        .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .stat-value {
+            font-size: 20px;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+        .modal-body .form-group {
+            margin-bottom: 16px;
+        }
+        .modal-body .form-label {
             display: block;
             font-size: 13px;
             font-weight: 500;
             color: var(--text-secondary);
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
-        .form-input,
-        .form-select {
+        .modal-body .form-input,
+        .modal-body .form-select {
             width: 100%;
             padding: 10px 14px;
-            background: var(--bg-tertiary);
             border: 1px solid var(--border-color);
-            border-radius: var(--radius-md);
+            border-radius: 8px;
+            font-size: 14px;
+            background: var(--bg-primary);
             color: var(--text-primary);
-            font-size: 14px;
-            font-family: inherit;
         }
-        .form-input:focus,
-        .form-select:focus {
+        .modal-body .form-input:focus,
+        .modal-body .form-select:focus {
             outline: none;
-            border-color: var(--accent-primary);
+            border-color: var(--primary);
         }
-        .form-hint {
+        .provider-mappings {
+            bolid var(--border-color);
+            border-radius: 8px;
+            overflow: hidden;
+            margin-top: 16px;
+        }
+        .provider-mapping-header {
+            display: grid;
+            grid-template-columns: 120px 1fr 80px 40px;
+            gap: 12px;
+            padding: 10px 12px;
+            background: var(--bg-tertiary);
             font-size: 12px;
-            color: var(--text-muted);
-            margin-top: 6px;
-        }
-        .hardcoded-section {
-            margin-top: 24px;
-            padding-top: 24px;
-            border-top: 1px solid var(--border-color);
-        }
-        .hardcoded-title {
-            font-size: 14px;
             font-weight: 600;
             color: var(--text-secondary);
-            margin-bottom: 16px;
+            text-transform: uppercase;
+        }
+        .provider-mapping-row {
+            display: grid;
+            grid-template-columns: 120px 1fr 80px 40px;
+            gap: 12px;
+            padding: 12px;
+            border-top: 1px solid var(--border-color);
+            align-items: center;
+        }
+        .provider-mapping-row .form-select,
+        .provider-mapping-row .form-input {
+            padding: 8px 10px;
+            font-size: 13px;
+        }
+        .provider-mapping-row .checkbox-wrapper {
+            display: flex;
+            justify-content: center;
+        }
+        .provider-mapping-row .btn-icon-sm {
+            width: 28px;
+            height: 28px;
+        }
+        .add-mapping-btn {
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            border-top: 1px solid var(--border-color);
+            background: transparent;
+            color: var(--primary);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            border: none;
+            transition: background 0.15s;
         }
-        .hardcoded-title svg {
+        .add-mapping-btn:hover {
+            background: var(--bg-tertiary);
+        }
+        .add-mapping-btn svg {
             width: 16px;
             height: 16px;
         }
-        .hardcoded-list {
+        .modal-footer {
             display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        .hardcoded-item {
-            display: flex;
-            align-items: center;
+            justify-content: flex-end;
             gap: 12px;
-            padding: 10px 14px;
-            background: var(--bg-tertiary);
-            border-radius: 6px;
-            font-size: 13px;
+            padding-top: 16px;
+            margin-top: 16px;
+            border-top: 1px solid var(--border-color);
         }
-        .hardcoded-item .model-name {
-            background: var(--bg-secondary);
+        .loading-spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 0.8s linear infinite;
+        }
+        .loading-spinner.dark {
+            border-color: rgba(0,0,0,0.1);
+            border-top-color: var(--primary);
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
         }
     </style>
 </head>
 <body>
-    <div class="toast-container" id="toast-container"></div>
     <div class="app-container">
         <div id="sidebar-container"></div>
 
@@ -312,376 +352,488 @@
                         </div>
                         <div>
                             <h1 class="page-title">Model Aliases</h1>
-                            <p class="page-subtitle">Map model names to provider-specific models</p>
+                            <p class="page-subtitle">Map model names across different providers</p>
                         </div>
                     </div>
-                </div>
-                <div class="header-actions">
-                    <button class="btn btn-primary" onclick="openAddModal()">
-                        <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <line x1="12" y1="5" x2="12" y2="19"/>
-                            <line x1="5" y1="12" x2="19" y2="12"/>
-                        </svg>
-                        Add Alias
-                    </button>
                 </div>
             </header>
 
-            <div class="content-area">
-                <div class="aliases-container">
-                    <div class="filter-bar">
-                        <select class="form-select" id="provider-filter" onchange="filterByProvider()">
-                            <option value="">All Providers</option>
-                            <option value="kiro">Kiro</option>
-                            <option value="anthropic">Anthropic</option>
-                            <option value="gemini">Gemini</option>
-                            <option value="orchids">Orchids</option>
-                            <option value="warp">Warp</option>
-                            <option value="vertex">Vertex AI</option>
-                            <option value="bedrock">Bedrock</option>
-                        </select>
-                        <span class="text-muted" id="alias-count">0 aliases</span>
+            <div class="content-wrapper">
+                <!-- Stats Bar -->
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-groups">0</span>
+                        <span class="stat-label">Alias Groups</span>
                     </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-mappings">0</span>
+                        <span class="stat-label">Total Mappings</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value" id="stat-providers">0</span>
+                        <span class="stat-label">Providers</span>
+                    </div>
+                </div>
 
-                    <div class="aliases-card">
-                        <div class="aliases-card-header">
-                            <div class="aliases-card-title">
-                                <h3>Custom Aliases</h3>
-                            </div>
-                        </div>
-                        <div id="aliases-content">
-                            <table class="aliases-table" id="aliases-table">
-                                <thead>
-                                    <tr>
-                                        <th>Alias</th>
-                                        <th>Provider</th>
-                                        <th>Target Model</th>
-                                        <th>Status</th>
-                                        <th style="text-align: right;">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="aliases-tbody">
-                                </tbody>
-                            </table>
-                            <div class="empty-state" id="empty-state" style="display: none;">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
-                                    <polyline points="3.27 6.96 12 12.01 20.73 6.96"/>
-                                    <line x1="12" y1="22.08" x2="12" y2="12"/>
-                                </svg>
-                                <p>No custom aliases defined yet</p>
-                                <button class="btn btn-primary" onclick="openAddModal()">Add Your First Alias</button>
-                            </div>
+                <!-- Toolbar -->
+                <div class="toolbar">
+                    <div class="toolbar-left">
+                        <button class="btn btn-primary" id="add-alias-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <line x1="12" y1="5" x2="12" y2="19"/>
+                                <line x1="5" y1="12" x2="19" y2="12"/>
+                            </svg>
+                            Add Alias Group
+                        </button>
+                    </div>
+                    <div class="toolbar-right">
+                        <div class="search-wrapper">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="11" cy="11" r="8"/>
+                                <path d="M21 21l-4.35-4.35"/>
+                            </svg>
+                            <input type="text" class="search-input" id="search-input" placeholder="Search aliases...">
                         </div>
                     </div>
+                </div>
 
-                    <div class="aliases-card">
-                        <div class="aliases-card-header">
-                            <div class="aliases-card-title">
-                                <h3>Built-in Aliases</h3>
-                                <span class="text-muted">(Read-only, defined in code)</span>
-                            </div>
-                        </div>
-                        <div id="hardcoded-content">
-                        </div>
+                <!-- Alias Groups Container -->
+                <div class="alias-groups" id="alias-groups-container">
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        </svg>
+                        <h3>No Alias Groups</h3>
+                        <p>Create your first alias group to map model names across providers.</p>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
+    <!-- Edit Alias Modal -->
     <div class="modal-overlay" id="alias-modal">
-        <div class="modal">
+        <div class="modal" style="max-width: 600px;">
             <div class="modal-header">
-                <span class="modal-title" id="modal-title">Add Alias</span>
-                <button class="modal-close" onclick="closeModal()">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <line x1="18" y1="6" x2="6" y2="18"/>
-                        <line x1="6" y1="6" x2="18" y2="18"/>
-                    </svg>
-                </button>
+                <h2 class="modal-title" id="modal-title">Add Alias Group</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
             </div>
             <div class="modal-body">
-                <input type="hidden" id="edit-id">
                 <div class="form-group">
-                    <label class="form-label">Alias Name</label>
-                    <input type="text" class="form-input" id="alias-name" placeholder="e.g., opus-4.5, gpt-4-turbo">
-                    <span class="form-hint">The model name users will send in API requests</span>
+                    <label class="form-label">Alias Name <span style="color: var(--error);">*</span></label>
+                    <input type="text" class="form-input" id="alias-name" placeholder="e.g., claude-sonnet-4-5, opus, sonnet">
+                    <span style="font-size: 12px; color: var(--text-muted); margin-top: 4px; display: block;">
+                        The name users will use to reference this model group
+                    </span>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Provider</label>
-                    <select class="form-select" id="alias-provider">
-                        <option value="kiro">Kiro</option>
-                        <option value="anthropic">Anthropic</option>
-                        <option value="gemini">Gemini</option>
-                        <option value="orchids">Orchids</option>
-                        <option value="warp">Warp</option>
-                        <option value="vertex">Vertex AI</option>
-                        <option value="bedrock">Bedrock</option>
-                    </select>
+                    <label class="form-label">Description</label>
+                    <input type="text" class="form-input" id="alias-description" placeholder="e.g., Latest Sonnet 4.5 model">
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Target Model</label>
-                    <input type="text" class="form-input" id="target-model" placeholder="e.g., claude-opus-4-5-20251101">
-                    <span class="form-hint">The actual model name sent to the provider</span>
+                
+                <label class="form-label" style="margin-top: 20px;">Provider Mappings</label>
+                <div class="provider-mappings" id="provider-mappings">
+                    <div class="provider-mapping-header">
+                        <span>Provider</span>
+                        <span>Target Model</span>
+                        <span>Active</span>
+                        <span></span>
+                    </div>
+                    <div id="mappings-list"></div>
+                    <button type="button" class="add-mapping-btn" id="add-mapping-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="12" y1="5" x2="12" y2="19"/>
+                            <line x1="5" y1="12" x2="19" y2="12"/>
+                        </svg>
+                        Add Provider Mapping
+                    </button>
                 </div>
-                <div class="form-group">
-                    <label class="form-label">Description (optional)</label>
-                    <input type="text" class="form-input" id="alias-description" placeholder="e.g., Latest Opus model">
+
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" id="modal-cancel">Cancel</button>
+                    <button class="btn btn-error" id="modal-delete" style="display: none;">Delete Group</button>
+                    <button class="btn btn-primary" id="modal-save">Save Changes</button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
-                <button class="btn btn-primary" id="save-btn" onclick="saveAlias()">Save</button>
             </div>
         </div>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
     <script src="/js/common.js"></script>
     <script>
-        let aliases = [];
-        let currentFilter = '';
+        // State
+        let aliasGroups = [];
+        let filteredGroups = [];
+        let editingAlias = null;
+        let mappingCounter = 0;
 
-        let builtinAliases = {};
+        const PROVIDERS = ['kiro', 'anthropic', 'bedrock', 'gemini', 'vertex', 'warp', 'orchids'];
 
-        async function loadBuiltinAliases() {
+        // DOM Elements
+        const aliasGroupsContainer = document.getElementById('alias-groups-container');
+        const searchInput = document.getElementById('search-input');
+        const addAliasBtn = document.getElementById('add-alias-btn');
+        const aliasModal = document.getElementById('alias-modal');
+        const modalTitle = document.getElementById('modal-title');
+        const modalClose = document.getElementById('modal-close');
+        const modalCancel = document.getElementById('modal-cancel');
+        const modalDelete = document.getElementById('modal-delete');
+        const modalSave = document.getElementById('modal-save');
+        const aliasName = document.getElementById('alias-name');
+        const aliasDescription = document.getElementById('alias-description');
+        const mappingsList = document.getElementById('mappings-list');
+        const addMappingBtn = document.getElementById('add-mapping-btn');
+
+        // Load alias groups
+        async function loadAliasGroups() {
             try {
-                const res = await fetch('/api/model-aliases/builtin', {
+                const res = await fetch('/api/model-aliases/grouped', {
                     headers: { 'Authorization': `Bearer ${authToken}` }
                 });
-                const result = await res.json();
-                if (result.success) {
-                    builtinAliases = result.data;
+                const data = await res.json();
+                if (data.success) {
+                    aliasGroups = data.data;
+                    filterAndRender();
+                    updateStats();
                 }
-            } catch (error) {
-                console.error('Failed to load builtin aliases:', error);
+            } catch (e) {
+                showToast('Failed to load alias groups', 'error');
             }
         }
 
+        // Update stats
+        function updateStats() {
+            const totalMappings = aliasGroups.reduce((sum, g) => sum + g.providers.length, 0);
+            const uniqueProviders = new Set();
+            aliasGroups.forEach(g => g.providers.forEach(p => uniqueProviders.add(p.provider)));
+
+            document.getElementById('stat-groups').textContent = aliasGroups.length;
+            document.getElementById('stat-mappings').textContent = totalMappings;
+            document.getElementById('stat-providers').textContent = uniqueProviders.size;
+        }
+
+        // Filter and render
+        function filterAndRender() {
+            const query = searchInput.value.toLowerCase().trim();
+            
+            if (query) {
+                filteredGroups = aliasGroups.filter(g => 
+                    g.alias.toLowerCase().includes(query) ||
+                    g.providers.some(p => p.targetModel.toLowerCase().includes(query))
+                );
+            } else {
+                filteredGroups = [...aliasGroups];
+            }
+
+            renderAliasGroups();
+        }
+
+        // Render alias groups
+        function renderAliasGroups() {
+            if (filteredGroups.length === 0) {
+                aliasGroupsContainer.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/>
+                        </svg>
+                        <h3>${searchInput.value ? 'No Matches Found' : 'No Alias Groups'}</h3>
+                        <p>${searchInput.value ? 'No alias groups match your search.' : 'Create your first alias group to map model names across providers.'}</p>
+                    </div>
+                `;
+                return;
+            }
+
+            aliasGroupsContainer.innerHTML = filteredGroups.map(group => {
+                const description = group.providers.find(p => p.description)?.description || '';
+                
+                return `
+                    <div class="alias-card" data-alias="${group.alias}">
+                        <div class="alias-card-header">
+                            <div class="alias-card-title">
+                                <span class="alias-name">${group.alias}</span>
+                                ${description ? `<span class="alias-description">${description}</span>` : ''}
+                            </div>
+                            <div class="alias-card-actions">
+                                <button class="btn-icon-sm" onclick="editAliasGroup('${group.alias}')" title="Edit">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                                    </svg>
+                                </button>
+                                <button class="btn-icon-sm danger" onclick="deleteAliasGroup('${group.alias}')" title="Delete">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="alias-card-body">
+                            <div class="provider-grid">
+                                ${group.providers.map(p => `
+                                    <div class="provider-item ${p.isActive ? '' : 'inactive'}">
+                                        <div class="provider-header">
+                                            <span class="provider-badge ${p.provider}">${p.provider}</span>
+                                            <span class="status-dot ${p.isActive ? 'active' : 'inactive'}" title="${p.isActive ? 'Active' : 'Inactive'}"></span>
+                                        </div>
+                                        <div class="provider-model" title="${p.targetModel}">${p.targetModel}</div>
+                                    </div>
+                                `).join('')}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // Search handler
+        searchInput.addEventListener('input', filterAndRender);
+
+        // Open modal for new alias
+        addAliasBtn.addEventListener('click', () => {
+            editingAlias = null;
+            modalTitle.textContent = 'Add Alias Group';
+            aliasName.value = '';
+            aliasName.disabled = false;
+            aliasDescription.value = '';
+            mappingsList.innerHTML = '';
+            modalDelete.style.display = 'none';
+            
+            // Add one empty mapping row
+            addMappingRow();
+            
+            aliasModal.classList.add('active');
+        });
+
+        // Edit alias group
+        function editAliasGroup(alias) {
+            const group = aliasGroups.find(g => g.alias === alias);
+            if (!group) return;
+
+            editingAlias = alias;
+            modalTitle.textContent = `Edit: ${alias}`;
+            aliasName.value = alias;
+            aliasName.disabled = true; // Can't change alias name when editing
+            aliasDescription.value = group.providers.find(p => p.description)?.description || '';
+            mappingsList.innerHTML = '';
+            modalDelete.style.display = 'block';
+
+            // Add existing mappings
+            group.providers.forEach(p => {
+                addMappingRow(p.provider, p.targetModel, p.isActive, p.id);
+            });
+
+            aliasModal.classList.add('active');
+        }
+
+        // Delete alias group
+        async function deleteAliasGroup(alias) {
+            if (!confirm(`Are you sure you want to delete the alias group "${alias}"? This will delete all provider mappings.`)) {
+                return;
+            }
+
+            const group = aliasGroups.find(g => g.alias === alias);
+            if (!group) return;
+
+            try {
+                // Delete all mappings for this alias
+                for (const p of group.providers) {
+                    await fetch(`/api/model-aliases/${p.id}`, {
+                        method: 'DELETE',
+                        headers: { 'Authorization': `Bearer ${authToken}` }
+                    });
+                }
+
+                showToast('Alias group deleted', 'success');
+                await loadAliasGroups();
+            } catch (e) {
+                showToast('Failed to delete alias group', 'error');
+            }
+        }
+
+        // Add mapping row
+        function addMappingRow(provider = '', targetModel = '', isActive = true, id = null) {
+            mappingCounter++;
+            const rowId = `mapping-${mappingCounter}`;
+            
+            const providerOptions = PROVIDERS.map(p => 
+                `<option value="${p}" ${p === provider ? 'selected' : ''}>${p}</option>`
+            ).join('');
+
+            const html = `
+                <div class="provider-mapping-row" id="${rowId}" data-id="${id || ''}">
+                    <select class="form-select mapping-provider">
+                        <option value="">Select...</option>
+                        ${providerOptions}
+                    </select>
+                    <input type="text" class="form-input mapping-model" value="${targetModel}" placeholder="Target model name">
+                    <div class="checkbox-wrapper">
+                        <input type="checkbox" class="mapping-active" ${isActive ? 'checked' : ''}>
+                    </div>
+                    <button type="button" class="btn-icon-sm danger" onclick="removeMappingRow('${rowId}')">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <line x1="18" y1="6" x2="6" y2="18"/>
+                            <line x1="6" y1="6" x2="18" y2="18"/>
+                        </svg>
+                    </button>
+                </div>
+            `;
+
+            mappingsList.insertAdjacentHTML('beforeend', html);
+        }
+
+        // Remove mapping row
+        function removeMappingRow(rowId) {
+            document.getElementById(rowId)?.remove();
+        }
+
+        // Add mapping button
+        addMappingBtn.addEventListener('click', () => addMappingRow());
+
+        // Close modal
+        function closeModal() {
+            aliasModal.classList.remove('active');
+        }
+
+        modalClose.addEventListener('click', closeModal);
+        modalCancel.addEventListener('click', closeModal);
+        aliasModal.addEventListener('click', (e) => {
+            if (e.target === aliasModal) closeModal();
+        });
+
+        // Delete from modal
+        modalDelete.addEventListener('click', () => {
+            if (editingAlias) {
+                deleteAliasGroup(editingAlias);
+                closeModal();
+            }
+        });
+
+        // Save alias group
+        modalSave.addEventListener('click', async () => {
+            const alias = aliasName.value.trim();
+            const description = aliasDescription.value.trim();
+
+            if (!alias) {
+                showToast('Alias name is required', 'error');
+                return;
+            }
+
+            // Collect mappings
+            const rows = mappingsList.querySelectorAll('.provider-mapping-row');
+            const mappings = [];
+
+            rows.forEach(row => {
+                const provider = row.querySelector('.mapping-provider').value;
+                const targetModel = row.querySelector('.mapping-model').value.trim();
+                const isActive = row.querySelector('.mapping-active').checked;
+                const id = row.dataset.id;
+
+                if (provider && targetModel) {
+                    mappings.push({ provider, targetModel, isActive, id: id || null });
+                }
+            });
+
+            if (mappings.length === 0) {
+                showToast('At least one provider mapping is required', 'error');
+                return;
+            }
+
+            modalSave.disabled = true;
+            modalSave.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+            try {
+                if (editingAlias) {
+                    // Update existing - delete removed, update existing, add new
+                    const existingGroup = aliasGroups.find(g => g.alias === editingAlias);
+                    const existingIds = new Set(mappings.filter(m => m.id).map(m => m.id));
+
+                    // Delete removed mappings
+                    for (const p of existingGroup.providers) {
+                        if (!existingIds.has(String(p.id))) {
+                            await fetch(`/api/model-aliases/${p.id}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${authToken}` }
+                            });
+                        }
+                    }
+
+                    // Update existing and add new
+                    for (const m of mappings) {
+                        if (m.id) {
+                            // Update
+                            await fetch(`/api/model-aliases/${m.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${authToken}`
+                                },
+                                body: JSON.stringify({
+                                    targetModel: m.targetModel,
+                                    isActive: m.isActive,
+                                    description
+                                })
+                            });
+                        } else {
+                            // Create new
+                            await fetch('/api/model-aliases', {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${authToken}`
+                                },
+                                body: JSON.stringify({
+                                    alias,
+                                    provider: m.provider,
+                                    targetModel: m.targetModel,
+                                    isActive: m.isActive,
+                                    description
+                                })
+                            });
+                        }
+                    }
+                } else {
+                    // Create new alias group
+                    for (const m of mappings) {
+                        await fetch('/api/model-aliases', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${authToken}`
+                            },
+                            body: JSON.stringify({
+                                alias,
+                                provider: m.provider,
+                                targetModel: m.targetModel,
+                                isActive: m.isActive,
+                                description
+                            })
+                        });
+                    }
+                }
+
+                showToast(editingAlias ? 'Alias group updated' : 'Alias group created', 'success');
+                closeModal();
+                await loadAliasGroups();
+            } catch (e) {
+                showToast('Failed to save alias group', 'error');
+            } finally {
+                modalSave.disabled = false;
+                modalSave.textContent = 'Save Changes';
+            }
+        });
+
+        // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             await loadSiteSettings();
             document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
             initSidebar('model-aliases');
-            updateSidebarStats();
 
-            await loadBuiltinAliases();
-            await loadAliases();
-            renderHardcodedAliases();
+            if (!await checkAuth()) return;
+            await loadAliasGroups();
         });
-
-        async function loadAliases() {
-            try {
-                const url = currentFilter 
-                    ? `/api/model-aliases?provider=${currentFilter}`
-                    : '/api/model-aliases';
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                const result = await res.json();
-                if (result.success) {
-                    aliases = result.data;
-                    renderAliases();
-                }
-            } catch (error) {
-                showToast('Failed to load aliases', 'error');
-            }
-        }
-
-        function renderAliases() {
-            const tbody = document.getElementById('aliases-tbody');
-            const emptyState = document.getElementById('empty-state');
-            const table = document.getElementById('aliases-table');
-            const countEl = document.getElementById('alias-count');
-
-            countEl.textContent = `${aliases.length} alias${aliases.length !== 1 ? 'es' : ''}`;
-
-            if (aliases.length === 0) {
-                table.style.display = 'none';
-                emptyState.style.display = 'block';
-                return;
-            }
-
-            table.style.display = 'table';
-            emptyState.style.display = 'none';
-
-            tbody.innerHTML = aliases.map(alias => `
-                <tr>
-                    <td><span class="model-name">${alias.alias}</span></td>
-                    <td><span class="provider-badge ${alias.provider}">${alias.provider}</span></td>
-                    <td><span class="model-name">${alias.targetModel}</span></td>
-                    <td>
-                        <span class="status-badge ${alias.isActive ? 'active' : 'inactive'}">
-                            <span class="status-dot"></span>
-                            ${alias.isActive ? 'Active' : 'Inactive'}
-                        </span>
-                    </td>
-                    <td>
-                        <div class="actions-cell">
-                            <button class="btn-icon-only" onclick="toggleAlias(${alias.id})" title="${alias.isActive ? 'Deactivate' : 'Activate'}">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    ${alias.isActive 
-                                        ? '<path d="M18.36 6.64a9 9 0 1 1-12.73 0"/><line x1="12" y1="2" x2="12" y2="12"/>'
-                                        : '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>'}
-                                </svg>
-                            </button>
-                            <button class="btn-icon-only" onclick="editAlias(${alias.id})" title="Edit">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                                    <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                                </svg>
-                            </button>
-                            <button class="btn-icon-only danger" onclick="deleteAlias(${alias.id})" title="Delete">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                    <polyline points="3 6 5 6 21 6"/>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        function renderHardcodedAliases() {
-            const container = document.getElementById('hardcoded-content');
-            let html = '';
-
-            for (const [provider, aliasMap] of Object.entries(builtinAliases)) {
-                if (currentFilter && currentFilter !== provider) continue;
-
-                const entries = Object.entries(aliasMap || {});
-                if (entries.length === 0) continue;
-
-                html += `
-                    <div class="hardcoded-section" style="border-top: none; padding: 20px 24px;">
-                        <div class="hardcoded-title">
-                            <span class="provider-badge ${provider}">${provider}</span>
-                            <span class="text-muted" style="margin-left: 8px;">(${entries.length} aliases)</span>
-                        </div>
-                        <div class="hardcoded-list">
-                            ${entries.map(([alias, target]) => `
-                                <div class="hardcoded-item">
-                                    <span class="model-name">${alias}</span>
-                                    <span class="alias-arrow">→</span>
-                                    <span class="model-name">${target}</span>
-                                </div>
-                            `).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
-            container.innerHTML = html || '<div class="empty-state"><p>No built-in aliases for selected provider</p></div>';
-        }
-
-        function filterByProvider() {
-            currentFilter = document.getElementById('provider-filter').value;
-            loadAliases();
-            renderHardcodedAliases();
-        }
-
-        function openAddModal() {
-            document.getElementById('modal-title').textContent = 'Add Alias';
-            document.getElementById('edit-id').value = '';
-            document.getElementById('alias-name').value = '';
-            document.getElementById('alias-provider').value = 'kiro';
-            document.getElementById('target-model').value = '';
-            document.getElementById('alias-description').value = '';
-            document.getElementById('alias-modal').classList.add('active');
-        }
-
-        function editAlias(id) {
-            const alias = aliases.find(a => a.id === id);
-            if (!alias) return;
-
-            document.getElementById('modal-title').textContent = 'Edit Alias';
-            document.getElementById('edit-id').value = id;
-            document.getElementById('alias-name').value = alias.alias;
-            document.getElementById('alias-provider').value = alias.provider;
-            document.getElementById('target-model').value = alias.targetModel;
-            document.getElementById('alias-description').value = alias.description || '';
-            document.getElementById('alias-modal').classList.add('active');
-        }
-
-        function closeModal() {
-            document.getElementById('alias-modal').classList.remove('active');
-        }
-
-        async function saveAlias() {
-            const id = document.getElementById('edit-id').value;
-            const alias = document.getElementById('alias-name').value.trim();
-            const provider = document.getElementById('alias-provider').value;
-            const targetModel = document.getElementById('target-model').value.trim();
-            const description = document.getElementById('alias-description').value.trim();
-
-            if (!alias || !targetModel) {
-                showToast('Alias name and target model are required', 'error');
-                return;
-            }
-
-            try {
-                const url = id ? `/api/model-aliases/${id}` : '/api/model-aliases';
-                const method = id ? 'PUT' : 'POST';
-
-                const res = await fetch(url, {
-                    method,
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${authToken}`
-                    },
-                    body: JSON.stringify({ alias, provider, targetModel, description })
-                });
-
-                const result = await res.json();
-                if (result.success) {
-                    showToast(id ? 'Alias updated' : 'Alias created', 'success');
-                    closeModal();
-                    loadAliases();
-                } else {
-                    showToast(result.error || 'Failed to save', 'error');
-                }
-            } catch (error) {
-                showToast('Network error', 'error');
-            }
-        }
-
-        async function toggleAlias(id) {
-            try {
-                const res = await fetch(`/api/model-aliases/${id}/toggle`, {
-                    method: 'POST',
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                const result = await res.json();
-                if (result.success) {
-                    showToast(`Alias ${result.data.isActive ? 'activated' : 'deactivated'}`, 'success');
-                    loadAliases();
-                } else {
-                    showToast(result.error, 'error');
-                }
-            } catch (error) {
-                showToast('Network error', 'error');
-            }
-        }
-
-        async function deleteAlias(id) {
-            if (!confirm('Delete this alias?')) return;
-
-            try {
-                const res = await fetch(`/api/model-aliases/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${authToken}` }
-                });
-                const result = await res.json();
-                if (result.success) {
-                    showToast('Alias deleted', 'success');
-                    loadAliases();
-                } else {
-                    showToast(result.error, 'error');
-                }
-            } catch (error) {
-                showToast('Network error', 'error');
-            }
-        }
     </script>
 </body>
 </html>
