@@ -477,6 +477,21 @@ export async function initDatabase() {
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
     `);
 
+    // Create AWS config table for IAM Identity Center
+    await pool.execute(`
+        CREATE TABLE IF NOT EXISTS aws_config (
+            id INT PRIMARY KEY AUTO_INCREMENT,
+            name VARCHAR(255) NOT NULL UNIQUE COMMENT 'Config name for identification',
+            access_key_id VARCHAR(255) NOT NULL COMMENT 'AWS Access Key ID',
+            secret_access_key TEXT NOT NULL COMMENT 'AWS Secret Access Key (encrypted)',
+            identity_store_id VARCHAR(255) COMMENT 'IAM Identity Center Identity Store ID',
+            region VARCHAR(50) DEFAULT 'us-east-1',
+            is_active TINYINT DEFAULT 1,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+    `);
+
     // Note: remote_pricing_cache table is deprecated, keeping for backward compatibility
     await pool.execute(`
         CREATE TABLE IF NOT EXISTS remote_pricing_cache (
@@ -4918,5 +4933,97 @@ export class ModelAliasStore {
         }
 
         return Object.values(groups);
+    }
+}
+
+/**
+ * AWS Config Store - manages AWS credentials for IAM Identity Center
+ */
+export class AwsConfigStore {
+    constructor(db) {
+        this.db = db;
+    }
+
+    static async create() {
+        const database = await getDatabase();
+        return new AwsConfigStore(database);
+    }
+
+    async getAll() {
+        const [rows] = await this.db.execute('SELECT * FROM aws_config ORDER BY name');
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async getActive() {
+        const [rows] = await this.db.execute('SELECT * FROM aws_config WHERE is_active = 1 ORDER BY name');
+        return rows.map(row => this._mapRow(row));
+    }
+
+    async getById(id) {
+        const [rows] = await this.db.execute('SELECT * FROM aws_config WHERE id = ?', [id]);
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async getByName(name) {
+        const [rows] = await this.db.execute('SELECT * FROM aws_config WHERE name = ?', [name]);
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async getDefault() {
+        const [rows] = await this.db.execute('SELECT * FROM aws_config WHERE is_active = 1 ORDER BY id LIMIT 1');
+        if (rows.length === 0) return null;
+        return this._mapRow(rows[0]);
+    }
+
+    async create(config) {
+        const [result] = await this.db.execute(`
+            INSERT INTO aws_config (name, access_key_id, secret_access_key, identity_store_id, region, is_active)
+            VALUES (?, ?, ?, ?, ?, ?)
+        `, [
+            config.name,
+            config.accessKeyId,
+            config.secretAccessKey,
+            config.identityStoreId || null,
+            config.region || 'us-east-1',
+            config.isActive !== false ? 1 : 0
+        ]);
+        return result.insertId;
+    }
+
+    async update(id, config) {
+        const fields = [];
+        const values = [];
+
+        if (config.name !== undefined) { fields.push('name = ?'); values.push(config.name); }
+        if (config.accessKeyId !== undefined) { fields.push('access_key_id = ?'); values.push(config.accessKeyId); }
+        if (config.secretAccessKey !== undefined) { fields.push('secret_access_key = ?'); values.push(config.secretAccessKey); }
+        if (config.identityStoreId !== undefined) { fields.push('identity_store_id = ?'); values.push(config.identityStoreId); }
+        if (config.region !== undefined) { fields.push('region = ?'); values.push(config.region); }
+        if (config.isActive !== undefined) { fields.push('is_active = ?'); values.push(config.isActive ? 1 : 0); }
+
+        if (fields.length === 0) return;
+
+        values.push(id);
+        await this.db.execute(`UPDATE aws_config SET ${fields.join(', ')} WHERE id = ?`, values);
+    }
+
+    async delete(id) {
+        await this.db.execute('DELETE FROM aws_config WHERE id = ?', [id]);
+    }
+
+    _mapRow(row) {
+        return {
+            id: row.id,
+            name: row.name,
+            accessKeyId: row.access_key_id,
+            secretAccessKey: row.secret_access_key,
+            identityStoreId: row.identity_store_id,
+            region: row.region,
+            isActive: row.is_active === 1,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at
+        };
     }
 }

@@ -4,7 +4,7 @@ import { fileURLToPath } from 'url';
 import axios from 'axios';
 import crypto from 'crypto';
 import bcrypt from 'bcrypt';
-import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, SessionStore, ModelAliasStore, initDatabase } from './db.js';
+import { CredentialStore, UserStore, ApiKeyStore, ApiLogStore, GeminiCredentialStore, OrchidsCredentialStore, WarpCredentialStore, SiteSettingsStore, VertexCredentialStore, BedrockCredentialStore, ModelPricingStore, AnthropicCredentialStore, AccountHealthStore, TokenBucketStore, SelectionConfigStore, ThinkingSignatureCacheStore, SessionStore, ModelAliasStore, AwsConfigStore, initDatabase } from './db.js';
 import { StrategyFactory, getStrategyManager, ThinkingBlocksParser } from './selection/index.js';
 import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
@@ -110,6 +110,7 @@ let thinkingSignatureCacheStore = null;
 let sessionStore = null;
 let thinkingBlocksParser = null;
 let modelAliasStore = null;
+let awsConfigStore = null;
 
 // Credential 403 error counter
 const credential403Counter = new Map();
@@ -5691,6 +5692,99 @@ app.get('/api/gemini/account-limits', authMiddleware, async (req, res) => {
 
 // ============ IAM Identity Center User Management ============
 
+// Get all AWS configs
+app.get('/api/aws-config', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+        const configs = await awsConfigStore.getAll();
+        // Mask secret keys for security
+        const masked = configs.map(c => ({
+            ...c,
+            secretAccessKey: c.secretAccessKey ? '********' : null
+        }));
+        res.json({ success: true, data: masked });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get single AWS config by ID
+app.get('/api/aws-config/:id', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+        const config = await awsConfigStore.getById(parseInt(req.params.id));
+        if (!config) {
+            return res.status(404).json({ success: false, error: 'Config not found' });
+        }
+        // Return full config including secret for form editing
+        res.json({ success: true, data: config });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Create AWS config
+app.post('/api/aws-config', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+        const { name, accessKeyId, secretAccessKey, identityStoreId, region } = req.body;
+        if (!name || !accessKeyId || !secretAccessKey) {
+            return res.status(400).json({ success: false, error: 'name, accessKeyId, and secretAccessKey are required' });
+        }
+        const id = await awsConfigStore.create({ name, accessKeyId, secretAccessKey, identityStoreId, region });
+        const created = await awsConfigStore.getById(id);
+        res.json({ success: true, data: created });
+    } catch (error) {
+        if (error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ success: false, error: 'Config name already exists' });
+        }
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Update AWS config
+app.put('/api/aws-config/:id', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+        const id = parseInt(req.params.id);
+        const existing = await awsConfigStore.getById(id);
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Config not found' });
+        }
+        await awsConfigStore.update(id, req.body);
+        const updated = await awsConfigStore.getById(id);
+        res.json({ success: true, data: updated });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Delete AWS config
+app.delete('/api/aws-config/:id', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+        const id = parseInt(req.params.id);
+        const existing = await awsConfigStore.getById(id);
+        if (!existing) {
+            return res.status(404).json({ success: false, error: 'Config not found' });
+        }
+        await awsConfigStore.delete(id);
+        res.json({ success: true, message: 'Config deleted' });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Validate AWS Configuration
 app.post('/api/idc/validate', authMiddleware, async (req, res) => {
     try {
@@ -6603,6 +6697,7 @@ async function start() {
     pricingStore = await ModelPricingStore.create();
     anthropicStore = await AnthropicCredentialStore.create();
     modelAliasStore = await ModelAliasStore.create();
+    awsConfigStore = await AwsConfigStore.create();
 
     // Seed builtin model aliases
     await modelAliasStore.seedBuiltinAliases();

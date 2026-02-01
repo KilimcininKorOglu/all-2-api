@@ -403,6 +403,25 @@
                         AWS Configuration
                     </div>
                     <div class="form-grid">
+                        <div class="form-group full-width">
+                            <label class="form-label">Saved Configurations</label>
+                            <div style="display: flex; gap: 8px;">
+                                <select class="form-input" id="saved-configs" style="flex: 1;">
+                                    <option value="">-- Select saved config or enter new --</option>
+                                </select>
+                                <button class="btn btn-secondary btn-sm" id="delete-config-btn" style="display: none;">
+                                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;">
+                                        <polyline points="3 6 5 6 21 6"/>
+                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+                                    </svg>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="form-group full-width">
+                            <label class="form-label">Config Name <span class="required">*</span></label>
+                            <input type="text" class="form-input" id="config-name" placeholder="My AWS Config">
+                            <div class="form-hint">A name to identify this configuration</div>
+                        </div>
                         <div class="form-group">
                             <label class="form-label">AWS Access Key ID <span class="required">*</span></label>
                             <input type="text" class="form-input" id="aws-access-key" placeholder="AKIA...">
@@ -419,62 +438,64 @@
                         <div class="form-group">
                             <label class="form-label">Region</label>
                             <select class="form-input" id="aws-region">
-                                <optgroup label="US Regions">
-                                    <option value="us-east-1">US East (N. Virginia)</option>
-                                    <option value="us-east-2">US East (Ohio)</option>
-                                    <option value="us-west-1">US West (N. California)</option>
-                                    <option value="us-west-2">US West (Oregon)</option>
+                                <optgroup label="United States">
+                                    <option value="us-east-1" selected>us-east-1 (USA, Virginia)</option>
+                                    <option value="us-east-2">us-east-2 (USA, Ohio)</option>
+                                    <option value="us-west-1">us-west-1 (USA, California)</option>
+                                    <option value="us-west-2">us-west-2 (USA, Oregon)</option>
                                 </optgroup>
-                                <optgroup label="Europe Regions">
-                                    <option value="eu-west-1">EU (Ireland)</option>
-                                    <option value="eu-west-2">EU (London)</option>
-                                    <option value="eu-west-3">EU (Paris)</option>
-                                    <option value="eu-central-1">EU (Frankfurt)</option>
-                                    <option value="eu-central-2">EU (Zurich)</option>
-                                    <option value="eu-north-1">EU (Stockholm)</option>
-                                    <option value="eu-south-1">EU (Milan)</option>
-                                    <option value="eu-south-2">EU (Spain)</option>
+                                <optgroup label="Europe">
+                                    <option value="eu-west-1">eu-west-1 (Ireland, Dublin)</option>
+                                    <option value="eu-west-2">eu-west-2 (UK, London)</option>
+                                    <option value="eu-west-3">eu-west-3 (France, Paris)</option>
+                                    <option value="eu-central-1">eu-central-1 (Germany, Frankfurt)</option>
+                                    <option value="eu-central-2">eu-central-2 (Switzerland, Zurich)</option>
+                                    <option value="eu-north-1">eu-north-1 (Sweden, Stockholm)</option>
+                                    <option value="eu-south-1">eu-south-1 (Italy, Milan)</option>
+                                    <option value="eu-south-2">eu-south-2 (Spain, Aragon)</option>
                                 </optgroup>
-                                <optgroup label="Asia Pacific Regions">
-                                    <option value="ap-northeast-1">Asia Pacific (Tokyo)</option>
-                                    <option value="ap-northeast-2">Asia Pacific (Seoul)</option>
-                                    <option value="ap-northeast-3">Asia Pacific (Osaka)</option>
-                                    <option value="ap-southeast-1">Asia Pacific (Singapore)</option>
-                                    <option value="ap-southeast-2">Asia Pacific (Sydney)</option>
-                                    <option value="ap-southeast-3">Asia Pacific (Jakarta)</option>
-                                    <option value="ap-southeast-4">Asia Pacific (Melbourne)</option>
-                                    <option value="ap-south-1">Asia Pacific (Mumbai)</option>
-                                    <option value="ap-south-2">Asia Pacific (Hyderabad)</option>
-                                    <option value="ap-east-1">Asia Pacific (Hong Kong)</option>
-                                </optgroup>
-                                <optgroup label="South America">
-                                    <option value="sa-east-1">South America (São Paulo)</option>
-                                </optgroup>
-                                <optgroup label="Canada">
-                                    <option value="ca-central-1">Canada (Central)</option>
-                                    <option value="ca-west-1">Canada (Calgary)</option>
+                                <optgroup label="Asia Pacific">
+                                    <option value="ap-northeast-1">ap-northeast-1 (Japan, Tokyo)</option>
+                                    <option value="ap-northeast-2">ap-northeast-2 (South Korea, Seoul)</option>
+                                    <option value="ap-northeast-3">ap-northeast-3 (Japan, Osaka)</option>
+                                    <option value="ap-southeast-1">ap-southeast-1 (Singapore)</option>
+                                    <option value="ap-southeast-2">ap-southeast-2 (Australia, Sydney)</option>
+                                    <option value="ap-southeast-3">ap-southeast-3 (Indonesia, Jakarta)</option>
+                                    <option value="ap-southeast-4">ap-southeast-4 (Australia, Melbourne)</option>
+                                    <option value="ap-south-1">ap-south-1 (India, Mumbai)</option>
+                                    <option value="ap-south-2">ap-south-2 (India, Hyderabad)</option>
+                                    <option value="ap-east-1">ap-east-1 (Hong Kong)</option>
                                 </optgroup>
                                 <optgroup label="Middle East">
-                                    <option value="me-south-1">Middle East (Bahrain)</option>
-                                    <option value="me-central-1">Middle East (UAE)</option>
-                                    <option value="il-central-1">Israel (Tel Aviv)</option>
+                                    <option value="me-south-1">me-south-1 (Bahrain, Manama)</option>
+                                    <option value="me-central-1">me-central-1 (UAE, Dubai)</option>
+                                    <option value="il-central-1">il-central-1 (Israel, Tel Aviv)</option>
                                 </optgroup>
                                 <optgroup label="Africa">
-                                    <option value="af-south-1">Africa (Cape Town)</option>
+                                    <option value="af-south-1">af-south-1 (South Africa, Cape Town)</option>
+                                </optgroup>
+                                <optgroup label="Americas">
+                                    <option value="ca-central-1">ca-central-1 (Canada, Montreal)</option>
+                                    <option value="ca-west-1">ca-west-1 (Canada, Calgary)</option>
+                                    <option value="sa-east-1">sa-east-1 (Brazil, São Paulo)</option>
                                 </optgroup>
                             </select>
                         </div>
                     </div>
-                    <div class="checkbox-group">
-                        <input type="checkbox" id="save-aws-config">
-                        <label for="save-aws-config">Save AWS configuration for future use</label>
-                    </div>
                     <div class="action-buttons">
+                        <button class="btn btn-secondary" id="save-config-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                                <polyline points="17 21 17 13 7 13 7 21"/>
+                                <polyline points="7 3 7 8 15 8"/>
+                            </svg>
+                            Save Config
+                        </button>
                         <button class="btn btn-primary" id="validate-aws-btn">
                             <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="20 6 9 17 4 12"/>
                             </svg>
-                            Validate Configuration
+                            Validate & Use
                         </button>
                     </div>
                 </div>
@@ -584,14 +605,19 @@
         let awsConfig = {};
         let usersData = [];
         let currentPage = 1;
+        let savedConfigs = [];
+        let selectedConfigId = null;
         const pageSize = 10;
 
         // DOM Elements
+        const savedConfigsSelect = document.getElementById('saved-configs');
+        const configName = document.getElementById('config-name');
         const awsAccessKey = document.getElementById('aws-access-key');
         const awsSecretKey = document.getElementById('aws-secret-key');
         const identityStoreId = document.getElementById('identity-store-id');
         const awsRegion = document.getElementById('aws-region');
-        const saveAwsConfig = document.getElementById('save-aws-config');
+        const saveConfigBtn = document.getElementById('save-config-btn');
+        const deleteConfigBtn = document.getElementById('delete-config-btn');
         const validateAwsBtn = document.getElementById('validate-aws-btn');
         const userInfoSection = document.getElementById('user-info-section');
         const userEmail = document.getElementById('user-email');
@@ -607,17 +633,151 @@
         const usersTableContainer = document.getElementById('users-table-container');
         const refreshUsersBtn = document.getElementById('refresh-users-btn');
 
-        // Load saved config
-        function loadSavedConfig() {
-            const saved = localStorage.getItem('idcAwsConfig');
-            if (saved) {
-                try {
-                    const config = JSON.parse(saved);
-                    awsAccessKey.value = config.accessKeyId || '';
+        // Load saved configs from database
+        async function loadSavedConfigs() {
+            try {
+                const res = await fetch('/api/aws-config', {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    savedConfigs = data.data;
+                    renderSavedConfigs();
+                }
+            } catch (e) {
+                console.error('Failed to load saved configs:', e);
+            }
+        }
+
+        // Render saved configs dropdown
+        function renderSavedConfigs() {
+            savedConfigsSelect.innerHTML = '<option value="">-- Select saved config or enter new --</option>';
+            savedConfigs.forEach(config => {
+                const option = document.createElement('option');
+                option.value = config.id;
+                option.textContent = `${config.name} (${config.accessKeyId.substring(0, 8)}...)`;
+                savedConfigsSelect.appendChild(option);
+            });
+        }
+
+        // Load selected config
+        async function loadSelectedConfig() {
+            const configId = savedConfigsSelect.value;
+            if (!configId) {
+                // Clear form for new config
+                selectedConfigId = null;
+                configName.value = '';
+                awsAccessKey.value = '';
+                awsSecretKey.value = '';
+                identityStoreId.value = '';
+                awsRegion.value = 'us-east-1';
+                deleteConfigBtn.style.display = 'none';
+                return;
+            }
+
+            try {
+                const res = await fetch(`/api/aws-config/${configId}`, {
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const config = data.data;
+                    selectedConfigId = config.id;
+                    configName.value = config.name;
+                    awsAccessKey.value = config.accessKeyId;
+                    awsSecretKey.value = config.secretAccessKey;
                     identityStoreId.value = config.identityStoreId || '';
                     awsRegion.value = config.region || 'us-east-1';
-                    saveAwsConfig.checked = true;
-                } catch (e) {}
+                    deleteConfigBtn.style.display = 'block';
+                }
+            } catch (e) {
+                showToast('Failed to load config', 'error');
+            }
+        }
+
+        // Save config to database
+        async function saveConfig() {
+            const name = configName.value.trim();
+            const accessKeyId = awsAccessKey.value.trim();
+            const secretAccessKey = awsSecretKey.value.trim();
+            const storeId = identityStoreId.value.trim();
+            const region = awsRegion.value;
+
+            if (!name || !accessKeyId || !secretAccessKey) {
+                showToast('Config name, Access Key ID, and Secret Access Key are required', 'error');
+                return;
+            }
+
+            saveConfigBtn.disabled = true;
+            saveConfigBtn.innerHTML = '<span class="loading-spinner"></span> Saving...';
+
+            try {
+                const payload = { name, accessKeyId, secretAccessKey, identityStoreId: storeId, region };
+                let res;
+                
+                if (selectedConfigId) {
+                    // Update existing
+                    res = await fetch(`/api/aws-config/${selectedConfigId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                        body: JSON.stringify(payload)
+                    });
+                } else {
+                    // Create new
+                    res = await fetch('/api/aws-config', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${authToken}` },
+                        body: JSON.stringify(payload)
+                    });
+                }
+
+                const data = await res.json();
+                if (data.success) {
+                    showToast(selectedConfigId ? 'Config updated' : 'Config saved', 'success');
+                    await loadSavedConfigs();
+                    savedConfigsSelect.value = data.data.id;
+                    selectedConfigId = data.data.id;
+                    deleteConfigBtn.style.display = 'block';
+                } else {
+                    showToast(data.error || 'Failed to save config', 'error');
+                }
+            } catch (e) {
+                showToast('Failed to save config', 'error');
+            } finally {
+                saveConfigBtn.disabled = false;
+                saveConfigBtn.innerHTML = `
+                    <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+                        <polyline points="17 21 17 13 7 13 7 21"/>
+                        <polyline points="7 3 7 8 15 8"/>
+                    </svg>
+                    Save Config
+                `;
+            }
+        }
+
+        // Delete config
+        async function deleteConfig() {
+            if (!selectedConfigId) return;
+            if (!confirm('Are you sure you want to delete this configuration?')) return;
+
+            try {
+                const res = await fetch(`/api/aws-config/${selectedConfigId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${authToken}` }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    showToast('Config deleted', 'success');
+                    selectedConfigId = null;
+                    savedConfigsSelect.value = '';
+                    loadSelectedConfig();
+                    await loadSavedConfigs();
+                } else {
+                    showToast(data.error || 'Failed to delete config', 'error');
+                }
+            } catch (e) {
+                showToast('Failed to delete config', 'error');
             }
         }
 
@@ -969,6 +1129,9 @@
         }
 
         // Event Listeners
+        savedConfigsSelect.addEventListener('change', loadSelectedConfig);
+        saveConfigBtn.addEventListener('click', saveConfig);
+        deleteConfigBtn.addEventListener('click', deleteConfig);
         validateAwsBtn.addEventListener('click', validateAWSConfig);
         refreshUsersBtn.addEventListener('click', loadUsers);
         createUserBtn.addEventListener('click', createUser);
@@ -996,7 +1159,9 @@
             initSidebar('idc-users');
 
             if (!await checkAuth()) return;
-            loadSavedConfig();
+            
+            // Load saved AWS configs from database
+            await loadSavedConfigs();
         });
     </script>
 </body>
