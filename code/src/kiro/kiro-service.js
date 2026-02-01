@@ -12,6 +12,45 @@ import { logger } from '../logger.js';
 
 const log = logger.client;
 
+/**
+ * LRU Cache for tool call/result tracking (Session Recovery)
+ * Stores tool_use_id -> tool_result mapping for recovery from tool_result_missing errors
+ */
+class ToolResultCache {
+    constructor(maxSize = 200) {
+        this.maxSize = maxSize;
+        this.cache = new Map();
+    }
+
+    set(toolUseId, result) {
+        if (this.cache.size >= this.maxSize) {
+            const firstKey = this.cache.keys().next().value;
+            this.cache.delete(firstKey);
+        }
+        this.cache.set(toolUseId, result);
+    }
+
+    get(toolUseId) {
+        if (!this.cache.has(toolUseId)) return null;
+        const value = this.cache.get(toolUseId);
+        // Move to end (LRU)
+        this.cache.delete(toolUseId);
+        this.cache.set(toolUseId, value);
+        return value;
+    }
+
+    has(toolUseId) {
+        return this.cache.has(toolUseId);
+    }
+
+    clear() {
+        this.cache.clear();
+    }
+}
+
+// Global tool result cache (shared across requests for session continuity)
+const globalToolResultCache = new ToolResultCache(500);
+
 function generateMachineId(credential) {
     const uniqueKey = credential.profileArn || credential.clientId || 'KIRO_DEFAULT';
     return crypto.createHash('sha256').update(uniqueKey).digest('hex');
@@ -297,11 +336,21 @@ export class KiroService {
                     if (part.type === 'text') {
                         currentContent += part.text;
                     } else if (part.type === 'tool_result') {
-                        currentToolResults.push({
+                        const toolResult = {
                             content: [{ text: this.getContentText(part.content) }],
                             status: part.is_error ? 'error' : 'success',
                             toolUseId: part.tool_use_id
-                        });
+                        };
+                        currentToolResults.push(toolResult);
+                        // Cache tool result for session recovery
+                        if (part.tool_use_id) {
+                            globalToolResultCache.set(part.tool_use_id, {
+                                type: 'tool_result',
+                                tool_use_id: part.tool_use_id,
+                                content: part.content,
+                                is_error: part.is_error
+                            });
+                        }
                     } else if (part.type === 'image') {
                         currentImages.push({
                             format: part.source.media_type.split('/')[1],
@@ -608,6 +657,24 @@ export class KiroService {
                 if (stream && typeof stream.destroy === 'function') stream.destroy();
 
                 const status = error.response?.status;
+                const errorData = error.response?.data;
+                const errorStr = typeof errorData === 'string' ? errorData : JSON.stringify(errorData || '');
+
+                // Session Recovery: Handle tool_result_missing error
+                if (status === 400 && errorStr.includes('tool_result_missing')) {
+                    const missingToolId = this._extractMissingToolId(errorStr);
+                    if (missingToolId) {
+                        log.warn(`[KiroService] Session recovery: tool_result_missing for ${missingToolId}`);
+                        const cachedResult = globalToolResultCache.get(missingToolId);
+                        const recoveryMessages = this._injectToolResult(requestBody.messages, missingToolId, cachedResult);
+                        if (recoveryMessages) {
+                            log.info(`[KiroService] Retrying with recovered tool_result for ${missingToolId}`);
+                            const recoveredRequestBody = { ...requestBody, messages: recoveryMessages };
+                            yield* this.generateContentStream(model, recoveredRequestBody, compressionLevel);
+                            return;
+                        }
+                    }
+                }
 
                 // 400 ValidationException - Try compressing context and retry
                 if (status === 400 && this._isValidationException(error) && compressionLevel < 3) {
@@ -720,6 +787,23 @@ export class KiroService {
 
             } catch (error) {
                 const status = error.response?.status;
+                const errorData = error.response?.data;
+                const errorStr = typeof errorData === 'string' ? errorData : JSON.stringify(errorData || '');
+
+                // Session Recovery: Handle tool_result_missing error
+                if (status === 400 && errorStr.includes('tool_result_missing')) {
+                    const missingToolId = this._extractMissingToolId(errorStr);
+                    if (missingToolId) {
+                        log.warn(`[KiroService] Session recovery (non-stream): tool_result_missing for ${missingToolId}`);
+                        const cachedResult = globalToolResultCache.get(missingToolId);
+                        const recoveryMessages = this._injectToolResult(requestBody.messages, missingToolId, cachedResult);
+                        if (recoveryMessages) {
+                            log.info(`[KiroService] Retrying with recovered tool_result for ${missingToolId}`);
+                            const recoveredRequestBody = { ...requestBody, messages: recoveryMessages };
+                            return this.generateContent(model, recoveredRequestBody, compressionLevel);
+                        }
+                    }
+                }
 
                 // 400 ValidationException - Try compressing context and retry
                 if (status === 400 && this._isValidationException(error) && compressionLevel < 3) {
@@ -825,6 +909,97 @@ export class KiroService {
     listModels() {
         return { models: KIRO_MODELS.map(id => ({ name: id })) };
     }
+
+    /**
+     * Extract missing tool_use_id from error message
+     * Error format: "tool_result_missing: expected tool_result for tool_use_id 'toolu_xxx'"
+     */
+    _extractMissingToolId(errorMessage) {
+        // Try various patterns
+        const patterns = [
+            /tool_use_id['":\s]+['"]?([a-zA-Z0-9_-]+)['"]?/i,
+            /tool_result_missing.*?(['"])(toolu_[a-zA-Z0-9_-]+)\1/i,
+            /(toolu_[a-zA-Z0-9_-]+)/i
+        ];
+
+        for (const pattern of patterns) {
+            const match = errorMessage.match(pattern);
+            if (match) {
+                return match[2] || match[1];
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Inject a tool_result for the missing tool_use_id into messages
+     * Uses cached result if available, otherwise creates a placeholder
+     */
+    _injectToolResult(messages, toolUseId, cachedResult) {
+        if (!messages || !Array.isArray(messages)) return null;
+
+        // Deep clone messages
+        const newMessages = JSON.parse(JSON.stringify(messages));
+
+        // Find the assistant message with the tool_use
+        let toolUseFound = false;
+        let insertIndex = -1;
+
+        for (let i = 0; i < newMessages.length; i++) {
+            const msg = newMessages[i];
+            if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+                for (const block of msg.content) {
+                    if (block.type === 'tool_use' && block.id === toolUseId) {
+                        toolUseFound = true;
+                        insertIndex = i + 1;
+                        break;
+                    }
+                }
+            }
+            if (toolUseFound) break;
+        }
+
+        if (!toolUseFound) {
+            // Tool use not found in history, append result at appropriate position
+            insertIndex = newMessages.length;
+        }
+
+        // Create tool_result
+        const toolResult = cachedResult ? {
+            type: 'tool_result',
+            tool_use_id: toolUseId,
+            content: cachedResult.content || '[Result recovered from cache]',
+            is_error: cachedResult.is_error || false
+        } : {
+            type: 'tool_result',
+            tool_use_id: toolUseId,
+            content: '[Tool result unavailable - context was compacted. Please proceed with available information.]',
+            is_error: false
+        };
+
+        // Check if there's already a user message at insertIndex
+        if (insertIndex < newMessages.length && newMessages[insertIndex]?.role === 'user') {
+            // Prepend tool_result to existing user message
+            const userMsg = newMessages[insertIndex];
+            if (Array.isArray(userMsg.content)) {
+                userMsg.content.unshift(toolResult);
+            } else {
+                userMsg.content = [toolResult, { type: 'text', text: userMsg.content || '' }];
+            }
+        } else {
+            // Insert new user message with tool_result
+            newMessages.splice(insertIndex, 0, {
+                role: 'user',
+                content: [toolResult]
+            });
+        }
+
+        log.debug(`[KiroService] Injected tool_result for ${toolUseId} at index ${insertIndex}, cached: ${!!cachedResult}`);
+        return newMessages;
+    }
 }
+
+// Export cache for external access (e.g., clearing on session end)
+export { globalToolResultCache };
 
 export default KiroService;
