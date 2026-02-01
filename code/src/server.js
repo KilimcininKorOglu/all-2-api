@@ -2219,7 +2219,10 @@ app.post('/v1/messages', async (req, res) => {
                     res.setHeader('Connection', 'keep-alive');
                     res.setHeader('X-Accel-Buffering', 'no');
 
+                    let inputTokens = 0;
                     let outputTokens = 0;
+                    let cacheCreationTokens = 0;
+                    let cacheReadTokens = 0;
                     try {
                         for await (const event of sendAnthropicMessageStream(anthropicRequest, anthropicCredential)) {
                             if (event.type === 'rate_limits') {
@@ -2230,11 +2233,21 @@ app.post('/v1/messages', async (req, res) => {
                                 continue;
                             }
                             res.write(`event: ${event.type}\ndata: ${JSON.stringify(event)}\n\n`);
+                            // Capture usage from message_start event
+                            if (event.type === 'message_start' && event.message?.usage) {
+                                inputTokens = event.message.usage.input_tokens || 0;
+                                cacheCreationTokens = event.message.usage.cache_creation_input_tokens || 0;
+                                cacheReadTokens = event.message.usage.cache_read_input_tokens || 0;
+                            }
+                            // Capture output tokens from message_delta event
                             if (event.type === 'message_delta' && event.usage?.output_tokens) {
                                 outputTokens = event.usage.output_tokens;
                             }
                         }
+                        logData.inputTokens = inputTokens;
                         logData.outputTokens = outputTokens;
+                        logData.cacheCreationTokens = cacheCreationTokens;
+                        logData.cacheReadTokens = cacheReadTokens;
                         logData.statusCode = 200;
                         await anthropicStore.recordUsage(anthropicCredential.id);
                     } catch (streamError) {
@@ -2252,7 +2265,11 @@ app.post('/v1/messages', async (req, res) => {
                 } else {
                     // Non-streaming response
                     const result = await sendAnthropicMessage(anthropicRequest, anthropicCredential);
-                    logData.outputTokens = result.data?.usage?.output_tokens || 0;
+                    const usage = result.data?.usage || {};
+                    logData.inputTokens = usage.input_tokens || 0;
+                    logData.outputTokens = usage.output_tokens || 0;
+                    logData.cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+                    logData.cacheReadTokens = usage.cache_read_input_tokens || 0;
                     logData.statusCode = 200;
                     await anthropicStore.recordUsage(anthropicCredential.id);
 
@@ -3433,7 +3450,10 @@ app.post('/v1/chat/completions', async (req, res) => {
                     res.setHeader('Connection', 'keep-alive');
 
                     let fullText = '';
+                    let inputTokens = 0;
                     let outputTokens = 0;
+                    let cacheCreationTokens = 0;
+                    let cacheReadTokens = 0;
 
                     for await (const event of sendAnthropicMessageStream(anthropicRequest, anthropicCredential)) {
                         if (event.type === 'rate_limits') {
@@ -3455,6 +3475,11 @@ app.post('/v1/chat/completions', async (req, res) => {
                                 }]
                             };
                             res.write(`data: ${JSON.stringify(openAIChunk)}\n\n`);
+                        } else if (event.type === 'message_start' && event.message?.usage) {
+                            // Capture input and cache tokens from message_start
+                            inputTokens = event.message.usage.input_tokens || 0;
+                            cacheCreationTokens = event.message.usage.cache_creation_input_tokens || 0;
+                            cacheReadTokens = event.message.usage.cache_read_input_tokens || 0;
                         } else if (event.type === 'message_delta' && event.usage) {
                             outputTokens = event.usage.output_tokens || 0;
                         } else if (event.type === 'message_stop') {
@@ -3471,7 +3496,10 @@ app.post('/v1/chat/completions', async (req, res) => {
                     res.write('data: [DONE]\n\n');
                     res.end();
 
+                    logData.inputTokens = inputTokens;
                     logData.outputTokens = outputTokens;
+                    logData.cacheCreationTokens = cacheCreationTokens;
+                    logData.cacheReadTokens = cacheReadTokens;
                     logData.statusCode = 200;
                     await anthropicStore.recordUsage(anthropicCredential.id);
                 } else {
@@ -3480,6 +3508,7 @@ app.post('/v1/chat/completions', async (req, res) => {
 
                     // Convert to OpenAI format
                     const content = result.data.content?.map(c => c.text).join('') || '';
+                    const usage = result.data.usage || {};
                     const openAIResponse = {
                         id: requestId,
                         object: 'chat.completion',
@@ -3491,14 +3520,16 @@ app.post('/v1/chat/completions', async (req, res) => {
                             finish_reason: result.data.stop_reason === 'end_turn' ? 'stop' : result.data.stop_reason
                         }],
                         usage: {
-                            prompt_tokens: result.data.usage?.input_tokens || 0,
-                            completion_tokens: result.data.usage?.output_tokens || 0,
-                            total_tokens: (result.data.usage?.input_tokens || 0) + (result.data.usage?.output_tokens || 0)
+                            prompt_tokens: usage.input_tokens || 0,
+                            completion_tokens: usage.output_tokens || 0,
+                            total_tokens: (usage.input_tokens || 0) + (usage.output_tokens || 0)
                         }
                     };
 
-                    logData.inputTokens = result.data.usage?.input_tokens || logData.inputTokens;
-                    logData.outputTokens = result.data.usage?.output_tokens || 0;
+                    logData.inputTokens = usage.input_tokens || logData.inputTokens;
+                    logData.outputTokens = usage.output_tokens || 0;
+                    logData.cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+                    logData.cacheReadTokens = usage.cache_read_input_tokens || 0;
                     logData.statusCode = 200;
                     await anthropicStore.recordUsage(anthropicCredential.id);
                     res.json(openAIResponse);

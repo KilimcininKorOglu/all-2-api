@@ -323,6 +323,8 @@ export class BedrockClient {
 
         const inputTokens = response.usage?.inputTokens || 0;
         const outputTokens = response.usage?.outputTokens || 0;
+        const cacheReadTokens = response.usage?.cacheReadInputTokenCount || 0;
+        const cacheWriteTokens = response.usage?.cacheWriteInputTokenCount || 0;
 
         // Convert stop reason
         let stopReason = 'end_turn';
@@ -342,7 +344,9 @@ export class BedrockClient {
             stop_sequence: null,
             usage: {
                 input_tokens: inputTokens,
-                output_tokens: outputTokens
+                output_tokens: outputTokens,
+                cache_creation_input_tokens: cacheWriteTokens,
+                cache_read_input_tokens: cacheReadTokens
             }
         };
     }
@@ -502,7 +506,9 @@ export class BedrockClient {
                         type: 'message_delta',
                         usage: {
                             input_tokens: parsed.metadata.usage.inputTokens || 0,
-                            output_tokens: parsed.metadata.usage.outputTokens || 0
+                            output_tokens: parsed.metadata.usage.outputTokens || 0,
+                            cache_creation_input_tokens: parsed.metadata.usage.cacheWriteInputTokenCount || 0,
+                            cache_read_input_tokens: parsed.metadata.usage.cacheReadInputTokenCount || 0
                         }
                     };
                 }
