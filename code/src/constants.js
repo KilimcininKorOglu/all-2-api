@@ -120,6 +120,18 @@ export function buildCodeWhispererUrl(baseUrl, userRegion) {
     const actualRegion = getCodeWhispererRegion(userRegion);
     return baseUrl.replace('{{region}}', actualRegion);
 }
+
+/**
+ * Build fallback CodeWhisperer URL (legacy endpoint, only works in us-east-1)
+ * Used when Q endpoint fails
+ * @param {string} baseUrl - Base URL template (containing {{region}} placeholder)
+ * @returns {string} Complete fallback API URL (always us-east-1)
+ */
+export function buildFallbackUrl(baseUrl) {
+    // CodeWhisperer legacy endpoint only works in us-east-1
+    const fallbackUrl = baseUrl.replace('q.{{region}}.amazonaws.com', 'codewhisperer.us-east-1.amazonaws.com');
+    return fallbackUrl.replace('{{region}}', 'us-east-1');
+}
 export const KIRO_MODELS = [
     // Opus 4.5
     'claude-opus-4-5',

@@ -7,7 +7,7 @@ import * as os from 'os';
 import * as crypto from 'crypto';
 import * as http from 'http';
 import * as https from 'https';
-import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, buildCodeWhispererUrl } from '../constants.js';
+import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, buildCodeWhispererUrl, buildFallbackUrl } from '../constants.js';
 import { logger } from '../logger.js';
 
 const log = logger.client;
@@ -75,6 +75,7 @@ export class KiroService {
 
         this.axiosInstance = axios.create(axiosConfig);
         this.baseUrl = buildCodeWhispererUrl(KIRO_CONSTANTS.BASE_URL, this.region);
+        this.fallbackUrl = buildFallbackUrl(KIRO_CONSTANTS.BASE_URL);
     }
 
     getContentText(message) {
@@ -544,10 +545,12 @@ export class KiroService {
         let retryCount = 0;
         const maxRetries = 3;
         const baseDelay = 1000;
+        let currentUrl = this.baseUrl;
+        let usedFallback = false;
 
         while (retryCount <= maxRetries) {
             try {
-                const response = await this.axiosInstance.post(this.baseUrl, requestData, {
+                const response = await this.axiosInstance.post(currentUrl, requestData, {
                     headers,
                     responseType: 'stream'
                 });
@@ -622,6 +625,15 @@ export class KiroService {
                     continue;
                 }
 
+                // Try fallback to CodeWhisperer endpoint if Q endpoint fails with 5xx or connection error
+                if (!usedFallback && (status >= 500 || !status)) {
+                    console.log(`[KiroService] Q endpoint failed (${status || 'connection error'}), trying CodeWhisperer fallback...`);
+                    currentUrl = this.fallbackUrl;
+                    usedFallback = true;
+                    retryCount = 0;
+                    continue;
+                }
+
                 let errorMessage = error.message;
                 if (error.response) {
                     errorMessage = `Request failed with status code ${status}`;
@@ -660,10 +672,12 @@ export class KiroService {
         let retryCount = 0;
         const maxRetries = 3;
         const baseDelay = 1000;
+        let currentUrl = this.baseUrl;
+        let usedFallback = false;
 
         while (retryCount <= maxRetries) {
             try {
-                const response = await this.axiosInstance.post(this.baseUrl, requestData, { headers });
+                const response = await this.axiosInstance.post(currentUrl, requestData, { headers });
                 const rawStr = Buffer.isBuffer(response.data) ? response.data.toString('utf8') : String(response.data);
 
                 let fullContent = '';
@@ -719,6 +733,15 @@ export class KiroService {
                     console.log(`[KiroService] Received ${status}, retrying in ${delay}ms... (${retryCount + 1}/${maxRetries})`);
                     await new Promise(resolve => setTimeout(resolve, delay));
                     retryCount++;
+                    continue;
+                }
+
+                // Try fallback to CodeWhisperer endpoint if Q endpoint fails with 5xx or connection error
+                if (!usedFallback && (status >= 500 || !status)) {
+                    console.log(`[KiroService] Q endpoint failed (${status || 'connection error'}), trying CodeWhisperer fallback...`);
+                    currentUrl = this.fallbackUrl;
+                    usedFallback = true;
+                    retryCount = 0;
                     continue;
                 }
 
