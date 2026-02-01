@@ -4780,4 +4780,143 @@ export class ModelAliasStore {
             updatedAt: row.updated_at
         };
     }
+
+    async seedBuiltinAliases() {
+        const BUILTIN_ALIASES = [
+            // Claude Opus 4.5
+            { alias: 'claude-opus-4-5', provider: 'kiro', targetModel: 'claude-opus-4-5-20251101', priority: 100 },
+            { alias: 'claude-opus-4-5', provider: 'anthropic', targetModel: 'claude-opus-4-5-20251101', priority: 100 },
+            { alias: 'claude-opus-4-5', provider: 'bedrock', targetModel: 'anthropic.claude-opus-4-5-20251101-v1:0', priority: 100 },
+
+            // Claude Sonnet 4.5
+            { alias: 'claude-sonnet-4-5', provider: 'kiro', targetModel: 'claude-sonnet-4-5-20250929', priority: 100 },
+            { alias: 'claude-sonnet-4-5', provider: 'anthropic', targetModel: 'claude-sonnet-4-5-20250929', priority: 100 },
+            { alias: 'claude-sonnet-4-5', provider: 'bedrock', targetModel: 'anthropic.claude-sonnet-4-5-20250929-v1:0', priority: 100 },
+            { alias: 'claude-sonnet-4-5', provider: 'gemini', targetModel: 'gemini-claude-sonnet-4-5', priority: 100 },
+
+            // Claude Haiku 4.5
+            { alias: 'claude-haiku-4-5', provider: 'kiro', targetModel: 'claude-haiku-4-5-20251001', priority: 100 },
+            { alias: 'claude-haiku-4-5', provider: 'anthropic', targetModel: 'claude-haiku-4-5', priority: 100 },
+
+            // Claude Opus 4.1
+            { alias: 'claude-opus-4-1', provider: 'kiro', targetModel: 'claude-opus-4-1-20250805', priority: 100 },
+
+            // Claude Opus 4
+            { alias: 'claude-opus-4', provider: 'kiro', targetModel: 'claude-opus-4-20250514', priority: 100 },
+
+            // Claude Sonnet 4
+            { alias: 'claude-sonnet-4', provider: 'kiro', targetModel: 'claude-sonnet-4-20250514', priority: 100 },
+            { alias: 'claude-sonnet-4', provider: 'anthropic', targetModel: 'claude-sonnet-4-20250514', priority: 100 },
+            { alias: 'claude-sonnet-4', provider: 'bedrock', targetModel: 'anthropic.claude-sonnet-4-20250514-v1:0', priority: 100 },
+
+            // Claude 3.7 Sonnet
+            { alias: 'claude-3-7-sonnet', provider: 'kiro', targetModel: 'claude-3-7-sonnet-20250219', priority: 100 },
+            { alias: 'claude-3-7-sonnet', provider: 'anthropic', targetModel: 'claude-3-7-sonnet-20250219', priority: 100 },
+            { alias: 'claude-3-7-sonnet', provider: 'bedrock', targetModel: 'anthropic.claude-3-7-sonnet-20250219-v1:0', priority: 100 },
+
+            // Claude 3.5 Sonnet
+            { alias: 'claude-3-5-sonnet', provider: 'kiro', targetModel: 'claude-3-5-sonnet-20241022', priority: 100 },
+            { alias: 'claude-3-5-sonnet', provider: 'anthropic', targetModel: 'claude-3-5-sonnet-20241022', priority: 100 },
+            { alias: 'claude-3-5-sonnet', provider: 'bedrock', targetModel: 'anthropic.claude-3-5-sonnet-20241022-v2:0', priority: 100 },
+
+            // Claude 3.5 Haiku
+            { alias: 'claude-3-5-haiku', provider: 'kiro', targetModel: 'claude-3-5-haiku-20241022', priority: 100 },
+            { alias: 'claude-3-5-haiku', provider: 'anthropic', targetModel: 'claude-3-5-haiku-20241022', priority: 100 },
+            { alias: 'claude-3-5-haiku', provider: 'bedrock', targetModel: 'anthropic.claude-3-5-haiku-20241022-v1:0', priority: 100 },
+
+            // Claude 3 Opus
+            { alias: 'claude-3-opus', provider: 'anthropic', targetModel: 'claude-3-opus-20240229', priority: 100 },
+            { alias: 'claude-3-opus', provider: 'bedrock', targetModel: 'anthropic.claude-3-opus-20240229-v1:0', priority: 100 },
+
+            // Claude 3 Sonnet
+            { alias: 'claude-3-sonnet', provider: 'anthropic', targetModel: 'claude-3-sonnet-20240229', priority: 100 },
+            { alias: 'claude-3-sonnet', provider: 'bedrock', targetModel: 'anthropic.claude-3-sonnet-20240229-v1:0', priority: 100 },
+
+            // Claude 3 Haiku
+            { alias: 'claude-3-haiku', provider: 'anthropic', targetModel: 'claude-3-haiku-20240307', priority: 100 },
+            { alias: 'claude-3-haiku', provider: 'bedrock', targetModel: 'anthropic.claude-3-haiku-20240307-v1:0', priority: 100 },
+
+            // Short aliases
+            { alias: 'opus', provider: 'kiro', targetModel: 'claude-opus-4-5-20251101', priority: 50, description: 'Latest Opus model' },
+            { alias: 'opus', provider: 'anthropic', targetModel: 'claude-opus-4-5-20251101', priority: 50, description: 'Latest Opus model' },
+            { alias: 'opus', provider: 'bedrock', targetModel: 'anthropic.claude-opus-4-5-20251101-v1:0', priority: 50, description: 'Latest Opus model' },
+
+            { alias: 'sonnet', provider: 'kiro', targetModel: 'claude-sonnet-4-5-20250929', priority: 50, description: 'Latest Sonnet model' },
+            { alias: 'sonnet', provider: 'anthropic', targetModel: 'claude-sonnet-4-5-20250929', priority: 50, description: 'Latest Sonnet model' },
+            { alias: 'sonnet', provider: 'bedrock', targetModel: 'anthropic.claude-sonnet-4-5-20250929-v1:0', priority: 50, description: 'Latest Sonnet model' },
+            { alias: 'sonnet', provider: 'gemini', targetModel: 'gemini-claude-sonnet-4-5', priority: 50, description: 'Latest Sonnet model' },
+
+            { alias: 'haiku', provider: 'kiro', targetModel: 'claude-haiku-4-5-20251001', priority: 50, description: 'Latest Haiku model' },
+            { alias: 'haiku', provider: 'anthropic', targetModel: 'claude-haiku-4-5', priority: 50, description: 'Latest Haiku model' },
+            { alias: 'haiku', provider: 'bedrock', targetModel: 'anthropic.claude-3-5-haiku-20241022-v1:0', priority: 50, description: 'Latest Haiku model' },
+
+            // Gemini Antigravity models
+            { alias: 'gemini-3-pro', provider: 'gemini', targetModel: 'gemini-3-pro-preview', priority: 100 },
+            { alias: 'gemini-3-pro', provider: 'vertex', targetModel: 'gemini-3-pro-preview', priority: 100 },
+            { alias: 'gemini-3-pro-image', provider: 'gemini', targetModel: 'gemini-3-pro-image-preview', priority: 100 },
+            { alias: 'gemini-3-flash', provider: 'gemini', targetModel: 'gemini-3-flash-preview', priority: 100 },
+            { alias: 'gemini-3-flash', provider: 'vertex', targetModel: 'gemini-3-flash-preview', priority: 100 },
+            { alias: 'gemini-2.5-flash', provider: 'gemini', targetModel: 'gemini-2.5-flash-preview', priority: 100 },
+            { alias: 'gemini-2.5-flash', provider: 'vertex', targetModel: 'gemini-2.5-flash-preview-04-17', priority: 100 },
+            { alias: 'gemini-2.5-computer-use', provider: 'gemini', targetModel: 'gemini-2.5-computer-use-preview-10-2025', priority: 100 },
+            { alias: 'gemini-1.5-pro', provider: 'vertex', targetModel: 'gemini-1.5-pro', priority: 100 },
+            { alias: 'gemini-1.5-flash', provider: 'vertex', targetModel: 'gemini-1.5-flash', priority: 100 },
+
+            // Claude via Antigravity (thinking models)
+            { alias: 'claude-sonnet-4-5-thinking', provider: 'gemini', targetModel: 'gemini-claude-sonnet-4-5-thinking', priority: 100 },
+            { alias: 'claude-opus-4-5-thinking', provider: 'gemini', targetModel: 'gemini-claude-opus-4-5-thinking', priority: 100 }
+        ];
+
+        let inserted = 0;
+        let skipped = 0;
+
+        for (const alias of BUILTIN_ALIASES) {
+            try {
+                await this.db.execute(`
+                    INSERT IGNORE INTO model_aliases (alias, provider, target_model, description, is_active, priority)
+                    VALUES (?, ?, ?, ?, 1, ?)
+                `, [alias.alias, alias.provider, alias.targetModel, alias.description || null, alias.priority]);
+
+                const [result] = await this.db.execute('SELECT ROW_COUNT() as affected');
+                if (result[0].affected > 0) {
+                    inserted++;
+                } else {
+                    skipped++;
+                }
+            } catch (error) {
+                skipped++;
+            }
+        }
+
+        console.log(`[Model Aliases] Seeded builtin aliases: ${inserted} inserted, ${skipped} skipped (already exist)`);
+        return { inserted, skipped, total: BUILTIN_ALIASES.length };
+    }
+
+    async getGroupedAliases() {
+        const [rows] = await this.db.execute(`
+            SELECT alias, provider, target_model, description, is_active, priority, id
+            FROM model_aliases
+            ORDER BY alias, provider
+        `);
+
+        const groups = {};
+        for (const row of rows) {
+            if (!groups[row.alias]) {
+                groups[row.alias] = {
+                    alias: row.alias,
+                    providers: []
+                };
+            }
+            groups[row.alias].providers.push({
+                id: row.id,
+                provider: row.provider,
+                targetModel: row.target_model,
+                description: row.description,
+                isActive: row.is_active === 1,
+                priority: row.priority
+            });
+        }
+
+        return Object.values(groups);
+    }
 }

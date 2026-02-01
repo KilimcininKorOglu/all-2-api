@@ -1595,6 +1595,16 @@ app.get('/api/model-aliases/builtin', authMiddleware, async (req, res) => {
     }
 });
 
+// Get grouped aliases (alias name as group, providers underneath)
+app.get('/api/model-aliases/grouped', authMiddleware, async (req, res) => {
+    try {
+        const groups = await modelAliasStore.getGroupedAliases();
+        res.json({ success: true, data: groups });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Bulk import aliases
 app.post('/api/model-aliases/bulk', authMiddleware, async (req, res) => {
     try {
@@ -6593,6 +6603,9 @@ async function start() {
     pricingStore = await ModelPricingStore.create();
     anthropicStore = await AnthropicCredentialStore.create();
     modelAliasStore = await ModelAliasStore.create();
+
+    // Seed builtin model aliases
+    await modelAliasStore.seedBuiltinAliases();
 
     // Initialize selection module stores
     accountHealthStore = await AccountHealthStore.create();
