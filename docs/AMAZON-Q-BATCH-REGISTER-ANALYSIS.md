@@ -6,12 +6,12 @@ Bu dokuman, [amazon-q-developer-batch-register](https://github.com/DiscreteTom/a
 
 Amazon Q Developer Batch Register, CSV dosyasindan toplu kullanici olusturma ve otomatik Amazon Q Developer Pro aboneligi atama islemlerini gerceklestiren bir Python script setidir.
 
-| Ozellik                | Aciklama                                              |
-|------------------------|-------------------------------------------------------|
-| Platform               | Python 3.6+                                           |
-| Authentication         | AWS SigV4 (IAM Credentials)                           |
-| Dependencies           | boto3, requests                                       |
-| Use Case               | Enterprise bulk user onboarding                       |
+| Ozellik        | Aciklama                        |
+|----------------|---------------------------------|
+| Platform       | Python 3.6+                     |
+| Authentication | AWS SigV4 (IAM Credentials)     |
+| Dependencies   | boto3, requests                 |
+| Use Case       | Enterprise bulk user onboarding |
 
 > **Not:** Bu yontem artik onerilmiyor. Kiro icin dogrudan [enterprise billing](https://kiro.dev/enterprise/) kullanilmasi tavsiye ediliyor.
 
@@ -68,13 +68,13 @@ bob.wilson@example.com,bobwilson,Bob Wilson,Bob,Wilson
 
 ### 2.3 Field Requirements
 
-| Field        | Type   | Max Length | Restrictions                              |
-|--------------|--------|------------|-------------------------------------------|
-| email        | string | -          | Valid email format, primary work email    |
+| Field        | Type   | Max Length | Restrictions                                     |
+|--------------|--------|------------|--------------------------------------------------|
+| email        | string | -          | Valid email format, primary work email           |
 | username     | string | 128 chars  | Cannot be `Administrator` or `AWSAdministrators` |
-| display_name | string | -          | User's display name                       |
-| given_name   | string | -          | First name (required by IAM IdC)          |
-| family_name  | string | -          | Last name (required by IAM IdC)           |
+| display_name | string | -          | User's display name                              |
+| given_name   | string | -          | First name (required by IAM IdC)                 |
+| family_name  | string | -          | Last name (required by IAM IdC)                  |
 
 ---
 
@@ -121,12 +121,12 @@ user_id = response.get("UserId")
 
 ### 3.3 Error Handling
 
-| Error Code             | Description                           | Action                    |
-|------------------------|---------------------------------------|---------------------------|
-| ConflictException      | Kullanici zaten mevcut                | Skip user                 |
-| ValidationException    | Gecersiz parametre                    | Log and skip              |
-| AccessDeniedException  | IAM yetkisi yok                       | Check permissions         |
-| ResourceNotFoundException | Identity store bulunamadi          | Check identity_store_id   |
+| Error Code                | Description               | Action                  |
+|---------------------------|---------------------------|-------------------------|
+| ConflictException         | Kullanici zaten mevcut    | Skip user               |
+| ValidationException       | Gecersiz parametre        | Log and skip            |
+| AccessDeniedException     | IAM yetkisi yok           | Check permissions       |
+| ResourceNotFoundException | Identity store bulunamadi | Check identity_store_id |
 
 ---
 
@@ -212,10 +212,10 @@ python3 main.py sample_users.csv d-123123123
 
 ### 5.3 Parameters
 
-| Parameter         | Description                          | Example          |
-|-------------------|--------------------------------------|------------------|
-| csv_file          | CSV dosyasi yolu                     | users.csv        |
-| identity_store_id | IAM Identity Center Identity Store ID| d-123123123      |
+| Parameter         | Description                           | Example     |
+|-------------------|---------------------------------------|-------------|
+| csv_file          | CSV dosyasi yolu                      | users.csv   |
+| identity_store_id | IAM Identity Center Identity Store ID | d-123123123 |
 
 ---
 
@@ -416,15 +416,15 @@ python3 main.py users.csv d-123456789
 
 ## 11. Karsilastirma: Batch Register vs Management API
 
-| Ozellik                 | Batch Register           | Management API            |
-|-------------------------|--------------------------|---------------------------|
-| User Creation           | Yes (IAM Identity Center)| No                        |
-| Subscription Assignment | Yes                      | Yes                       |
-| List Subscriptions      | No                       | Yes                       |
-| Input Format            | CSV file                 | Python function call      |
-| Bulk Processing         | Built-in                 | Manual loop required      |
-| Progress Tracking       | Console output           | Return value              |
-| Error Recovery          | Skip and continue        | Exception handling        |
+| Ozellik                 | Batch Register            | Management API       |
+|-------------------------|---------------------------|----------------------|
+| User Creation           | Yes (IAM Identity Center) | No                   |
+| Subscription Assignment | Yes                       | Yes                  |
+| List Subscriptions      | No                        | Yes                  |
+| Input Format            | CSV file                  | Python function call |
+| Bulk Processing         | Built-in                  | Manual loop required |
+| Progress Tracking       | Console output            | Return value         |
+| Error Recovery          | Skip and continue         | Exception handling   |
 
 ---
 

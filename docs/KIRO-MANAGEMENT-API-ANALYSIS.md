@@ -6,12 +6,12 @@ Bu dokuman, [kiro-management-api](https://github.com/DiscreteTom/kiro-management
 
 Kiro Management API, AWS SigV4 kimlik dogrulamasi kullanarak Kiro (Amazon Q Developer) abonelik atamalari olusturmak ve kullanici aboneliklerini listelemek icin Python modulleri saglar.
 
-| Ozellik                | Aciklama                                              |
-|------------------------|-------------------------------------------------------|
-| Platform               | Python 3.6+                                           |
-| Authentication         | AWS SigV4 (IAM Credentials)                           |
-| Dependencies           | boto3, requests, botocore                             |
-| Use Case               | Enterprise subscription management                    |
+| Ozellik        | Aciklama                           |
+|----------------|------------------------------------|
+| Platform       | Python 3.6+                        |
+| Authentication | AWS SigV4 (IAM Credentials)        |
+| Dependencies   | boto3, requests, botocore          |
+| Use Case       | Enterprise subscription management |
 
 ---
 
@@ -33,12 +33,12 @@ SigV4Auth(credentials, service_name, region).add_auth(request)
 
 ### 1.2 Credential Sources
 
-| Source              | Aciklama                                        |
-|---------------------|-------------------------------------------------|
-| aws configure       | CLI ile yapilandirilmis credentials             |
-| IAM Roles           | EC2 instance role                               |
-| Environment Vars    | AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY        |
-| Shared Credentials  | ~/.aws/credentials dosyasi                      |
+| Source             | Aciklama                                 |
+|--------------------|------------------------------------------|
+| aws configure      | CLI ile yapilandirilmis credentials      |
+| IAM Roles          | EC2 instance role                        |
+| Environment Vars   | AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY |
+| Shared Credentials | ~/.aws/credentials dosyasi               |
 
 ### 1.3 Required IAM Permissions
 
@@ -88,19 +88,19 @@ headers = {
 
 ### 2.4 Parameters
 
-| Parameter         | Type   | Required | Default                      | Description                    |
-|-------------------|--------|----------|------------------------------|--------------------------------|
+| Parameter         | Type   | Required | Default                      | Description                       |
+|-------------------|--------|----------|------------------------------|-----------------------------------|
 | principal_id      | string | Yes      | -                            | IAM Identity Center user/group ID |
-| principal_type    | string | No       | "USER"                       | "USER" veya "GROUP"            |
-| subscription_type | string | No       | "Q_DEVELOPER_STANDALONE_PRO" | Abonelik tipi                  |
+| principal_type    | string | No       | "USER"                       | "USER" veya "GROUP"               |
+| subscription_type | string | No       | "Q_DEVELOPER_STANDALONE_PRO" | Abonelik tipi                     |
 
 ### 2.5 Subscription Types
 
-| Subscription Type               | Aciklama                    |
-|---------------------------------|-----------------------------|
-| Q_DEVELOPER_STANDALONE_PRO      | Pro plan (default)          |
-| Q_DEVELOPER_STANDALONE_PRO_PLUS | Pro Plus plan               |
-| Q_DEVELOPER_STANDALONE_POWER    | Power plan                  |
+| Subscription Type               | Aciklama           |
+|---------------------------------|--------------------|
+| Q_DEVELOPER_STANDALONE_PRO      | Pro plan (default) |
+| Q_DEVELOPER_STANDALONE_PRO_PLUS | Pro Plus plan      |
+| Q_DEVELOPER_STANDALONE_POWER    | Power plan         |
 
 ### 2.6 Usage Example
 
@@ -149,18 +149,18 @@ headers = {
 
 ### 3.4 Parameters
 
-| Parameter           | Type   | Required | Default      | Description                       |
-|---------------------|--------|----------|--------------|-----------------------------------|
-| instance_arn        | string | Yes      | -            | IAM Identity Center instance ARN  |
-| max_results         | int    | No       | 1000         | Maksimum sonuc sayisi             |
-| subscription_region | string | No       | "us-east-1"  | Abonelik region'u                 |
+| Parameter           | Type   | Required | Default     | Description                      |
+|---------------------|--------|----------|-------------|----------------------------------|
+| instance_arn        | string | Yes      | -           | IAM Identity Center instance ARN |
+| max_results         | int    | No       | 1000        | Maksimum sonuc sayisi            |
+| subscription_region | string | No       | "us-east-1" | Abonelik region'u                |
 
 ### 3.5 Service Names
 
-| Service               | SigV4 Service Name   | Region      |
-|-----------------------|----------------------|-------------|
-| Q Developer           | q                    | us-east-1   |
-| User Subscriptions    | user-subscriptions   | us-east-1   |
+| Service            | SigV4 Service Name | Region    |
+|--------------------|--------------------|-----------|
+| Q Developer        | q                  | us-east-1 |
+| User Subscriptions | user-subscriptions | us-east-1 |
 
 ### 3.6 Usage Example
 
@@ -255,10 +255,10 @@ def create_assignment(principal_id, principal_type="USER", subscription_type="Q_
 
 ### 6.1 Principal Types
 
-| Type  | Description                              |
-|-------|------------------------------------------|
-| USER  | Tek bir IAM Identity Center kullanicisi  |
-| GROUP | IAM Identity Center kullanici grubu      |
+| Type  | Description                             |
+|-------|-----------------------------------------|
+| USER  | Tek bir IAM Identity Center kullanicisi |
+| GROUP | IAM Identity Center kullanici grubu     |
 
 ### 6.2 Instance ARN Format
 
@@ -277,22 +277,22 @@ arn:aws:sso:::instance/ssoins-1234567890abcdef
 
 ### 7.1 Expected Response Codes
 
-| Status Code | Meaning                    |
-|-------------|----------------------------|
-| 200         | Basarili                   |
-| 400         | Invalid request            |
-| 403         | Permission denied          |
-| 404         | Resource not found         |
-| 500         | Server error               |
+| Status Code | Meaning            |
+|-------------|--------------------|
+| 200         | Basarili           |
+| 400         | Invalid request    |
+| 403         | Permission denied  |
+| 404         | Resource not found |
+| 500         | Server error       |
 
 ### 7.2 Common Errors
 
-| Error                        | Cause                              |
-|------------------------------|------------------------------------|
-| AccessDeniedException        | IAM permissions eksik              |
-| ValidationException          | Invalid parameter                  |
-| ResourceNotFoundException    | Principal veya instance bulunamadi |
-| ThrottlingException          | Rate limit asildi                  |
+| Error                     | Cause                              |
+|---------------------------|------------------------------------|
+| AccessDeniedException     | IAM permissions eksik              |
+| ValidationException       | Invalid parameter                  |
+| ResourceNotFoundException | Principal veya instance bulunamadi |
+| ThrottlingException       | Rate limit asildi                  |
 
 ---
 
@@ -341,14 +341,14 @@ for sub in subscriptions.get("subscriptions", []):
 
 ## 9. Karsilastirma: Management API vs OAuth API
 
-| Ozellik              | Management API (SigV4)      | OAuth API (Bearer Token)    |
-|----------------------|-----------------------------|------------------------------|
-| Authentication       | AWS IAM Credentials         | OAuth2 Access Token          |
-| Use Case             | Enterprise management       | End-user API access          |
-| Permissions          | IAM Policies                | OAuth Scopes                 |
-| Target Users         | Admins                      | Developers                   |
-| Subscription Control | Yes (create/list)           | No                           |
-| Chat/Completions     | No                          | Yes                          |
+| Ozellik              | Management API (SigV4) | OAuth API (Bearer Token) |
+|----------------------|------------------------|--------------------------|
+| Authentication       | AWS IAM Credentials    | OAuth2 Access Token      |
+| Use Case             | Enterprise management  | End-user API access      |
+| Permissions          | IAM Policies           | OAuth Scopes             |
+| Target Users         | Admins                 | Developers               |
+| Subscription Control | Yes (create/list)      | No                       |
+| Chat/Completions     | No                     | Yes                      |
 
 ---
 
@@ -369,11 +369,11 @@ kiro-management-api/
 pip install boto3 requests
 ```
 
-| Package  | Purpose                              |
-|----------|--------------------------------------|
-| boto3    | AWS SDK, credentials ve SigV4        |
-| requests | HTTP requests                        |
-| botocore | AWS request signing (boto3 dependency)|
+| Package  | Purpose                                |
+|----------|----------------------------------------|
+| boto3    | AWS SDK, credentials ve SigV4          |
+| requests | HTTP requests                          |
+| botocore | AWS request signing (boto3 dependency) |
 
 ---
 

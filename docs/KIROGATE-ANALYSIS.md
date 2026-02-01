@@ -4,16 +4,16 @@ Bu belge, [KiroGate](https://github.com/aliom-v/KiroGate) projesinin kapsamli bi
 
 ## Genel Bakis
 
-| Ozellik              | Deger                                                                 |
-|----------------------|-----------------------------------------------------------------------|
-| Proje Adi            | KiroGate                                                              |
-| Dil                  | Python 3.x                                                            |
-| Framework            | FastAPI                                                               |
-| Lisans               | GNU Affero General Public License v3                                  |
-| Surum                | 2.3.0                                                                 |
-| Temel                | kiro-openai-gateway by Jwadow                                         |
-| API Uyumlulugu       | OpenAI Chat Completions, Anthropic Messages API                       |
-| Desteklenen Modeller | Claude Opus 4.5, Claude Sonnet 4.5/4, Claude Haiku 4.5, Claude 3.7    |
+| Ozellik              | Deger                                                              |
+|----------------------|--------------------------------------------------------------------|
+| Proje Adi            | KiroGate                                                           |
+| Dil                  | Python 3.x                                                         |
+| Framework            | FastAPI                                                            |
+| Lisans               | GNU Affero General Public License v3                               |
+| Surum                | 2.3.0                                                              |
+| Temel                | kiro-openai-gateway by Jwadow                                      |
+| API Uyumlulugu       | OpenAI Chat Completions, Anthropic Messages API                    |
+| Desteklenen Modeller | Claude Opus 4.5, Claude Sonnet 4.5/4, Claude Haiku 4.5, Claude 3.7 |
 
 ## Dizin Yapisi
 
@@ -57,10 +57,10 @@ kiro_gateway/
 
 KiroGate iki farkli kimlik dogrulama yontemi destekler:
 
-| Yontem | Aciklama                                      | Endpoint                                           |
-|--------|-----------------------------------------------|----------------------------------------------------|
-| SOCIAL | Kiro Desktop sosyal giris (Google/GitHub)     | `https://prod.{region}.auth.desktop.kiro.dev/refreshToken` |
-| IDC    | AWS IAM Identity Center (Builder ID)          | `https://oidc.{region}.amazonaws.com/token`        |
+| Yontem | Aciklama                                  | Endpoint                                                   |
+|--------|-------------------------------------------|------------------------------------------------------------|
+| SOCIAL | Kiro Desktop sosyal giris (Google/GitHub) | `https://prod.{region}.auth.desktop.kiro.dev/refreshToken` |
+| IDC    | AWS IAM Identity Center (Builder ID)      | `https://oidc.{region}.amazonaws.com/token`                |
 
 ### Social Authentication
 
@@ -153,14 +153,14 @@ class KiroAuthManager:
 
 ### Yapilandirma Parametreleri
 
-| Parametre                 | Varsayilan | Aciklama                                    |
-|---------------------------|------------|---------------------------------------------|
-| TOKEN_REFRESH_THRESHOLD   | 600        | Token yenileme esigi (saniye)               |
-| MAX_RETRIES               | 3          | Maksimum yeniden deneme sayisi              |
-| BASE_RETRY_DELAY          | 1.0        | Temel bekleme suresi (saniye)               |
-| FIRST_TOKEN_TIMEOUT       | 120.0      | Ilk token icin zaman asimi (saniye)         |
-| STREAM_READ_TIMEOUT       | 300.0      | Stream okuma zaman asimi (saniye)           |
-| NON_STREAM_TIMEOUT        | 900.0      | Non-stream istek zaman asimi (saniye)       |
+| Parametre               | Varsayilan | Aciklama                              |
+|-------------------------|------------|---------------------------------------|
+| TOKEN_REFRESH_THRESHOLD | 600        | Token yenileme esigi (saniye)         |
+| MAX_RETRIES             | 3          | Maksimum yeniden deneme sayisi        |
+| BASE_RETRY_DELAY        | 1.0        | Temel bekleme suresi (saniye)         |
+| FIRST_TOKEN_TIMEOUT     | 120.0      | Ilk token icin zaman asimi (saniye)   |
+| STREAM_READ_TIMEOUT     | 300.0      | Stream okuma zaman asimi (saniye)     |
+| NON_STREAM_TIMEOUT      | 900.0      | Non-stream istek zaman asimi (saniye) |
 
 ### Kimlik Bilgisi Dosyasi Formati
 
@@ -182,24 +182,24 @@ class KiroAuthManager:
 
 ### Saglik Kontrolu
 
-| Endpoint   | Yontem | Aciklama                    |
-|------------|--------|-----------------------------|
-| `/`        | GET    | Ana sayfa (HTML)            |
-| `/api`     | GET    | API saglik kontrolu (JSON)  |
-| `/health`  | GET    | Saglik durumu               |
+| Endpoint  | Yontem | Aciklama                   |
+|-----------|--------|----------------------------|
+| `/`       | GET    | Ana sayfa (HTML)           |
+| `/api`    | GET    | API saglik kontrolu (JSON) |
+| `/health` | GET    | Saglik durumu              |
 
 ### OpenAI Uyumlu Endpoint'ler
 
-| Endpoint                | Yontem | Aciklama                              |
-|-------------------------|--------|---------------------------------------|
-| `/v1/models`            | GET    | Kullanilabilir model listesi          |
-| `/v1/chat/completions`  | POST   | Chat tamamlama (streaming destekli)   |
+| Endpoint               | Yontem | Aciklama                            |
+|------------------------|--------|-------------------------------------|
+| `/v1/models`           | GET    | Kullanilabilir model listesi        |
+| `/v1/chat/completions` | POST   | Chat tamamlama (streaming destekli) |
 
 ### Anthropic Uyumlu Endpoint'ler
 
-| Endpoint      | Yontem | Aciklama                              |
-|---------------|--------|---------------------------------------|
-| `/v1/messages`| POST   | Anthropic Messages API                |
+| Endpoint       | Yontem | Aciklama               |
+|----------------|--------|------------------------|
+| `/v1/messages` | POST   | Anthropic Messages API |
 
 ### Kimlik Dogrulama
 
@@ -356,13 +356,13 @@ Kiro API, AWS Event Stream formatinda yanitlar dondurur. Bu ayristirici, binary 
 
 **Desteklenen Olay Turleri:**
 
-| Olay Turu       | Pattern                        | Aciklama                    |
-|-----------------|--------------------------------|-----------------------------|
-| content         | `{"content":...`               | Metin icerigi               |
-| tool_start      | `{"name":...`                  | Tool call baslangici        |
-| tool_input      | `{"input":...`                 | Tool call parametreleri     |
-| tool_stop       | `{"stop":...`                  | Tool call bitisi            |
-| usage           | `{"usage":...`                 | Kredi kullanim bilgisi      |
+| Olay Turu  | Pattern          | Aciklama                |
+|------------|------------------|-------------------------|
+| content    | `{"content":...` | Metin icerigi           |
+| tool_start | `{"name":...`    | Tool call baslangici    |
+| tool_input | `{"input":...`   | Tool call parametreleri |
+| tool_stop  | `{"stop":...`    | Tool call bitisi        |
+| usage      | `{"usage":...`   | Kredi kullanim bilgisi  |
 | context_usage   | `{"contextUsagePercentage":... | Bagalam kullanim yuzdesi    |
 
 ### Bracket Tool Call Ayristirma
@@ -415,17 +415,17 @@ class KiroThinkingTagParser:
 
 ### HTTP Durum Kodlari
 
-| Kod | Durum                | Aksiyon                                  |
-|-----|----------------------|------------------------------------------|
-| 200 | Basarili             | Yaniti isle                              |
-| 400 | Gecersiz Istek       | Hatayi dondur                            |
-| 401 | Yetkisiz             | API key kontrolu                         |
-| 403 | Yasakli              | Token yenileme ve yeniden deneme         |
-| 429 | Hiz Siniri           | Ustel geri cekilme ile yeniden deneme    |
-| 500 | Sunucu Hatasi        | Ustel geri cekilme ile yeniden deneme    |
-| 502 | Bad Gateway          | Ustel geri cekilme ile yeniden deneme    |
-| 503 | Servis Kullanilamaz  | Ustel geri cekilme ile yeniden deneme    |
-| 504 | Gateway Timeout      | Zaman asimi hatasi dondur                |
+| Kod | Durum               | Aksiyon                               |
+|-----|---------------------|---------------------------------------|
+| 200 | Basarili            | Yaniti isle                           |
+| 400 | Gecersiz Istek      | Hatayi dondur                         |
+| 401 | Yetkisiz            | API key kontrolu                      |
+| 403 | Yasakli             | Token yenileme ve yeniden deneme      |
+| 429 | Hiz Siniri          | Ustel geri cekilme ile yeniden deneme |
+| 500 | Sunucu Hatasi       | Ustel geri cekilme ile yeniden deneme |
+| 502 | Bad Gateway         | Ustel geri cekilme ile yeniden deneme |
+| 503 | Servis Kullanilamaz | Ustel geri cekilme ile yeniden deneme |
+| 504 | Gateway Timeout     | Zaman asimi hatasi dondur             |
 
 ### Yeniden Deneme Mekanizmasi
 
@@ -449,27 +449,27 @@ Pydantic dogrulama hatalari `validation_exception_handler` tarafindan islenir ve
 
 ### Ortam Degiskenleri
 
-| Degisken                   | Varsayilan                          | Aciklama                              |
-|----------------------------|-------------------------------------|---------------------------------------|
-| PROXY_API_KEY              | changeme_proxy_secret               | API erisim sifresi                    |
-| REFRESH_TOKEN              | (bos)                               | Kiro yenileme tokeni                  |
-| PROFILE_ARN                | (bos)                               | AWS CodeWhisperer profil ARN          |
-| KIRO_REGION                | us-east-1                           | AWS bolgesi                           |
-| KIRO_CREDS_FILE            | (bos)                               | Kimlik bilgisi dosya yolu             |
-| LOG_LEVEL                  | INFO                                | Gunluk seviyesi                       |
-| DEBUG_MODE                 | off                                 | Hata ayiklama modu (off/errors/all)   |
-| DEBUG_DIR                  | debug_logs                          | Hata ayiklama dizini                  |
-| FIRST_TOKEN_TIMEOUT        | 120.0                               | Ilk token zaman asimi (saniye)        |
-| FIRST_TOKEN_MAX_RETRIES    | 3                                   | Ilk token max deneme                  |
-| STREAM_READ_TIMEOUT        | 300.0                               | Stream okuma zaman asimi              |
-| NON_STREAM_TIMEOUT         | 900.0                               | Non-stream zaman asimi                |
-| RATE_LIMIT_PER_MINUTE      | 0 (devre disi)                      | Dakika basina istek limiti            |
-| AUTO_CHUNKING_ENABLED      | False                               | Otomatik parcalama                    |
-| AUTO_CHUNK_THRESHOLD       | 150000                              | Parcalama esigi (karakter)            |
-| ADMIN_PASSWORD             | admin123                            | Admin panel sifresi                   |
-| ADMIN_SECRET_KEY           | kirogate_admin_secret_key_change_me | Session imza anahtari                 |
-| TOOL_DESCRIPTION_MAX_LENGTH| 10000                               | Tool aciklama max uzunlugu            |
-| SLOW_MODEL_TIMEOUT_MULTIPLIER | 3.0                              | Yavas model zaman asimi carpani       |
+| Degisken                      | Varsayilan                          | Aciklama                            |
+|-------------------------------|-------------------------------------|-------------------------------------|
+| PROXY_API_KEY                 | changeme_proxy_secret               | API erisim sifresi                  |
+| REFRESH_TOKEN                 | (bos)                               | Kiro yenileme tokeni                |
+| PROFILE_ARN                   | (bos)                               | AWS CodeWhisperer profil ARN        |
+| KIRO_REGION                   | us-east-1                           | AWS bolgesi                         |
+| KIRO_CREDS_FILE               | (bos)                               | Kimlik bilgisi dosya yolu           |
+| LOG_LEVEL                     | INFO                                | Gunluk seviyesi                     |
+| DEBUG_MODE                    | off                                 | Hata ayiklama modu (off/errors/all) |
+| DEBUG_DIR                     | debug_logs                          | Hata ayiklama dizini                |
+| FIRST_TOKEN_TIMEOUT           | 120.0                               | Ilk token zaman asimi (saniye)      |
+| FIRST_TOKEN_MAX_RETRIES       | 3                                   | Ilk token max deneme                |
+| STREAM_READ_TIMEOUT           | 300.0                               | Stream okuma zaman asimi            |
+| NON_STREAM_TIMEOUT            | 900.0                               | Non-stream zaman asimi              |
+| RATE_LIMIT_PER_MINUTE         | 0 (devre disi)                      | Dakika basina istek limiti          |
+| AUTO_CHUNKING_ENABLED         | False                               | Otomatik parcalama                  |
+| AUTO_CHUNK_THRESHOLD          | 150000                              | Parcalama esigi (karakter)          |
+| ADMIN_PASSWORD                | admin123                            | Admin panel sifresi                 |
+| ADMIN_SECRET_KEY              | kirogate_admin_secret_key_change_me | Session imza anahtari               |
+| TOOL_DESCRIPTION_MAX_LENGTH   | 10000                               | Tool aciklama max uzunlugu          |
+| SLOW_MODEL_TIMEOUT_MULTIPLIER | 3.0                                 | Yavas model zaman asimi carpani     |
 
 ### Proxy Yapilandirmasi
 
@@ -491,18 +491,18 @@ PROXY_PASSWORD="pass"
 
 ### Harici -> Dahili Model ID Donusumu
 
-| Harici Model Adi              | Kiro Dahili ID                       |
-|-------------------------------|--------------------------------------|
-| claude-opus-4-5               | claude-opus-4.5                      |
-| claude-opus-4-5-20251101      | claude-opus-4.5                      |
-| claude-haiku-4-5              | claude-haiku-4.5                     |
-| claude-haiku-4-5-20251001     | claude-haiku-4.5                     |
-| claude-sonnet-4-5             | CLAUDE_SONNET_4_5_20250929_V1_0      |
-| claude-sonnet-4-5-20250929    | CLAUDE_SONNET_4_5_20250929_V1_0      |
-| claude-sonnet-4               | CLAUDE_SONNET_4_20250514_V1_0        |
-| claude-sonnet-4-20250514      | CLAUDE_SONNET_4_20250514_V1_0        |
-| claude-3-7-sonnet-20250219    | CLAUDE_3_7_SONNET_20250219_V1_0      |
-| auto                          | claude-sonnet-4.5                    |
+| Harici Model Adi           | Kiro Dahili ID                  |
+|----------------------------|---------------------------------|
+| claude-opus-4-5            | claude-opus-4.5                 |
+| claude-opus-4-5-20251101   | claude-opus-4.5                 |
+| claude-haiku-4-5           | claude-haiku-4.5                |
+| claude-haiku-4-5-20251001  | claude-haiku-4.5                |
+| claude-sonnet-4-5          | CLAUDE_SONNET_4_5_20250929_V1_0 |
+| claude-sonnet-4-5-20250929 | CLAUDE_SONNET_4_5_20250929_V1_0 |
+| claude-sonnet-4            | CLAUDE_SONNET_4_20250514_V1_0   |
+| claude-sonnet-4-20250514   | CLAUDE_SONNET_4_20250514_V1_0   |
+| claude-3-7-sonnet-20250219 | CLAUDE_3_7_SONNET_20250219_V1_0 |
+| auto                       | claude-sonnet-4.5               |
 
 ### Yavas Modeller
 
@@ -573,12 +573,12 @@ class KiroHttpClient:
 
 ## URL Sablonlari
 
-| Servis            | URL Sablonu                                              |
-|-------------------|----------------------------------------------------------|
-| Token Yenileme    | `https://prod.{region}.auth.desktop.kiro.dev/refreshToken` |
-| AWS SSO OIDC      | `https://oidc.{region}.amazonaws.com/token`              |
-| Kiro API          | `https://codewhisperer.{region}.amazonaws.com`           |
-| Q API             | `https://q.{region}.amazonaws.com`                       |
+| Servis         | URL Sablonu                                                |
+|----------------|------------------------------------------------------------|
+| Token Yenileme | `https://prod.{region}.auth.desktop.kiro.dev/refreshToken` |
+| AWS SSO OIDC   | `https://oidc.{region}.amazonaws.com/token`                |
+| Kiro API       | `https://codewhisperer.{region}.amazonaws.com`             |
+| Q API          | `https://q.{region}.amazonaws.com`                         |
 
 ---
 

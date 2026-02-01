@@ -6,15 +6,15 @@ Bu dokuman, [Kiro-Console](https://github.com/lilizero123/Kiro-Console) projesin
 
 Kiro Console, Rust (Axum) backend ve React (Vite) admin UI iceren bir Anthropic API uyumlu Kiro proxy servisidir. Coklu credential yonetimi, failover, token refresh ve gorunur admin paneli sunar.
 
-| Ozellik                | Aciklama                                                  |
-|------------------------|-----------------------------------------------------------|
-| Platform               | Rust 2024 Edition + React (Vite)                          |
-| Backend Framework      | Axum 0.8                                                  |
-| HTTP Client            | reqwest (rustls-tls, socks proxy destegi)                 |
-| Authentication         | Social OAuth, IdC (AWS SSO OIDC), Builder ID              |
-| API Compatibility      | Anthropic `/v1/messages`, `/v1/models`, `/v1/count_tokens`|
-| Admin UI               | React + Tailwind CSS + Shadcn UI                          |
-| Deployment             | Docker one-click script                                   |
+| Ozellik           | Aciklama                                                   |
+|-------------------|------------------------------------------------------------|
+| Platform          | Rust 2024 Edition + React (Vite)                           |
+| Backend Framework | Axum 0.8                                                   |
+| HTTP Client       | reqwest (rustls-tls, socks proxy destegi)                  |
+| Authentication    | Social OAuth, IdC (AWS SSO OIDC), Builder ID               |
+| API Compatibility | Anthropic `/v1/messages`, `/v1/models`, `/v1/count_tokens` |
+| Admin UI          | React + Tailwind CSS + Shadcn UI                           |
+| Deployment        | Docker one-click script                                    |
 
 ---
 
@@ -41,11 +41,11 @@ Upstream Kiro / Anthropic Service
 
 ### 2.1 Desteklenen Authentication Metodlari
 
-| Method      | Gerekli Alanlar                                    | Token Refresh Endpoint                           |
-|-------------|----------------------------------------------------|--------------------------------------------------|
-| `social`    | `refreshToken`                                     | `prod.{region}.auth.desktop.kiro.dev/refreshToken` |
-| `idc`       | `refreshToken`, `clientId`, `clientSecret`         | `oidc.{region}.amazonaws.com/token`              |
-| `builder-id`| `refreshToken`, `clientId`, `clientSecret`         | `oidc.{region}.amazonaws.com/token`              |
+| Method       | Gerekli Alanlar                            | Token Refresh Endpoint                             |
+|--------------|--------------------------------------------|----------------------------------------------------|
+| `social`     | `refreshToken`                             | `prod.{region}.auth.desktop.kiro.dev/refreshToken` |
+| `idc`        | `refreshToken`, `clientId`, `clientSecret` | `oidc.{region}.amazonaws.com/token`                |
+| `builder-id` | `refreshToken`, `clientId`, `clientSecret` | `oidc.{region}.amazonaws.com/token`                |
 
 ### 2.2 Credential Dosya Formatlari
 
@@ -83,19 +83,19 @@ Upstream Kiro / Anthropic Service
 
 ### 2.3 Credential Alanlari
 
-| Alan           | Tip            | Aciklama                                            |
-|----------------|----------------|-----------------------------------------------------|
-| `id`           | `u64`          | Otomatik atanan unique ID                           |
-| `accessToken`  | `String`       | Gecici erisim tokeni                                |
-| `refreshToken` | `String`       | Uzun omurlu yenileme tokeni                         |
-| `profileArn`   | `String`       | AWS profil ARN                                      |
-| `expiresAt`    | `String`       | RFC3339 formatinda token son kullanim tarihi        |
-| `authMethod`   | `String`       | `social`, `idc`, `builder-id`                       |
-| `clientId`     | `String`       | IdC/Builder ID icin OIDC client ID                  |
-| `clientSecret` | `String`       | IdC/Builder ID icin OIDC client secret              |
-| `priority`     | `u32`          | Oncelik (dusuk = yuksek oncelik, varsayilan: 0)     |
-| `region`       | `String`       | Credential ozel region (varsayilan: config.region)  |
-| `machineId`    | `String`       | Credential ozel machine ID (64 hex karakter)        |
+| Alan           | Tip      | Aciklama                                           |
+|----------------|----------|----------------------------------------------------|
+| `id`           | `u64`    | Otomatik atanan unique ID                          |
+| `accessToken`  | `String` | Gecici erisim tokeni                               |
+| `refreshToken` | `String` | Uzun omurlu yenileme tokeni                        |
+| `profileArn`   | `String` | AWS profil ARN                                     |
+| `expiresAt`    | `String` | RFC3339 formatinda token son kullanim tarihi       |
+| `authMethod`   | `String` | `social`, `idc`, `builder-id`                      |
+| `clientId`     | `String` | IdC/Builder ID icin OIDC client ID                 |
+| `clientSecret` | `String` | IdC/Builder ID icin OIDC client secret             |
+| `priority`     | `u32`    | Oncelik (dusuk = yuksek oncelik, varsayilan: 0)    |
+| `region`       | `String` | Credential ozel region (varsayilan: config.region) |
+| `machineId`    | `String` | Credential ozel machine ID (64 hex karakter)       |
 
 ---
 
@@ -258,23 +258,23 @@ headers.insert(AUTHORIZATION, format!("Bearer {}", token));
 
 ### 5.3 Retry Stratejisi
 
-| Parametre                    | Deger      |
-|------------------------------|------------|
-| Her credential icin max retry| 3          |
-| Toplam max retry             | 9          |
-| Base delay                   | 200ms      |
-| Max delay                    | 2000ms     |
-| Backoff                      | Exponential|
+| Parametre                     | Deger       |
+|-------------------------------|-------------|
+| Her credential icin max retry | 3           |
+| Toplam max retry              | 9           |
+| Base delay                    | 200ms       |
+| Max delay                     | 2000ms      |
+| Backoff                       | Exponential |
 
 **Hata Isleme:**
 
-| HTTP Status | Davranis                                         |
-|-------------|--------------------------------------------------|
-| 200         | Basarili, failure count sifirla                  |
-| 400         | Direkt hata don (retry anlamsiz)                 |
-| 401/403     | Credential hatasi, failover                      |
-| 402 + MONTHLY_REQUEST_COUNT | Credential disable, failover   |
-| 408/429/5xx | Gecici hata, retry (credential degistirmeden)    |
+| HTTP Status                 | Davranis                                      |
+|-----------------------------|-----------------------------------------------|
+| 200                         | Basarili, failure count sifirla               |
+| 400                         | Direkt hata don (retry anlamsiz)              |
+| 401/403                     | Credential hatasi, failover                   |
+| 402 + MONTHLY_REQUEST_COUNT | Credential disable, failover                  |
+| 408/429/5xx                 | Gecici hata, retry (credential degistirmeden) |
 
 ---
 
@@ -317,12 +317,12 @@ headers.insert(AUTHORIZATION, format!("Bearer {}", token));
 
 ### 6.3 Desteklenen Event Turleri
 
-| Event Type               | Aciklama                                  |
-|--------------------------|-------------------------------------------|
-| `assistantResponseEvent` | Asistan metin yaniti                      |
-| `toolUseEvent`           | Arac kullanimi                            |
-| `contextUsageEvent`      | Context kullanim yuzdesi                  |
-| `exception`              | Hata durumu (ContentLengthExceededException)|
+| Event Type               | Aciklama                                     |
+|--------------------------|----------------------------------------------|
+| `assistantResponseEvent` | Asistan metin yaniti                         |
+| `toolUseEvent`           | Arac kullanimi                               |
+| `contextUsageEvent`      | Context kullanim yuzdesi                     |
+| `exception`              | Hata durumu (ContentLengthExceededException) |
 
 ---
 
@@ -330,11 +330,11 @@ headers.insert(AUTHORIZATION, format!("Bearer {}", token));
 
 ### 7.1 Desteklenen Endpoint'ler
 
-| Endpoint                       | Method | Aciklama                    |
-|--------------------------------|--------|-----------------------------|
-| `/v1/models`                   | GET    | Model listesi               |
-| `/v1/messages`                 | POST   | Chat completion (stream/non-stream)|
-| `/v1/messages/count_tokens`    | POST   | Token sayimi                |
+| Endpoint                    | Method | Aciklama                            |
+|-----------------------------|--------|-------------------------------------|
+| `/v1/models`                | GET    | Model listesi                       |
+| `/v1/messages`              | POST   | Chat completion (stream/non-stream) |
+| `/v1/messages/count_tokens` | POST   | Token sayimi                        |
 
 ### 7.2 Model Mapping
 
@@ -434,21 +434,21 @@ let actual_input_tokens = (context_usage.context_usage_percentage
 
 ### 9.1 Endpoint'ler
 
-| Endpoint                            | Method | Aciklama                        |
-|-------------------------------------|--------|---------------------------------|
-| `/api/admin/credentials`            | GET    | Tum credential'lari listele    |
-| `/api/admin/credentials`            | POST   | Yeni credential ekle            |
-| `/api/admin/credentials/batch`      | POST   | Toplu credential ekle           |
-| `/api/admin/credentials/:id/disabled`| POST  | Disable/Enable                  |
-| `/api/admin/credentials/:id/priority`| POST  | Oncelik degistir                |
-| `/api/admin/credentials/:id/reset`  | POST   | Failure count sifirla           |
-| `/api/admin/credentials/:id/balance`| GET    | Kota sorgula                    |
-| `/api/admin/credentials/:id`        | DELETE | Credential sil (disable gerekli)|
-| `/api/admin/setup/status`           | GET    | Kurulum durumu                  |
-| `/api/admin/setup/init`             | POST   | Admin key ayarla                |
-| `/api/admin/settings`               | GET    | Ayarlari getir                  |
-| `/api/admin/settings/api-key`       | POST   | API key guncelle                |
-| `/api/admin/settings/admin-key`     | POST   | Admin key guncelle              |
+| Endpoint                              | Method | Aciklama                         |
+|---------------------------------------|--------|----------------------------------|
+| `/api/admin/credentials`              | GET    | Tum credential'lari listele      |
+| `/api/admin/credentials`              | POST   | Yeni credential ekle             |
+| `/api/admin/credentials/batch`        | POST   | Toplu credential ekle            |
+| `/api/admin/credentials/:id/disabled` | POST   | Disable/Enable                   |
+| `/api/admin/credentials/:id/priority` | POST   | Oncelik degistir                 |
+| `/api/admin/credentials/:id/reset`    | POST   | Failure count sifirla            |
+| `/api/admin/credentials/:id/balance`  | GET    | Kota sorgula                     |
+| `/api/admin/credentials/:id`          | DELETE | Credential sil (disable gerekli) |
+| `/api/admin/setup/status`             | GET    | Kurulum durumu                   |
+| `/api/admin/setup/init`               | POST   | Admin key ayarla                 |
+| `/api/admin/settings`                 | GET    | Ayarlari getir                   |
+| `/api/admin/settings/api-key`         | POST   | API key guncelle                 |
+| `/api/admin/settings/admin-key`       | POST   | Admin key guncelle               |
 
 ### 9.2 Credential Snapshot
 
@@ -525,15 +525,15 @@ curl -fsSL https://raw.githubusercontent.com/lilizero123/Kiro-Console/master/too
 
 ### 11.2 Environment Variables
 
-| Degisken                  | Varsayilan           | Aciklama                  |
-|---------------------------|----------------------|---------------------------|
-| `KIRO_CONSOLE_PORT`       | `8990`               | Host port                 |
-| `KIRO_CONSOLE_IMAGE`      | `kiro-console:latest`| Docker image              |
-| `KIRO_CONSOLE_CONTAINER`  | `kiro-console`       | Container adi             |
-| `KIRO_CONSOLE_CONFIG_DIR` | `/var/lib/kiro-console`| Config mount path       |
-| `KIRO_CONSOLE_REPO`       | GitHub URL           | Git repository            |
-| `KIRO_CONSOLE_BRANCH`     | `master`             | Git branch                |
-| `KIRO_CONSOLE_FORCE_BUILD`| `0`                  | `1` = skip pull, force build|
+| Degisken                   | Varsayilan              | Aciklama                     |
+|----------------------------|-------------------------|------------------------------|
+| `KIRO_CONSOLE_PORT`        | `8990`                  | Host port                    |
+| `KIRO_CONSOLE_IMAGE`       | `kiro-console:latest`   | Docker image                 |
+| `KIRO_CONSOLE_CONTAINER`   | `kiro-console`          | Container adi                |
+| `KIRO_CONSOLE_CONFIG_DIR`  | `/var/lib/kiro-console` | Config mount path            |
+| `KIRO_CONSOLE_REPO`        | GitHub URL              | Git repository               |
+| `KIRO_CONSOLE_BRANCH`      | `master`                | Git branch                   |
+| `KIRO_CONSOLE_FORCE_BUILD` | `0`                     | `1` = skip pull, force build |
 
 ---
 
@@ -645,18 +645,18 @@ ParseError::MessageCrcMismatch { .. } => {
 
 ## 15. Diger Projelerle Karsilastirma
 
-| Ozellik                    | Kiro Console         | Kiro Account Manager   | AIClient-2-API      |
-|----------------------------|----------------------|------------------------|---------------------|
-| Platform                   | Rust + React         | Electron               | Node.js             |
-| Multi-Credential           | Evet (priority-based)| Evet (round-robin)     | Hayir               |
-| Admin UI                   | Evet (React)         | Evet (Electron)        | Hayir               |
-| Token Refresh              | Auto + Writeback     | Auto                   | Auto                |
-| Event Stream Parser        | Custom CRC32C        | JS Parser              | JS Parser           |
-| Docker Support             | One-click script     | Hayir                  | Hayir               |
-| Thinking Mode              | Evet                 | ?                      | Evet                |
-| Tool Use                   | Evet                 | Evet                   | Evet                |
-| WebSearch/MCP              | Evet                 | ?                      | ?                   |
-| Proxy Support              | HTTP/SOCKS5          | ?                      | HTTP                |
+| Ozellik             | Kiro Console          | Kiro Account Manager | AIClient-2-API |
+|---------------------|-----------------------|----------------------|----------------|
+| Platform            | Rust + React          | Electron             | Node.js        |
+| Multi-Credential    | Evet (priority-based) | Evet (round-robin)   | Hayir          |
+| Admin UI            | Evet (React)          | Evet (Electron)      | Hayir          |
+| Token Refresh       | Auto + Writeback      | Auto                 | Auto           |
+| Event Stream Parser | Custom CRC32C         | JS Parser            | JS Parser      |
+| Docker Support      | One-click script      | Hayir                | Hayir          |
+| Thinking Mode       | Evet                  | ?                    | Evet           |
+| Tool Use            | Evet                  | Evet                 | Evet           |
+| WebSearch/MCP       | Evet                  | ?                    | ?              |
+| Proxy Support       | HTTP/SOCKS5           | ?                    | HTTP           |
 
 ---
 

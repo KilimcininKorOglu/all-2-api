@@ -4,16 +4,16 @@ Bu dokuman, [petehsu/KiroProxy](https://github.com/petehsu/KiroProxy) projesinin
 
 ## Genel Bakis
 
-| Ozellik              | Deger                                                                 |
-|----------------------|-----------------------------------------------------------------------|
-| Proje Adi            | KiroProxy                                                             |
-| Surum                | v1.7.16                                                               |
-| Programlama Dili     | Python 3.x                                                            |
-| Framework            | FastAPI + httpx                                                       |
-| Lisans               | MIT                                                                   |
-| Amac                 | Kiro IDE API reverse proxy - coklu hesap, token yenileme, kota yonetimi |
-| Protokol Destegi     | OpenAI, Anthropic, Gemini                                             |
-| Varsayilan Port      | 8080                                                                  |
+| Ozellik          | Deger                                                                   |
+|------------------|-------------------------------------------------------------------------|
+| Proje Adi        | KiroProxy                                                               |
+| Surum            | v1.7.16                                                                 |
+| Programlama Dili | Python 3.x                                                              |
+| Framework        | FastAPI + httpx                                                         |
+| Lisans           | MIT                                                                     |
+| Amac             | Kiro IDE API reverse proxy - coklu hesap, token yenileme, kota yonetimi |
+| Protokol Destegi | OpenAI, Anthropic, Gemini                                               |
+| Varsayilan Port  | 8080                                                                    |
 
 ## Dizin Yapisi
 
@@ -250,14 +250,14 @@ MODELS_URL = "https://q.us-east-1.amazonaws.com/ListAvailableModels"
 
 ### Desteklenen Protokoller
 
-| Protokol  | Endpoint                                    | Aciklama                    |
-|-----------|---------------------------------------------|-----------------------------|
-| OpenAI    | `POST /v1/chat/completions`                 | Chat Completions API        |
-| OpenAI    | `POST /v1/responses`                        | Responses API (Codex CLI)   |
-| OpenAI    | `GET /v1/models`                            | Model listesi               |
-| Anthropic | `POST /v1/messages`                         | Claude Code                 |
-| Anthropic | `POST /v1/messages/count_tokens`            | Token sayimi                |
-| Gemini    | `POST /v1/models/{model}:generateContent`   | Gemini CLI                  |
+| Protokol  | Endpoint                                  | Aciklama                  |
+|-----------|-------------------------------------------|---------------------------|
+| OpenAI    | `POST /v1/chat/completions`               | Chat Completions API      |
+| OpenAI    | `POST /v1/responses`                      | Responses API (Codex CLI) |
+| OpenAI    | `GET /v1/models`                          | Model listesi             |
+| Anthropic | `POST /v1/messages`                       | Claude Code               |
+| Anthropic | `POST /v1/messages/count_tokens`          | Token sayimi              |
+| Gemini    | `POST /v1/models/{model}:generateContent` | Gemini CLI                |
 
 ### Model Esleme
 
@@ -494,17 +494,17 @@ def classify_error(status_code: int, error_text: str) -> KiroError:
 
 ### HTTP Durum Kodlari
 
-| Kod | Anlam                    | Eylem                              |
-|-----|--------------------------|------------------------------------|
-| 200 | Basarili                 | -                                  |
-| 400 | Gecersiz istek           | Istegi kontrol et                  |
-| 401 | Yetkisiz                 | Token yenile veya hesap degistir   |
-| 403 | Yasakli                  | Hesap askiya alindi, devre disi    |
-| 408 | Zaman asimi              | Yeniden dene                       |
-| 429 | Hiz siniri               | Sogutmaya gec, hesap degistir      |
-| 502 | Sunucu hatasi            | Yeniden dene                       |
-| 503 | Servis kullanilamaz      | Yeniden dene                       |
-| 529 | Asiri yukleme            | Sogutmaya gec                      |
+| Kod | Anlam               | Eylem                            |
+|-----|---------------------|----------------------------------|
+| 200 | Basarili            | -                                |
+| 400 | Gecersiz istek      | Istegi kontrol et                |
+| 401 | Yetkisiz            | Token yenile veya hesap degistir |
+| 403 | Yasakli             | Hesap askiya alindi, devre disi  |
+| 408 | Zaman asimi         | Yeniden dene                     |
+| 429 | Hiz siniri          | Sogutmaya gec, hesap degistir    |
+| 502 | Sunucu hatasi       | Yeniden dene                     |
+| 503 | Servis kullanilamaz | Yeniden dene                     |
+| 529 | Asiri yukleme       | Sogutmaya gec                    |
 
 ## Coklu Hesap Yonetimi
 
@@ -790,15 +790,15 @@ def convert_openai_tools_to_kiro(tools: List[dict]) -> List[dict]:
 
 ### Arac Cagirma Ozellikleri
 
-| Ozellik              | Anthropic               | OpenAI                  | Gemini                   |
-|----------------------|-------------------------|-------------------------|--------------------------|
-| Arac Tanimi          | `tools`                 | `tools.function`        | `functionDeclarations`   |
-| Arac Cagrisi Yaniti  | `tool_use`              | `tool_calls`            | `functionCall`           |
-| Arac Sonuclari       | `tool_result`           | `tool` rol mesaji       | `functionResponse`       |
-| Zorla Arac Cagir     | `tool_choice`           | `tool_choice`           | `toolConfig.mode`        |
-| Arac Siniri          | 50                      | 50                      | 50                       |
-| Resim Anlama         | Destekleniyor           | Destekleniyor           | Desteklenmiyor           |
-| Web Arama            | Destekleniyor           | Destekleniyor           | Desteklenmiyor           |
+| Ozellik             | Anthropic     | OpenAI            | Gemini                 |
+|---------------------|---------------|-------------------|------------------------|
+| Arac Tanimi         | `tools`       | `tools.function`  | `functionDeclarations` |
+| Arac Cagrisi Yaniti | `tool_use`    | `tool_calls`      | `functionCall`         |
+| Arac Sonuclari      | `tool_result` | `tool` rol mesaji | `functionResponse`     |
+| Zorla Arac Cagir    | `tool_choice` | `tool_choice`     | `toolConfig.mode`      |
+| Arac Siniri         | 50            | 50                | 50                     |
+| Resim Anlama        | Destekleniyor | Destekleniyor     | Desteklenmiyor         |
+| Web Arama           | Destekleniyor | Destekleniyor     | Desteklenmiyor         |
 
 ## Yapilandirma
 
@@ -836,22 +836,22 @@ python run.py status                     # Durum gor
 
 ## Yonetim API'leri
 
-| Endpoint                         | Metod  | Aciklama                        |
-|----------------------------------|--------|----------------------------------|
-| `/api/accounts`                  | GET    | Tum hesap durumlarini al         |
-| `/api/accounts/{id}`             | GET    | Hesap detaylarini al             |
-| `/api/accounts/{id}/usage`       | GET    | Hesap kullanim bilgilerini al    |
-| `/api/accounts/{id}/refresh`     | POST   | Hesap token'ini yenile           |
-| `/api/accounts/{id}/restore`     | POST   | Hesabi geri yukle (sogutmadan)   |
-| `/api/accounts/refresh-all`      | POST   | Suresi dolmak uzere tokenlari yenile |
-| `/api/flows`                     | GET    | Istek kayitlarini al             |
-| `/api/flows/stats`               | GET    | Istek istatistiklerini al        |
-| `/api/quota`                     | GET    | Kota durumunu al                 |
-| `/api/stats`                     | GET    | Istatistikleri al                |
-| `/api/settings/history`          | GET    | Gecmis ayarlarini al             |
-| `/api/settings/history`          | POST   | Gecmis ayarlarini guncelle       |
-| `/api/settings/rate-limit`       | GET    | Hiz siniri ayarlarini al         |
-| `/api/settings/rate-limit`       | POST   | Hiz siniri ayarlarini guncelle   |
+| Endpoint                     | Metod | Aciklama                             |
+|------------------------------|-------|--------------------------------------|
+| `/api/accounts`              | GET   | Tum hesap durumlarini al             |
+| `/api/accounts/{id}`         | GET   | Hesap detaylarini al                 |
+| `/api/accounts/{id}/usage`   | GET   | Hesap kullanim bilgilerini al        |
+| `/api/accounts/{id}/refresh` | POST  | Hesap token'ini yenile               |
+| `/api/accounts/{id}/restore` | POST  | Hesabi geri yukle (sogutmadan)       |
+| `/api/accounts/refresh-all`  | POST  | Suresi dolmak uzere tokenlari yenile |
+| `/api/flows`                 | GET   | Istek kayitlarini al                 |
+| `/api/flows/stats`           | GET   | Istek istatistiklerini al            |
+| `/api/quota`                 | GET   | Kota durumunu al                     |
+| `/api/stats`                 | GET   | Istatistikleri al                    |
+| `/api/settings/history`      | GET   | Gecmis ayarlarini al                 |
+| `/api/settings/history`      | POST  | Gecmis ayarlarini guncelle           |
+| `/api/settings/rate-limit`   | GET   | Hiz siniri ayarlarini al             |
+| `/api/settings/rate-limit`   | POST  | Hiz siniri ayarlarini guncelle       |
 
 ## Sonuc
 

@@ -4,16 +4,16 @@ Bu belge, [ccproxykiro](https://github.com/stevengonsalvez/ccproxykiro) projesin
 
 ## Genel Bakis
 
-| Ozellik              | Deger                                                    |
-|----------------------|----------------------------------------------------------|
-| Proje Adi            | ccproxykiro                                              |
-| Dil                  | Go 1.23.3                                                |
-| Lisans               | Belirtilmemis                                            |
-| Repository           | https://github.com/stevengonsalvez/ccproxykiro           |
-| Temel Islevsellik    | Kiro token yonetimi ve Anthropic API proxy               |
-| Hedef Platform       | Windows, Linux, macOS (cross-platform)                   |
-| API Uyumlulugu       | Anthropic Messages API (Claude Code uyumlu)              |
-| Backend Servisi      | AWS CodeWhisperer (generateAssistantResponse)            |
+| Ozellik           | Deger                                          |
+|-------------------|------------------------------------------------|
+| Proje Adi         | ccproxykiro                                    |
+| Dil               | Go 1.23.3                                      |
+| Lisans            | Belirtilmemis                                  |
+| Repository        | https://github.com/stevengonsalvez/ccproxykiro |
+| Temel Islevsellik | Kiro token yonetimi ve Anthropic API proxy     |
+| Hedef Platform    | Windows, Linux, macOS (cross-platform)         |
+| API Uyumlulugu    | Anthropic Messages API (Claude Code uyumlu)    |
+| Backend Servisi   | AWS CodeWhisperer (generateAssistantResponse)  |
 
 ## Mimari Yapi
 
@@ -35,11 +35,11 @@ Bu belge, [ccproxykiro](https://github.com/stevengonsalvez/ccproxykiro) projesin
 
 Proje, Kiro uygulamasinin olusturdugu token dosyasini kullanir:
 
-| Platform | Token Dosyasi Yolu                              |
-|----------|-------------------------------------------------|
+| Platform | Token Dosyasi Yolu                                  |
+|----------|-----------------------------------------------------|
 | Windows  | `%USERPROFILE%\.aws\sso\cache\kiro-auth-token.json` |
-| Linux    | `~/.aws/sso/cache/kiro-auth-token.json`         |
-| macOS    | `~/.aws/sso/cache/kiro-auth-token.json`         |
+| Linux    | `~/.aws/sso/cache/kiro-auth-token.json`             |
+| macOS    | `~/.aws/sso/cache/kiro-auth-token.json`             |
 
 ### Token Dosyasi Formati
 
@@ -51,21 +51,21 @@ Proje, Kiro uygulamasinin olusturdugu token dosyasini kullanir:
 }
 ```
 
-| Alan         | Tip    | Aciklama                                   |
-|--------------|--------|--------------------------------------------|
-| accessToken  | string | API istekleri icin kullanilan JWT token    |
+| Alan         | Tip    | Aciklama                                     |
+|--------------|--------|----------------------------------------------|
+| accessToken  | string | API istekleri icin kullanilan JWT token      |
 | refreshToken | string | Access token yenilemek icin kullanilan token |
-| expiresAt    | string | Token'in gecerlilik suresi (ISO 8601)      |
+| expiresAt    | string | Token'in gecerlilik suresi (ISO 8601)        |
 
 ### Token Yenileme Mekanizmasi
 
 Token yenileme islemi asagidaki endpoint uzerinden gerceklestirilir:
 
-| Ozellik     | Deger                                                      |
-|-------------|-----------------------------------------------------------|
-| URL         | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken` |
-| Method      | POST                                                       |
-| Content-Type| application/json                                           |
+| Ozellik      | Deger                                                       |
+|--------------|-------------------------------------------------------------|
+| URL          | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken` |
+| Method       | POST                                                        |
+| Content-Type | application/json                                            |
 
 **Istek Formati:**
 
@@ -101,31 +101,31 @@ if resp.StatusCode == 403 {
 ### Proxy Sunucusu Endpoint'leri
 
 | Endpoint        | Method | Aciklama                           |
-|-----------------|--------|-----------------------------------|
-| `/v1/messages`  | POST   | Anthropic Messages API proxy      |
-| `/v1/messages/` | POST   | Anthropic Messages API proxy (/)  |
-| `/health`       | GET    | Saglik kontrolu                   |
-| `/`             | *      | 404 Not Found (diger tum istekler)|
+|-----------------|--------|------------------------------------|
+| `/v1/messages`  | POST   | Anthropic Messages API proxy       |
+| `/v1/messages/` | POST   | Anthropic Messages API proxy (/)   |
+| `/health`       | GET    | Saglik kontrolu                    |
+| `/`             | *      | 404 Not Found (diger tum istekler) |
 
 ### AWS CodeWhisperer API
 
-| Ozellik          | Deger                                                                    |
-|------------------|-------------------------------------------------------------------------|
-| Base URL         | `https://codewhisperer.us-east-1.amazonaws.com`                         |
-| Endpoint         | `/generateAssistantResponse`                                             |
-| Method           | POST                                                                     |
-| Authentication   | Bearer Token                                                             |
-| Response Format  | AWS Event Stream (binary)                                                |
-| Profile ARN      | `arn:aws:codewhisperer:us-east-1:699475941385:profile/EHGA3GRVQMUK`     |
+| Ozellik         | Deger                                                               |
+|-----------------|---------------------------------------------------------------------|
+| Base URL        | `https://codewhisperer.us-east-1.amazonaws.com`                     |
+| Endpoint        | `/generateAssistantResponse`                                        |
+| Method          | POST                                                                |
+| Authentication  | Bearer Token                                                        |
+| Response Format | AWS Event Stream (binary)                                           |
+| Profile ARN     | `arn:aws:codewhisperer:us-east-1:699475941385:profile/EHGA3GRVQMUK` |
 
 ## Model Destegi
 
 ### Desteklenen Modeller
 
-| Anthropic Model Adi           | CodeWhisperer Model ID              | Notlar           |
-|------------------------------|-------------------------------------|------------------|
-| `claude-sonnet-4-20250514`   | `CLAUDE_SONNET_4_20250514_V1_0`     | Onerilen model   |
-| `claude-3-5-haiku-20241022`  | `CLAUDE_3_7_SONNET_20250219_V1_0`   | Haiku (mapping)  |
+| Anthropic Model Adi         | CodeWhisperer Model ID            | Notlar          |
+|-----------------------------|-----------------------------------|-----------------|
+| `claude-sonnet-4-20250514`  | `CLAUDE_SONNET_4_20250514_V1_0`   | Onerilen model  |
+| `claude-3-5-haiku-20241022` | `CLAUDE_3_7_SONNET_20250219_V1_0` | Haiku (mapping) |
 
 **Not:** Haiku modeli aslinda Sonnet 3.7 modeline yonlendirilmektedir. Bu bir mapping hatasi veya kasitli bir tercih olabilir.
 
@@ -206,10 +206,10 @@ if resp.StatusCode == 403 {
 
 ### Conversation History Yapisi
 
-| Mesaj Tipi | Yapi                                                              |
-|------------|------------------------------------------------------------------|
+| Mesaj Tipi | Yapi                                                                                |
+|------------|-------------------------------------------------------------------------------------|
 | User       | `{"userInputMessage": {"content": "...", "modelId": "...", "origin": "AI_EDITOR"}}` |
-| Assistant  | `{"assistantResponseMessage": {"content": "...", "toolUses": []}}` |
+| Assistant  | `{"assistantResponseMessage": {"content": "...", "toolUses": []}}`                  |
 
 **System Mesaj Isleme:**
 
@@ -245,24 +245,24 @@ AWS CodeWhisperer, yanitlarini AWS Event Stream formatinda gonderir:
 }
 ```
 
-| Alan      | Tip     | Aciklama                                |
-|-----------|---------|----------------------------------------|
-| content   | string  | Metin icerigi (text delta)             |
-| name      | string  | Tool adi (tool_use icin)               |
-| toolUseId | string  | Tool kullanim ID'si                    |
-| input     | *string | Tool input JSON parcasi                |
-| stop      | bool    | Blok sonlandirma gostergesi            |
+| Alan      | Tip     | Aciklama                    |
+|-----------|---------|-----------------------------|
+| content   | string  | Metin icerigi (text delta)  |
+| name      | string  | Tool adi (tool_use icin)    |
+| toolUseId | string  | Tool kullanim ID'si         |
+| input     | *string | Tool input JSON parcasi     |
+| stop      | bool    | Blok sonlandirma gostergesi |
 
 ### SSE Event Donusumu
 
 Parser, AWS Event Stream'i Anthropic SSE formatina donusturur:
 
-| AWS Event Tipi            | Anthropic SSE Event          |
-|---------------------------|------------------------------|
-| content (text)            | content_block_delta (text)   |
-| toolUseId + name (start)  | content_block_start (tool)   |
-| toolUseId + input         | content_block_delta (json)   |
-| stop: true                | content_block_stop           |
+| AWS Event Tipi           | Anthropic SSE Event        |
+|--------------------------|----------------------------|
+| content (text)           | content_block_delta (text) |
+| toolUseId + name (start) | content_block_start (tool) |
+| toolUseId + input        | content_block_delta (json) |
+| stop: true               | content_block_stop         |
 
 ## Streaming Yanit Formati
 
@@ -366,14 +366,14 @@ data: {"type":"message_stop"}
 
 ### HTTP Durum Kodlari
 
-| Kod | Anlam                                          | Islem                              |
-|-----|-----------------------------------------------|------------------------------------|
-| 200 | Basarili                                      | Normal yanit                       |
-| 400 | Gecersiz istek                                | Hata mesaji dondur                 |
-| 403 | Yetkisiz (token suresi dolmus)                | Token yenile, yeniden dene         |
-| 404 | Bulunamadi                                    | 404 Not Found                      |
-| 405 | Method desteklenmiyor                         | "Only POST requests are supported" |
-| 500 | Sunucu hatasi                                 | Hata mesaji                        |
+| Kod | Anlam                          | Islem                              |
+|-----|--------------------------------|------------------------------------|
+| 200 | Basarili                       | Normal yanit                       |
+| 400 | Gecersiz istek                 | Hata mesaji dondur                 |
+| 403 | Yetkisiz (token suresi dolmus) | Token yenile, yeniden dene         |
+| 404 | Bulunamadi                     | 404 Not Found                      |
+| 405 | Method desteklenmiyor          | "Only POST requests are supported" |
+| 500 | Sunucu hatasi                  | Hata mesaji                        |
 
 ### SSE Error Event
 
@@ -389,7 +389,7 @@ data: {"type":"message_stop"}
 
 ### Dogrulama Hatalari
 
-| Hata Durumu          | Hata Mesaji                                        |
+| Hata Durumu          | Hata Mesaji                                       |
 |----------------------|---------------------------------------------------|
 | Model eksik          | `{"message":"Missing required field: model"}`     |
 | Mesajlar eksik       | `{"message":"Missing required field: messages"}`  |
@@ -397,13 +397,13 @@ data: {"type":"message_stop"}
 
 ## CLI Komutlari
 
-| Komut                        | Aciklama                                        |
-|------------------------------|-------------------------------------------------|
-| `ccproxykiro read`           | Token bilgilerini goruntule                     |
-| `ccproxykiro refresh`        | Token'i yenile                                  |
-| `ccproxykiro export`         | Ortam degiskenlerini disa aktar                 |
-| `ccproxykiro claude`         | Claude Code yapilandirmasini guncelle           |
-| `ccproxykiro server [port]`  | Proxy sunucusunu baslat (varsayilan: 8080)      |
+| Komut                       | Aciklama                                   |
+|-----------------------------|--------------------------------------------|
+| `ccproxykiro read`          | Token bilgilerini goruntule                |
+| `ccproxykiro refresh`       | Token'i yenile                             |
+| `ccproxykiro export`        | Ortam degiskenlerini disa aktar            |
+| `ccproxykiro claude`        | Claude Code yapilandirmasini guncelle      |
+| `ccproxykiro server [port]` | Proxy sunucusunu baslat (varsayilan: 8080) |
 
 ### Claude Yapilandirmasi
 
@@ -420,11 +420,11 @@ data: {"type":"message_stop"}
 
 ### Ortam Degiskenleri
 
-| Degisken             | Deger                    | Aciklama                      |
-|----------------------|--------------------------|-------------------------------|
-| ANTHROPIC_BASE_URL   | `http://localhost:8080`  | Proxy sunucu adresi           |
-| ANTHROPIC_API_KEY    | `<access_token>`         | Kiro access token             |
-| ANTHROPIC_AUTH_TOKEN | `dummy-token`            | Claude Code icin placeholder  |
+| Degisken             | Deger                   | Aciklama                     |
+|----------------------|-------------------------|------------------------------|
+| ANTHROPIC_BASE_URL   | `http://localhost:8080` | Proxy sunucu adresi          |
+| ANTHROPIC_API_KEY    | `<access_token>`        | Kiro access token            |
+| ANTHROPIC_AUTH_TOKEN | `dummy-token`           | Claude Code icin placeholder |
 
 ### Claude Code Settings Dosyasi
 
@@ -444,11 +444,11 @@ Dosya Yolu: `~/.claude/settings.json`
 
 ### Binary Dagitimi
 
-| Platform | Binary Adi                           |
-|----------|--------------------------------------|
-| Linux    | `ccproxykiro-linux-amd64-{version}`  |
+| Platform | Binary Adi                                |
+|----------|-------------------------------------------|
+| Linux    | `ccproxykiro-linux-amd64-{version}`       |
 | Windows  | `ccproxykiro-windows-amd64-{version}.exe` |
-| macOS    | `ccproxykiro-macos-amd64-{version}`  |
+| macOS    | `ccproxykiro-macos-amd64-{version}`       |
 
 ### Ortam Degiskeni Ciktisi
 
@@ -474,21 +474,21 @@ $env:ANTHROPIC_API_KEY="<token>"
 
 ### ccproxykiro vs Kiro API (Bu Proje)
 
-| Ozellik                    | ccproxykiro           | Kiro API (Bu Proje)        |
-|----------------------------|-----------------------|----------------------------|
-| Programlama Dili           | Go                    | Node.js (JavaScript)       |
-| Veritabani                 | Yok (dosya tabanli)   | MySQL                      |
-| Coklu Hesap Destegi        | Hayir                 | Evet (credential pool)     |
-| Token Otomatik Yenileme    | Sadece 403'te         | 10 dakika once             |
-| Web Arayuzu                | Yok                   | Evet                       |
-| API Key Yonetimi           | Yok                   | Evet                       |
-| Loglama                    | Konsol                | Dosya + Konsol             |
-| Hata Credential Yonetimi   | Yok                   | Ayri tablo (retry)         |
-| Cluster Destegi            | Yok                   | Evet                       |
-| Coklu Provider             | Hayir (sadece Kiro)   | Evet (6 provider)          |
-| Kimlik Dogrulama Yontemleri| Tek (Kiro token)      | Social, Builder ID, IdC    |
-| Tool Destegi               | Evet                  | Evet                       |
-| Streaming                  | Evet                  | Evet                       |
+| Ozellik                     | ccproxykiro         | Kiro API (Bu Proje)     |
+|-----------------------------|---------------------|-------------------------|
+| Programlama Dili            | Go                  | Node.js (JavaScript)    |
+| Veritabani                  | Yok (dosya tabanli) | MySQL                   |
+| Coklu Hesap Destegi         | Hayir               | Evet (credential pool)  |
+| Token Otomatik Yenileme     | Sadece 403'te       | 10 dakika once          |
+| Web Arayuzu                 | Yok                 | Evet                    |
+| API Key Yonetimi            | Yok                 | Evet                    |
+| Loglama                     | Konsol              | Dosya + Konsol          |
+| Hata Credential Yonetimi    | Yok                 | Ayri tablo (retry)      |
+| Cluster Destegi             | Yok                 | Evet                    |
+| Coklu Provider              | Hayir (sadece Kiro) | Evet (6 provider)       |
+| Kimlik Dogrulama Yontemleri | Tek (Kiro token)    | Social, Builder ID, IdC |
+| Tool Destegi                | Evet                | Evet                    |
+| Streaming                   | Evet                | Evet                    |
 
 ### Benzersiz Ozellikler
 
@@ -512,9 +512,9 @@ Ancak, kurumsal ihtiyaclar icin (coklu kullanici, hesap havuzu, detayli loglama,
 
 ## Kaynaklar
 
-| Kaynak                | URL                                                        |
-|-----------------------|------------------------------------------------------------|
-| GitHub Repository     | https://github.com/stevengonsalvez/ccproxykiro             |
-| AWS CodeWhisperer API | https://codewhisperer.us-east-1.amazonaws.com              |
-| Kiro Auth Service     | https://prod.us-east-1.auth.desktop.kiro.dev               |
-| Claude Code           | https://claude.ai/code                                     |
+| Kaynak                | URL                                            |
+|-----------------------|------------------------------------------------|
+| GitHub Repository     | https://github.com/stevengonsalvez/ccproxykiro |
+| AWS CodeWhisperer API | https://codewhisperer.us-east-1.amazonaws.com  |
+| Kiro Auth Service     | https://prod.us-east-1.auth.desktop.kiro.dev   |
+| Claude Code           | https://claude.ai/code                         |

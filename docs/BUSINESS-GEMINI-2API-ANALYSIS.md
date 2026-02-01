@@ -6,16 +6,16 @@ Bu dokuman, [business-gemini-2api](https://github.com/lulistart/business-gemini-
 
 ## Genel Bakis
 
-| Ozellik                  | Aciklama                                                                 |
-|--------------------------|--------------------------------------------------------------------------|
-| **Proje Adi**            | Business Gemini 2 API                                                    |
-| **Amac**                 | Google Gemini Business hesaplarini OpenAI uyumlu API formatina donusturme|
-| **Dil/Framework**        | Python 3.x, Flask, SQLAlchemy                                            |
-| **Veritabani**           | SQLite (varsayilan), JSON dosya destegi                                  |
-| **Kimlik Dogrulama**     | Cookie tabanli (Secure_C_SES, Host_C_OSES), JWT olusturma                |
-| **API Uyumlulugu**       | OpenAI Chat Completions API formatinda                                   |
-| **Ozellikler**           | Coklu hesap yonetimi, resim/video uretimi, akis destegi, oto-yenileme    |
-| **Lisans**               | MIT                                                                      |
+| Ozellik              | Aciklama                                                                  |
+|----------------------|---------------------------------------------------------------------------|
+| **Proje Adi**        | Business Gemini 2 API                                                     |
+| **Amac**             | Google Gemini Business hesaplarini OpenAI uyumlu API formatina donusturme |
+| **Dil/Framework**    | Python 3.x, Flask, SQLAlchemy                                             |
+| **Veritabani**       | SQLite (varsayilan), JSON dosya destegi                                   |
+| **Kimlik Dogrulama** | Cookie tabanli (Secure_C_SES, Host_C_OSES), JWT olusturma                 |
+| **API Uyumlulugu**   | OpenAI Chat Completions API formatinda                                    |
+| **Ozellikler**       | Coklu hesap yonetimi, resim/video uretimi, akis destegi, oto-yenileme     |
+| **Lisans**           | MIT                                                                       |
 
 ---
 
@@ -59,16 +59,16 @@ business-gemini-2api/
 
 Her Gemini Business hesabi su bilgileri icerir:
 
-| Alan               | Tur      | Aciklama                                              |
-|--------------------|----------|-------------------------------------------------------|
-| `team_id`          | String   | Gemini Business takim kimlik numarasi                 |
-| `secure_c_ses`     | String   | `__Secure-C_SES` cookie degeri (oturum dogrulamasi)   |
-| `host_c_oses`      | String   | `__Host-C_OSES` cookie degeri (kaynak dogrulamasi)    |
-| `csesidx`          | String   | Oturum indeks kimlik numarasi                         |
-| `user_agent`       | String   | Isteklerde kullanilacak tarayici kimlik bilgisi       |
-| `available`        | Boolean  | Hesap kullanilabilirlik durumu                        |
-| `tempmail_url`     | String   | Cookie yenileme icin gecici e-posta URL'si            |
-| `tempmail_name`    | String   | Gecici e-posta kullanici adi                          |
+| Alan            | Tur     | Aciklama                                            |
+|-----------------|---------|-----------------------------------------------------|
+| `team_id`       | String  | Gemini Business takim kimlik numarasi               |
+| `secure_c_ses`  | String  | `__Secure-C_SES` cookie degeri (oturum dogrulamasi) |
+| `host_c_oses`   | String  | `__Host-C_OSES` cookie degeri (kaynak dogrulamasi)  |
+| `csesidx`       | String  | Oturum indeks kimlik numarasi                       |
+| `user_agent`    | String  | Isteklerde kullanilacak tarayici kimlik bilgisi     |
+| `available`     | Boolean | Hesap kullanilabilirlik durumu                      |
+| `tempmail_url`  | String  | Cookie yenileme icin gecici e-posta URL'si          |
+| `tempmail_name` | String  | Gecici e-posta kullanici adi                        |
 
 ### JWT Token Olusturma Sureci
 
@@ -132,12 +132,12 @@ payload = {
 
 ### JWT Yasam Dongusu
 
-| Asama           | Sure        | Aciklama                                        |
-|-----------------|-------------|------------------------------------------------|
-| Olusturma       | Anlik       | Ilk istek veya yenileme gerektiginde           |
-| Gecerlilik      | 300 saniye  | JWT'nin gecerli oldugu sure                    |
-| Yenileme Esigi  | 240 saniye  | 4 dakika sonra yenileme tetiklenir             |
-| Yenileme        | Otomatik    | `ensure_jwt_for_account()` fonksiyonu ile      |
+| Asama          | Sure       | Aciklama                                  |
+|----------------|------------|-------------------------------------------|
+| Olusturma      | Anlik      | Ilk istek veya yenileme gerektiginde      |
+| Gecerlilik     | 300 saniye | JWT'nin gecerli oldugu sure               |
+| Yenileme Esigi | 240 saniye | 4 dakika sonra yenileme tetiklenir        |
+| Yenileme       | Otomatik   | `ensure_jwt_for_account()` fonksiyonu ile |
 
 ### Hesap Durumu Yonetimi
 
@@ -157,11 +157,11 @@ account_states = {
 
 ### Sogutma (Cooldown) Sureleri
 
-| Durum                   | Sogutma Suresi       | Aciklama                                 |
-|-------------------------|----------------------|------------------------------------------|
-| Kimlik Hatasi (401/403) | 900 saniye (15 dk)   | Cookie gecersiz veya yetki yok           |
-| Rate Limit (429)        | 300 saniye (5 dk)    | veya PT gece yarisina kadar              |
-| Genel Hata              | 120 saniye (2 dk)    | Diger API hatalari                       |
+| Durum                   | Sogutma Suresi     | Aciklama                       |
+|-------------------------|--------------------|--------------------------------|
+| Kimlik Hatasi (401/403) | 900 saniye (15 dk) | Cookie gecersiz veya yetki yok |
+| Rate Limit (429)        | 300 saniye (5 dk)  | veya PT gece yarisina kadar    |
+| Genel Hata              | 120 saniye (2 dk)  | Diger API hatalari             |
 
 ---
 
@@ -169,32 +169,32 @@ account_states = {
 
 ### Ana API Rotalari
 
-| Metod | Endpoint                  | Aciklama                              | Yetki             |
-|-------|---------------------------|---------------------------------------|-------------------|
-| GET   | `/v1/models`              | Model listesini getir                 | API Token         |
-| POST  | `/v1/chat/completions`    | Sohbet tamamlama (akis destekli)      | API Token         |
-| POST  | `/v1/files`               | Dosya yukleme                         | API Token         |
-| GET   | `/v1/files`               | Yuklu dosyalari listele               | API Token         |
-| GET   | `/v1/files/<id>`          | Dosya bilgisi getir                   | API Token         |
-| DELETE| `/v1/files/<id>`          | Dosya sil                             | API Token         |
-| GET   | `/v1/status`              | Sistem durumu                         | API Token         |
-| GET   | `/health`                 | Saglik kontrolu                       | Herkese Acik      |
-| GET   | `/image/<filename>`       | Onbelleklenmis resim getir            | Herkese Acik      |
-| GET   | `/video/<filename>`       | Onbelleklenmis video getir            | Herkese Acik      |
+| Metod  | Endpoint               | Aciklama                         | Yetki        |
+|--------|------------------------|----------------------------------|--------------|
+| GET    | `/v1/models`           | Model listesini getir            | API Token    |
+| POST   | `/v1/chat/completions` | Sohbet tamamlama (akis destekli) | API Token    |
+| POST   | `/v1/files`            | Dosya yukleme                    | API Token    |
+| GET    | `/v1/files`            | Yuklu dosyalari listele          | API Token    |
+| GET    | `/v1/files/<id>`       | Dosya bilgisi getir              | API Token    |
+| DELETE | `/v1/files/<id>`       | Dosya sil                        | API Token    |
+| GET    | `/v1/status`           | Sistem durumu                    | API Token    |
+| GET    | `/health`              | Saglik kontrolu                  | Herkese Acik |
+| GET    | `/image/<filename>`    | Onbelleklenmis resim getir       | Herkese Acik |
+| GET    | `/video/<filename>`    | Onbelleklenmis video getir       | Herkese Acik |
 
 ### Yonetim Endpoint'leri
 
-| Metod | Endpoint                      | Aciklama                            |
-|-------|-------------------------------|-------------------------------------|
-| POST  | `/api/login`                  | Yonetici girisi                     |
-| GET   | `/api/accounts`               | Hesap listesi                       |
-| POST  | `/api/accounts`               | Hesap ekle                          |
-| DELETE| `/api/accounts/<id>`          | Hesap sil                           |
-| POST  | `/api/accounts/<id>/refresh`  | Hesap Cookie'sini yenile            |
-| GET   | `/api/config`                 | Sistem yapilandirmasi               |
-| POST  | `/api/config`                 | Yapilandirma guncelle               |
-| GET   | `/api/api-keys`               | API anahtarlarini listele           |
-| POST  | `/api/api-keys`               | API anahtari olustur                |
+| Metod  | Endpoint                     | Aciklama                  |
+|--------|------------------------------|---------------------------|
+| POST   | `/api/login`                 | Yonetici girisi           |
+| GET    | `/api/accounts`              | Hesap listesi             |
+| POST   | `/api/accounts`              | Hesap ekle                |
+| DELETE | `/api/accounts/<id>`         | Hesap sil                 |
+| POST   | `/api/accounts/<id>/refresh` | Hesap Cookie'sini yenile  |
+| GET    | `/api/config`                | Sistem yapilandirmasi     |
+| POST   | `/api/config`                | Yapilandirma guncelle     |
+| GET    | `/api/api-keys`              | API anahtarlarini listele |
+| POST   | `/api/api-keys`              | API anahtari olustur      |
 
 ---
 
@@ -445,27 +445,27 @@ def raise_for_account_response(resp, action, account_idx, quota_type):
 
 ### Ortam Degiskenleri
 
-| Degisken              | Varsayilan   | Aciklama                                 |
-|-----------------------|--------------|------------------------------------------|
-| `ADMIN_PASSWORD`      | (gerekli)    | Yonetici paneli sifresi                  |
-| `DATA_DIR`            | `./`         | Veritabani ve onbellek dizini            |
-| `TEMP_MAIL_URL`       | -            | Gecici e-posta servisi adresi            |
-| `LOG_LEVEL`           | `INFO`       | Log seviyesi (DEBUG, INFO, ERROR)        |
-| `API_KEY_ENCRYPTION_KEY` | (otomatik) | API anahtari sifreleme anahtari          |
+| Degisken                 | Varsayilan | Aciklama                          |
+|--------------------------|------------|-----------------------------------|
+| `ADMIN_PASSWORD`         | (gerekli)  | Yonetici paneli sifresi           |
+| `DATA_DIR`               | `./`       | Veritabani ve onbellek dizini     |
+| `TEMP_MAIL_URL`          | -          | Gecici e-posta servisi adresi     |
+| `LOG_LEVEL`              | `INFO`     | Log seviyesi (DEBUG, INFO, ERROR) |
+| `API_KEY_ENCRYPTION_KEY` | (otomatik) | API anahtari sifreleme anahtari   |
 
 ### Sistem Yapilandirmasi (Veritabani)
 
-| Anahtar               | Tur      | Aciklama                                    |
-|-----------------------|----------|---------------------------------------------|
-| `proxy`               | string   | HTTP/HTTPS proxy adresi                     |
-| `proxy_enabled`       | bool     | Proxy kullanimi aktif mi                    |
-| `image_base_url`      | string   | Resim URL'leri icin temel adres             |
-| `upload_endpoint`     | string   | Harici resim yukleme endpoint'i (cfbed)     |
-| `upload_api_token`    | string   | Harici yukleme API token'i                  |
-| `auto_refresh_cookie` | bool     | Otomatik Cookie yenileme aktif mi           |
-| `health_check_enabled`| bool     | Saglik kontrolu aktif mi                    |
-| `health_check_interval`| int     | Saglik kontrolu araligi (dakika)            |
-| `admin_secret_key`    | string   | Admin token imzalama anahtari               |
+| Anahtar                 | Tur    | Aciklama                                |
+|-------------------------|--------|-----------------------------------------|
+| `proxy`                 | string | HTTP/HTTPS proxy adresi                 |
+| `proxy_enabled`         | bool   | Proxy kullanimi aktif mi                |
+| `image_base_url`        | string | Resim URL'leri icin temel adres         |
+| `upload_endpoint`       | string | Harici resim yukleme endpoint'i (cfbed) |
+| `upload_api_token`      | string | Harici yukleme API token'i              |
+| `auto_refresh_cookie`   | bool   | Otomatik Cookie yenileme aktif mi       |
+| `health_check_enabled`  | bool   | Saglik kontrolu aktif mi                |
+| `health_check_interval` | int    | Saglik kontrolu araligi (dakika)        |
+| `admin_secret_key`      | string | Admin token imzalama anahtari           |
 
 ### Model Yapilandirmasi
 
@@ -494,58 +494,58 @@ def raise_for_account_response(resp, action, account_idx, quota_type):
 
 #### accounts
 
-| Sutun               | Tur       | Aciklama                              |
-|---------------------|-----------|---------------------------------------|
-| `id`                | Integer   | Birincil anahtar                      |
-| `team_id`           | String    | Gemini takim ID'si                    |
-| `secure_c_ses`      | Text      | Guvenli oturum cookie'si              |
-| `host_c_oses`       | Text      | Host cookie'si                        |
-| `csesidx`           | String    | Oturum indeksi                        |
-| `user_agent`        | Text      | Tarayici kimlik bilgisi               |
-| `available`         | Boolean   | Kullanilabilirlik durumu              |
-| `tempmail_url`      | Text      | Gecici e-posta URL'si                 |
-| `tempmail_name`     | String    | Gecici e-posta adi                    |
-| `quota_usage_json`  | Text      | Kota kullanimi (JSON)                 |
-| `quota_reset_date`  | String    | Kota sifirlama tarihi                 |
-| `created_at`        | DateTime  | Olusturulma zamani                    |
-| `updated_at`        | DateTime  | Guncellenme zamani                    |
+| Sutun              | Tur      | Aciklama                 |
+|--------------------|----------|--------------------------|
+| `id`               | Integer  | Birincil anahtar         |
+| `team_id`          | String   | Gemini takim ID'si       |
+| `secure_c_ses`     | Text     | Guvenli oturum cookie'si |
+| `host_c_oses`      | Text     | Host cookie'si           |
+| `csesidx`          | String   | Oturum indeksi           |
+| `user_agent`       | Text     | Tarayici kimlik bilgisi  |
+| `available`        | Boolean  | Kullanilabilirlik durumu |
+| `tempmail_url`     | Text     | Gecici e-posta URL'si    |
+| `tempmail_name`    | String   | Gecici e-posta adi       |
+| `quota_usage_json` | Text     | Kota kullanimi (JSON)    |
+| `quota_reset_date` | String   | Kota sifirlama tarihi    |
+| `created_at`       | DateTime | Olusturulma zamani       |
+| `updated_at`       | DateTime | Guncellenme zamani       |
 
 #### api_keys
 
-| Sutun            | Tur       | Aciklama                          |
-|------------------|-----------|-----------------------------------|
-| `id`             | Integer   | Birincil anahtar                  |
-| `key_hash`       | String    | SHA256 hash (dogrulama icin)      |
-| `encrypted_key`  | Text      | Sifrelenmis anahtar (gosterim)    |
-| `name`           | String    | Anahtar adi                       |
-| `created_at`     | DateTime  | Olusturulma zamani                |
-| `expires_at`     | DateTime  | Son kullanma tarihi               |
-| `is_active`      | Boolean   | Aktif durumu                      |
-| `usage_count`    | Integer   | Kullanim sayisi                   |
-| `last_used_at`   | DateTime  | Son kullanim zamani               |
+| Sutun           | Tur      | Aciklama                       |
+|-----------------|----------|--------------------------------|
+| `id`            | Integer  | Birincil anahtar               |
+| `key_hash`      | String   | SHA256 hash (dogrulama icin)   |
+| `encrypted_key` | Text     | Sifrelenmis anahtar (gosterim) |
+| `name`          | String   | Anahtar adi                    |
+| `created_at`    | DateTime | Olusturulma zamani             |
+| `expires_at`    | DateTime | Son kullanma tarihi            |
+| `is_active`     | Boolean  | Aktif durumu                   |
+| `usage_count`   | Integer  | Kullanim sayisi                |
+| `last_used_at`  | DateTime | Son kullanim zamani            |
 
 #### models
 
-| Sutun               | Tur       | Aciklama                          |
-|---------------------|-----------|-----------------------------------|
-| `id`                | Integer   | Birincil anahtar                  |
-| `model_id`          | String    | Benzersiz model ID'si             |
-| `name`              | String    | Model adi                         |
-| `description`       | Text      | Aciklama                          |
-| `api_model_id`      | String    | Gercek API model ID'si            |
-| `context_length`    | Integer   | Baglam uzunlugu                   |
-| `max_tokens`        | Integer   | Maksimum token                    |
-| `enabled`           | Boolean   | Aktif durumu                      |
-| `account_index`     | Integer   | Tercih edilen hesap               |
+| Sutun            | Tur     | Aciklama               |
+|------------------|---------|------------------------|
+| `id`             | Integer | Birincil anahtar       |
+| `model_id`       | String  | Benzersiz model ID'si  |
+| `name`           | String  | Model adi              |
+| `description`    | Text    | Aciklama               |
+| `api_model_id`   | String  | Gercek API model ID'si |
+| `context_length` | Integer | Baglam uzunlugu        |
+| `max_tokens`     | Integer | Maksimum token         |
+| `enabled`        | Boolean | Aktif durumu           |
+| `account_index`  | Integer | Tercih edilen hesap    |
 
 #### system_config
 
-| Sutun       | Tur      | Aciklama                               |
-|-------------|----------|----------------------------------------|
-| `id`        | Integer  | Birincil anahtar                       |
-| `key`       | String   | Yapilandirma anahtari                  |
-| `value`     | Text     | Yapilandirma degeri                    |
-| `value_type`| String   | Deger tipi (string, bool, int, json)   |
+| Sutun        | Tur     | Aciklama                             |
+|--------------|---------|--------------------------------------|
+| `id`         | Integer | Birincil anahtar                     |
+| `key`        | String  | Yapilandirma anahtari                |
+| `value`      | Text    | Yapilandirma degeri                  |
+| `value_type` | String  | Deger tipi (string, bool, int, json) |
 
 ---
 
@@ -610,12 +610,12 @@ def run_health_check(account_manager, auto_delete=False):
 
 ### Kontrol Sonuclari
 
-| Sonuc          | Durum          | Eylem                                    |
-|----------------|----------------|------------------------------------------|
-| Basarili       | available=True | Hesap kullanima hazir                    |
-| Kimlik Hatasi  | available=False| Hesabi devre disi birak veya sil         |
-| Rate Limit     | rate_limited   | Basari olarak sayilir, gecici durum      |
-| Diger Hata     | available=False| Hesabi devre disi birak veya sil         |
+| Sonuc         | Durum           | Eylem                               |
+|---------------|-----------------|-------------------------------------|
+| Basarili      | available=True  | Hesap kullanima hazir               |
+| Kimlik Hatasi | available=False | Hesabi devre disi birak veya sil    |
+| Rate Limit    | rate_limited    | Basari olarak sayilir, gecici durum |
+| Diger Hata    | available=False | Hesabi devre disi birak veya sil    |
 
 ---
 
@@ -623,10 +623,10 @@ def run_health_check(account_manager, auto_delete=False):
 
 ### Onbellekleme
 
-| Medya  | Dizin                     | Onbellek Suresi |
-|--------|---------------------------|-----------------|
-| Resim  | `<DATA_DIR>/image/`       | 1 saat          |
-| Video  | `<DATA_DIR>/video/`       | 6 saat          |
+| Medya | Dizin               | Onbellek Suresi |
+|-------|---------------------|-----------------|
+| Resim | `<DATA_DIR>/image/` | 1 saat          |
+| Video | `<DATA_DIR>/video/` | 6 saat          |
 
 ### Dosya Indirme
 
@@ -700,16 +700,16 @@ conversation_sessions = {
 
 ## Kiro Projesi ile Karsilastirma
 
-| Ozellik                     | Business Gemini 2 API              | Kiro                                |
-|-----------------------------|------------------------------------|-------------------------------------|
-| Hedef Platform              | Google Gemini Business             | AWS CodeWhisperer (Kiro)            |
-| Kimlik Dogrulama            | Cookie + JWT olusturma             | OAuth2 / Builder ID / IdC           |
-| Token Yenileme              | 5 dakikada bir otomatik            | 10 dakika oncesinden otomatik       |
-| API Formati                 | OpenAI uyumlu                      | OpenAI/Claude uyumlu                |
-| Veritabani                  | SQLite                             | MySQL                               |
-| Akis Destegi                | SSE (Server-Sent Events)           | AWS Event Stream                    |
-| Coklu Hesap                 | Dongusel havuzlama                 | Dongusel havuzlama                  |
-| Hata Kurtarma               | Pasif kota tespiti                 | Aktif yeniden deneme                |
+| Ozellik          | Business Gemini 2 API    | Kiro                          |
+|------------------|--------------------------|-------------------------------|
+| Hedef Platform   | Google Gemini Business   | AWS CodeWhisperer (Kiro)      |
+| Kimlik Dogrulama | Cookie + JWT olusturma   | OAuth2 / Builder ID / IdC     |
+| Token Yenileme   | 5 dakikada bir otomatik  | 10 dakika oncesinden otomatik |
+| API Formati      | OpenAI uyumlu            | OpenAI/Claude uyumlu          |
+| Veritabani       | SQLite                   | MySQL                         |
+| Akis Destegi     | SSE (Server-Sent Events) | AWS Event Stream              |
+| Coklu Hesap      | Dongusel havuzlama       | Dongusel havuzlama            |
+| Hata Kurtarma    | Pasif kota tespiti       | Aktif yeniden deneme          |
 
 ---
 

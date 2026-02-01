@@ -4,16 +4,16 @@ Bu dokuman, `gdtiti/kiro2api-nineyuanz` deposunun kapsamli teknik analizini icer
 
 ## Genel Bakis
 
-| Ozellik              | Deger                                             |
-|----------------------|---------------------------------------------------|
-| Programlama Dili     | Go 1.24.0                                         |
-| Web Framework        | Gin-Gonic v1.11.0                                 |
-| JSON Isleme          | ByteDance Sonic v1.14.1                           |
-| Varsayilan Port      | 8080                                              |
-| Desteklenen API'ler  | Anthropic Messages API, OpenAI Chat Completions  |
-| Kimlik Dogrulama     | Social (AWS SSO), IdC (Identity Center)           |
-| Token Yonetimi       | Coklu hesap havuzu, otomatik yenileme             |
-| Guvenlik Onlemleri   | Rate limiting, parmak izi rastgelestirme          |
+| Ozellik             | Deger                                           |
+|---------------------|-------------------------------------------------|
+| Programlama Dili    | Go 1.24.0                                       |
+| Web Framework       | Gin-Gonic v1.11.0                               |
+| JSON Isleme         | ByteDance Sonic v1.14.1                         |
+| Varsayilan Port     | 8080                                            |
+| Desteklenen API'ler | Anthropic Messages API, OpenAI Chat Completions |
+| Kimlik Dogrulama    | Social (AWS SSO), IdC (Identity Center)         |
+| Token Yonetimi      | Coklu hesap havuzu, otomatik yenileme           |
+| Guvenlik Onlemleri  | Rate limiting, parmak izi rastgelestirme        |
 
 ## Proje Yapisi
 
@@ -200,16 +200,16 @@ type UsageBreakdown struct {
 
 ### Desteklenen Endpoint'ler
 
-| Endpoint                         | Yontem | Aciklama                           | Kimlik Gerekli |
-|----------------------------------|--------|------------------------------------|----------------|
-| `/`                              | GET    | Dashboard (statik sayfa)           | Hayir          |
-| `/static/*`                      | GET    | Statik kaynaklar                   | Hayir          |
-| `/api/tokens`                    | GET    | Token havuzu durumu                | Hayir          |
-| `/api/anti-ban/status`           | GET    | Engelleme onleme durumu            | Hayir          |
-| `/v1/models`                     | GET    | Mevcut modeller                    | Evet           |
-| `/v1/messages`                   | POST   | Anthropic API uyumlu               | Evet           |
-| `/v1/messages/count_tokens`      | POST   | Token sayma                        | Evet           |
-| `/v1/chat/completions`           | POST   | OpenAI API uyumlu                  | Evet           |
+| Endpoint                    | Yontem | Aciklama                 | Kimlik Gerekli |
+|-----------------------------|--------|--------------------------|----------------|
+| `/`                         | GET    | Dashboard (statik sayfa) | Hayir          |
+| `/static/*`                 | GET    | Statik kaynaklar         | Hayir          |
+| `/api/tokens`               | GET    | Token havuzu durumu      | Hayir          |
+| `/api/anti-ban/status`      | GET    | Engelleme onleme durumu  | Hayir          |
+| `/v1/models`                | GET    | Mevcut modeller          | Evet           |
+| `/v1/messages`              | POST   | Anthropic API uyumlu     | Evet           |
+| `/v1/messages/count_tokens` | POST   | Token sayma              | Evet           |
+| `/v1/chat/completions`      | POST   | OpenAI API uyumlu        | Evet           |
 
 ### Kimlik Dogrulama
 
@@ -223,14 +223,14 @@ x-api-key: <KIRO_CLIENT_TOKEN>
 
 ## Model Esleme
 
-| Kullanici Model Adi              | CodeWhisperer Model ID               |
-|----------------------------------|--------------------------------------|
-| claude-opus-4-5-20251101         | CLAUDE_OPUS_4_5_20251101_V1_0        |
-| claude-sonnet-4-5-20250929       | CLAUDE_SONNET_4_5_20250929_V1_0      |
-| claude-sonnet-4-20250514         | CLAUDE_SONNET_4_20250514_V1_0        |
-| claude-3-7-sonnet-20250219       | CLAUDE_3_7_SONNET_20250219_V1_0      |
-| claude-3-5-haiku-20241022        | auto                                 |
-| claude-haiku-4-5-20251001        | auto                                 |
+| Kullanici Model Adi        | CodeWhisperer Model ID          |
+|----------------------------|---------------------------------|
+| claude-opus-4-5-20251101   | CLAUDE_OPUS_4_5_20251101_V1_0   |
+| claude-sonnet-4-5-20250929 | CLAUDE_SONNET_4_5_20250929_V1_0 |
+| claude-sonnet-4-20250514   | CLAUDE_SONNET_4_20250514_V1_0   |
+| claude-3-7-sonnet-20250219 | CLAUDE_3_7_SONNET_20250219_V1_0 |
+| claude-3-5-haiku-20241022  | auto                            |
+| claude-haiku-4-5-20251001  | auto                            |
 
 ## Istek/Yanit Formatları
 
@@ -302,16 +302,16 @@ POST https://codewhisperer.us-east-1.amazonaws.com/generateAssistantResponse
 
 ### Desteklenen Event Tipleri
 
-| Event Tipi                   | Aciklama                         |
-|------------------------------|----------------------------------|
-| assistantResponseEvent       | Asistan yaniti                   |
-| toolCallRequest              | Arac cagrisi istegi              |
-| toolCallError                | Arac cagrisi hatasi              |
-| completion                   | Tamamlama                        |
-| completionChunk              | Tamamlama parcasi                |
-| sessionStart                 | Oturum baslangici                |
-| sessionEnd                   | Oturum sonu                      |
-| exception                    | Istisna                          |
+| Event Tipi             | Aciklama            |
+|------------------------|---------------------|
+| assistantResponseEvent | Asistan yaniti      |
+| toolCallRequest        | Arac cagrisi istegi |
+| toolCallError          | Arac cagrisi hatasi |
+| completion             | Tamamlama           |
+| completionChunk        | Tamamlama parcasi   |
+| sessionStart           | Oturum baslangici   |
+| sessionEnd             | Oturum sonu         |
+| exception              | Istisna             |
 
 ### CRC Dogrulama
 
@@ -336,11 +336,11 @@ type Thinking struct {
 
 ### Varsayilan Degerler
 
-| Parametre         | Deger  |
-|-------------------|--------|
-| Minimum           | 1024   |
-| Varsayilan        | 20000  |
-| Maksimum          | 24576  |
+| Parametre  | Deger |
+|------------|-------|
+| Minimum    | 1024  |
+| Varsayilan | 20000 |
+| Maksimum   | 24576 |
 
 ### Uyumlu Modeller
 
@@ -360,19 +360,19 @@ prefix := "<thinking_mode>enabled</thinking_mode><max_thinking_length>20000</max
 
 ### Yapilandirma Parametreleri
 
-| Parametre                    | Varsayilan | Cevre Degiskeni              |
-|------------------------------|------------|------------------------------|
-| Token minimum araligi        | 10s        | RATE_LIMIT_MIN_INTERVAL      |
-| Token maksimum araligi       | 30s        | RATE_LIMIT_MAX_INTERVAL      |
+| Parametre                    | Varsayilan | Cevre Degiskeni                |
+|------------------------------|------------|--------------------------------|
+| Token minimum araligi        | 10s        | RATE_LIMIT_MIN_INTERVAL        |
+| Token maksimum araligi       | 30s        | RATE_LIMIT_MAX_INTERVAL        |
 | Global minimum araligi       | 5s         | RATE_LIMIT_GLOBAL_MIN_INTERVAL |
-| Maksimum ardisik kullanim    | 10         | RATE_LIMIT_MAX_CONSECUTIVE   |
-| Sogutma suresi               | 5m         | RATE_LIMIT_COOLDOWN          |
-| Exponential backoff temeli   | 2m         | RATE_LIMIT_BACKOFF_BASE      |
-| Exponential backoff maksimum | 60m        | RATE_LIMIT_BACKOFF_MAX       |
-| Backoff carpani              | 2.0        | RATE_LIMIT_BACKOFF_MULTIPLIER |
-| Gunluk maksimum istek        | 500        | RATE_LIMIT_DAILY_MAX         |
-| Jitter yuzdesi               | 30         | RATE_LIMIT_JITTER_PERCENT    |
-| Askiya alinan token sogutma  | 24h        | SUSPENDED_TOKEN_COOLDOWN     |
+| Maksimum ardisik kullanim    | 10         | RATE_LIMIT_MAX_CONSECUTIVE     |
+| Sogutma suresi               | 5m         | RATE_LIMIT_COOLDOWN            |
+| Exponential backoff temeli   | 2m         | RATE_LIMIT_BACKOFF_BASE        |
+| Exponential backoff maksimum | 60m        | RATE_LIMIT_BACKOFF_MAX         |
+| Backoff carpani              | 2.0        | RATE_LIMIT_BACKOFF_MULTIPLIER  |
+| Gunluk maksimum istek        | 500        | RATE_LIMIT_DAILY_MAX           |
+| Jitter yuzdesi               | 30         | RATE_LIMIT_JITTER_PERCENT      |
+| Askiya alinan token sogutma  | 24h        | SUSPENDED_TOKEN_COOLDOWN       |
 
 ### Token Durum Yapisi
 
@@ -447,22 +447,22 @@ fmt.Sprintf("aws-sdk-js/%s KiroIDE-%s-%s", fp.SDKVersion, fp.KiroVersion, fp.Kir
 
 ### Desteklenen OS Profilleri
 
-| OS      | Surum Ornekleri                                | Platformlar  |
-|---------|------------------------------------------------|--------------|
-| darwin  | 23.0.0, 23.1.0, 24.0.0, 24.5.0, 25.0.0         | MacIntel     |
-| windows | 10.0.19041, 10.0.22000, 10.0.22621             | Win32        |
-| linux   | 5.15.0, 6.1.0, 6.5.0, 6.8.0                    | Linux x86_64 |
+| OS      | Surum Ornekleri                        | Platformlar  |
+|---------|----------------------------------------|--------------|
+| darwin  | 23.0.0, 23.1.0, 24.0.0, 24.5.0, 25.0.0 | MacIntel     |
+| windows | 10.0.19041, 10.0.22000, 10.0.22621     | Win32        |
+| linux   | 5.15.0, 6.1.0, 6.5.0, 6.8.0            | Linux x86_64 |
 
 ## Hata Yonetimi
 
 ### Hata Turleri
 
-| Hata Kodu | Aciklama                      | Isleme Stratejisi             |
-|-----------|-------------------------------|-------------------------------|
-| 403       | Yetkisiz erisim               | Token sogutma, sonraki token  |
-| 429       | Cok fazla istek               | Exponential backoff           |
-| 400       | Gecersiz istek                | Mesaj sikistirma              |
-| 500       | Sunucu hatasi                 | Yeniden deneme                |
+| Hata Kodu | Aciklama        | Isleme Stratejisi            |
+|-----------|-----------------|------------------------------|
+| 403       | Yetkisiz erisim | Token sogutma, sonraki token |
+| 429       | Cok fazla istek | Exponential backoff          |
+| 400       | Gecersiz istek  | Mesaj sikistirma             |
+| 500       | Sunucu hatasi   | Yeniden deneme               |
 
 ### Askiya Alma Algilama
 
@@ -476,12 +476,12 @@ if strings.Contains(errorMsg, "TEMPORARILY_SUSPENDED") ||
 
 ### Stop Reason Esleme
 
-| Dahili Durum               | Claude Stop Reason |
-|----------------------------|--------------------|
-| Normal tamamlama           | end_turn           |
-| Arac cagrisi               | tool_use           |
-| Maksimum token             | max_tokens         |
-| Icerik uzunlugu asimi      | max_tokens         |
+| Dahili Durum          | Claude Stop Reason |
+|-----------------------|--------------------|
+| Normal tamamlama      | end_turn           |
+| Arac cagrisi          | tool_use           |
+| Maksimum token        | max_tokens         |
+| Icerik uzunlugu asimi | max_tokens         |
 
 ## Proxy Havuzu
 
@@ -509,22 +509,22 @@ PROXY_POOL=http://127.0.0.1:40000,http://127.0.0.1:40001,http://127.0.0.1:40002
 
 ### Zorunlu
 
-| Degisken           | Aciklama                           |
-|--------------------|------------------------------------|
-| KIRO_AUTH_TOKEN    | Token yapilandirmasi (JSON veya dosya yolu) |
-| KIRO_CLIENT_TOKEN  | API erisim anahtari                |
+| Degisken          | Aciklama                                    |
+|-------------------|---------------------------------------------|
+| KIRO_AUTH_TOKEN   | Token yapilandirmasi (JSON veya dosya yolu) |
+| KIRO_CLIENT_TOKEN | API erisim anahtari                         |
 
 ### Opsiyonel
 
-| Degisken           | Varsayilan | Aciklama                    |
-|--------------------|------------|-----------------------------|
-| PORT               | 8080       | Sunucu portu                |
-| GIN_MODE           | release    | Gin modu (debug/release/test) |
-| LOG_LEVEL          | info       | Log seviyesi                |
-| LOG_FORMAT         | json       | Log formati (text/json)     |
-| LOG_FILE           | -          | Log dosya yolu              |
-| LOG_CONSOLE        | true       | Konsol ciktisi              |
-| TOKEN_CACHE_TTL    | 5m         | Token onbellek suresi       |
+| Degisken        | Varsayilan | Aciklama                      |
+|-----------------|------------|-------------------------------|
+| PORT            | 8080       | Sunucu portu                  |
+| GIN_MODE        | release    | Gin modu (debug/release/test) |
+| LOG_LEVEL       | info       | Log seviyesi                  |
+| LOG_FORMAT      | json       | Log formati (text/json)       |
+| LOG_FILE        | -          | Log dosya yolu                |
+| LOG_CONSOLE     | true       | Konsol ciktisi                |
+| TOKEN_CACHE_TTL | 5m         | Token onbellek suresi         |
 
 ## Guvenlik Ozellikleri
 

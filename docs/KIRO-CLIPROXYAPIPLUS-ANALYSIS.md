@@ -6,13 +6,13 @@ Bu dokuman, [CLIProxyAPIPlus](https://github.com/fuko2935/CLIProxyAPIPlus) proje
 
 CLIProxyAPIPlus, Go dilinde yazilmis bir API proxy servisidir. Kiro entegrasyonu asagidaki ozellikleri icerir:
 
-| Ozellik                | Aciklama                                              |
-|------------------------|-------------------------------------------------------|
-| Authentication Methods | AWS Builder ID, Google OAuth, GitHub OAuth            |
-| Token Management       | Auto-refresh, multi-account support, JWT parsing      |
-| Protocol Handler       | Cross-platform `kiro://` URI handler                  |
-| API Integration        | CodeWhisperer + Amazon Q streaming endpoints          |
-| Format Translation     | OpenAI/Claude format to Kiro format conversion        |
+| Ozellik                | Aciklama                                         |
+|------------------------|--------------------------------------------------|
+| Authentication Methods | AWS Builder ID, Google OAuth, GitHub OAuth       |
+| Token Management       | Auto-refresh, multi-account support, JWT parsing |
+| Protocol Handler       | Cross-platform `kiro://` URI handler             |
+| API Integration        | CodeWhisperer + Amazon Q streaming endpoints     |
+| Format Translation     | OpenAI/Claude format to Kiro format conversion   |
 
 ---
 
@@ -257,12 +257,12 @@ Her platform icin script:
 
 ### 4.1 Endpoints
 
-| Purpose                | Endpoint                                       |
-|------------------------|------------------------------------------------|
-| Management APIs        | `https://codewhisperer.us-east-1.amazonaws.com`|
-| Chat/Streaming APIs    | `https://q.us-east-1.amazonaws.com`            |
-| SSO OIDC               | `https://oidc.us-east-1.amazonaws.com`         |
-| Social Auth            | `https://prod.us-east-1.auth.desktop.kiro.dev` |
+| Purpose             | Endpoint                                        |
+|---------------------|-------------------------------------------------|
+| Management APIs     | `https://codewhisperer.us-east-1.amazonaws.com` |
+| Chat/Streaming APIs | `https://q.us-east-1.amazonaws.com`             |
+| SSO OIDC            | `https://oidc.us-east-1.amazonaws.com`          |
+| Social Auth         | `https://prod.us-east-1.auth.desktop.kiro.dev`  |
 
 ### 4.2 Management API Targets
 
@@ -290,10 +290,10 @@ Accept: application/vnd.amazon.eventstream  (streaming icin)
 
 ### 4.5 Origin Types
 
-| Origin     | Quota Source     | Use Case              |
-|------------|------------------|-----------------------|
-| CLI        | Amazon Q quota   | Default for non-Opus  |
-| AI_EDITOR  | Kiro IDE quota   | Default for Opus, fallback on 429 |
+| Origin    | Quota Source   | Use Case                          |
+|-----------|----------------|-----------------------------------|
+| CLI       | Amazon Q quota | Default for non-Opus              |
+| AI_EDITOR | Kiro IDE quota | Default for Opus, fallback on 429 |
 
 ---
 
@@ -325,11 +325,11 @@ Accept: application/vnd.amazon.eventstream  (streaming icin)
 
 ### 5.2 Model Variants
 
-| Suffix     | Ozellik                                           |
-|------------|---------------------------------------------------|
-| (none)     | Standard model, tool calling destekli             |
-| -chat      | Tool calling devre disi                           |
-| -agentic   | Chunked write system prompt eklenir               |
+| Suffix   | Ozellik                               |
+|----------|---------------------------------------|
+| (none)   | Standard model, tool calling destekli |
+| -chat    | Tool calling devre disi               |
+| -agentic | Chunked write system prompt eklenir   |
 
 ---
 
@@ -339,14 +339,14 @@ Accept: application/vnd.amazon.eventstream  (streaming icin)
 
 **Dosya:** `internal/translator/kiro/openai/chat-completions/kiro_openai_request.go`
 
-| OpenAI                  | Kiro (Claude)              |
-|-------------------------|----------------------------|
-| messages[].role         | messages[].role            |
-| messages[].content      | messages[].content         |
-| tools[].function        | tools[].name + input_schema|
-| tool_calls              | tool_use blocks            |
-| tool messages           | tool_result blocks         |
-| system message          | system field               |
+| OpenAI             | Kiro (Claude)               |
+|--------------------|-----------------------------|
+| messages[].role    | messages[].role             |
+| messages[].content | messages[].content          |
+| tools[].function   | tools[].name + input_schema |
+| tool_calls         | tool_use blocks             |
+| tool messages      | tool_result blocks          |
+| system message     | system field                |
 
 ### 6.2 Claude to Kiro
 
@@ -447,15 +447,15 @@ Email'den dosya adı olusturulurken:
 
 ## 10. Karsilastirma: CLIProxyAPIPlus vs Mevcut Sistem
 
-| Ozellik                    | CLIProxyAPIPlus (Go)     | Mevcut Sistem (Node.js)   |
-|----------------------------|--------------------------|---------------------------|
-| Profile ARN Fetch          | Login sonrasi otomatik   | Manuel gerekebilir        |
-| Multi-Account              | Token file listing       | DB-based                  |
-| Protocol Handler           | Cross-platform support   | -                         |
-| Incognito Mode             | Config flag destegi      | -                         |
-| Quota Fallback             | CLI -> AI_EDITOR         | -                         |
-| Agentic System Prompt      | Otomatik ekleme          | -                         |
-| JWT Email Extraction       | Otomatik                 | -                         |
+| Ozellik               | CLIProxyAPIPlus (Go)   | Mevcut Sistem (Node.js) |
+|-----------------------|------------------------|-------------------------|
+| Profile ARN Fetch     | Login sonrasi otomatik | Manuel gerekebilir      |
+| Multi-Account         | Token file listing     | DB-based                |
+| Protocol Handler      | Cross-platform support | -                       |
+| Incognito Mode        | Config flag destegi    | -                       |
+| Quota Fallback        | CLI -> AI_EDITOR       | -                       |
+| Agentic System Prompt | Otomatik ekleme        | -                       |
+| JWT Email Extraction  | Otomatik               | -                       |
 
 ---
 

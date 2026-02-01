@@ -54,10 +54,10 @@ Admin paneli HTTP Basic Authentication kullanir.
 
 **Dosya:** `app/auth.py`
 
-| Parametre          | Varsayilan  | Aciklama                    |
-|--------------------|-------------|------------------------------|
-| `ADMIN_USERNAME`   | `admin`     | Ortam degiskeni ile ayarlanir |
-| `ADMIN_PASSWORD`   | `admin123`  | Ortam degiskeni ile ayarlanir |
+| Parametre        | Varsayilan | Aciklama                      |
+|------------------|------------|-------------------------------|
+| `ADMIN_USERNAME` | `admin`    | Ortam degiskeni ile ayarlanir |
+| `ADMIN_PASSWORD` | `admin123` | Ortam degiskeni ile ayarlanir |
 
 ```python
 # Kimlik dogrulama kontrolu
@@ -71,10 +71,10 @@ def verify_credentials(credentials: HTTPBasicCredentials) -> bool:
 
 API istekleri iki yontemle dogrulanabilir:
 
-| Yontem               | Header                        | Ornek                            |
-|----------------------|-------------------------------|----------------------------------|
-| **x-api-key**        | `x-api-key: sk-kiro-xxx`      | Dogrudan API anahtari            |
-| **Bearer Token**     | `Authorization: Bearer xxx`   | Bearer token formati             |
+| Yontem           | Header                      | Ornek                 |
+|------------------|-----------------------------|-----------------------|
+| **x-api-key**    | `x-api-key: sk-kiro-xxx`    | Dogrudan API anahtari |
+| **Bearer Token** | `Authorization: Bearer xxx` | Bearer token formati  |
 
 ```python
 # API Key cikarma mantigi
@@ -119,15 +119,15 @@ AWS SSO cache dosyalarindan alinan token verileri:
 
 Token verilerini temsil eden ana sinif:
 
-| Ozellik         | Tur    | Aciklama                      |
-|-----------------|--------|-------------------------------|
-| `access_token`  | str    | Erisim tokeni                 |
-| `refresh_token` | str    | Yenileme tokeni               |
-| `expires_at`    | str    | ISO 8601 formatinda son kullanma |
-| `client_id_hash`| str    | Client credentials dosya adi  |
-| `auth_method`   | str    | Kimlik dogrulama yontemi      |
-| `provider`      | str    | OAuth saglayici (google, vb.) |
-| `region`        | str    | AWS bolgesi                   |
+| Ozellik          | Tur | Aciklama                         |
+|------------------|-----|----------------------------------|
+| `access_token`   | str | Erisim tokeni                    |
+| `refresh_token`  | str | Yenileme tokeni                  |
+| `expires_at`     | str | ISO 8601 formatinda son kullanma |
+| `client_id_hash` | str | Client credentials dosya adi     |
+| `auth_method`    | str | Kimlik dogrulama yontemi         |
+| `provider`       | str | OAuth saglayici (google, vb.)    |
+| `region`         | str | AWS bolgesi                      |
 
 ### Token Yenileme Akisi
 
@@ -197,27 +197,27 @@ async def fetch_profile_arn(self, account: AccountConfig) -> str:
 
 ### Ana API Endpoint'leri
 
-| Endpoint               | Yontem | Kimlik Dogrulama | Aciklama                     |
-|------------------------|--------|------------------|------------------------------|
-| `/v1/messages`         | POST   | API Key          | Anthropic API proxy          |
-| `/claude/v1/messages`  | POST   | API Key          | Anthropic API proxy (alias)  |
-| `/health`              | GET    | Yok              | Saglik kontrolu              |
-| `/`                    | GET    | Yok              | Web admin paneli             |
+| Endpoint              | Yontem | Kimlik Dogrulama | Aciklama                    |
+|-----------------------|--------|------------------|-----------------------------|
+| `/v1/messages`        | POST   | API Key          | Anthropic API proxy         |
+| `/claude/v1/messages` | POST   | API Key          | Anthropic API proxy (alias) |
+| `/health`             | GET    | Yok              | Saglik kontrolu             |
+| `/`                   | GET    | Yok              | Web admin paneli            |
 
 ### Admin API Endpoint'leri
 
-| Endpoint                           | Yontem | Aciklama                    |
-|------------------------------------|--------|-----------------------------|
-| `/admin/accounts`                  | GET    | Tum hesaplari listele       |
-| `/admin/accounts`                  | POST   | Yeni hesap olustur          |
-| `/admin/accounts/{name}`           | GET    | Hesap detaylarini getir     |
-| `/admin/accounts/{name}`           | PUT    | Hesabi guncelle             |
-| `/admin/accounts/{name}`           | DELETE | Hesabi sil                  |
-| `/admin/accounts/{name}/toggle`    | POST   | Hesabi etkinlestir/devre disi birak |
-| `/admin/accounts/{name}/token`     | POST   | Token verilerini guncelle   |
-| `/admin/accounts/{name}/refresh`   | POST   | Token yenile                |
-| `/admin/accounts/{name}/test`      | POST   | Hesabi test et              |
-| `/admin/check-auth`                | GET    | Kimlik dogrulama durumu     |
+| Endpoint                         | Yontem | Aciklama                            |
+|----------------------------------|--------|-------------------------------------|
+| `/admin/accounts`                | GET    | Tum hesaplari listele               |
+| `/admin/accounts`                | POST   | Yeni hesap olustur                  |
+| `/admin/accounts/{name}`         | GET    | Hesap detaylarini getir             |
+| `/admin/accounts/{name}`         | PUT    | Hesabi guncelle                     |
+| `/admin/accounts/{name}`         | DELETE | Hesabi sil                          |
+| `/admin/accounts/{name}/toggle`  | POST   | Hesabi etkinlestir/devre disi birak |
+| `/admin/accounts/{name}/token`   | POST   | Token verilerini guncelle           |
+| `/admin/accounts/{name}/refresh` | POST   | Token yenile                        |
+| `/admin/accounts/{name}/test`    | POST   | Hesabi test et                      |
+| `/admin/check-auth`              | GET    | Kimlik dogrulama durumu             |
 
 ## Istek/Yanit Formatlari
 
@@ -268,14 +268,14 @@ cw_request = {
 
 ### Model Esleme
 
-| Anthropic Model              | CodeWhisperer Model   |
-|------------------------------|-----------------------|
-| `claude-sonnet-4-20250514`   | `claude-sonnet-4.5`   |
-| `claude-sonnet-4-5`          | `claude-sonnet-4.5`   |
-| `claude-opus-4-20250514`     | `claude-opus-4.5`     |
-| `claude-opus-4-5`            | `claude-opus-4.5`     |
-| `claude-opus-4-5-20251101`   | `claude-opus-4.5`     |
-| `claude-3-5-haiku-20241022`  | `claude-sonnet-4.5`   |
+| Anthropic Model             | CodeWhisperer Model |
+|-----------------------------|---------------------|
+| `claude-sonnet-4-20250514`  | `claude-sonnet-4.5` |
+| `claude-sonnet-4-5`         | `claude-sonnet-4.5` |
+| `claude-opus-4-20250514`    | `claude-opus-4.5`   |
+| `claude-opus-4-5`           | `claude-opus-4.5`   |
+| `claude-opus-4-5-20251101`  | `claude-opus-4.5`   |
+| `claude-3-5-haiku-20241022` | `claude-sonnet-4.5` |
 
 ### Anthropic API Yanit Formati
 
@@ -339,11 +339,11 @@ def parse_headers(headers_data: bytes) -> Dict[str, str]:
 
 ### Olay Turleri
 
-| Olay Turu              | Aciklama                           |
-|------------------------|------------------------------------|
-| `initial-response`     | Ilk yanit, conversationId icerir   |
+| Olay Turu                | Aciklama                         |
+|--------------------------|----------------------------------|
+| `initial-response`       | Ilk yanit, conversationId icerir |
 | `assistantResponseEvent` | Metin icerigi                    |
-| `toolUseEvent`         | Arac kullanimi                     |
+| `toolUseEvent`           | Arac kullanimi                   |
 
 ## Akis (Streaming) Yonetimi
 
@@ -353,14 +353,14 @@ def parse_headers(headers_data: bytes) -> Dict[str, str]:
 
 Akis olaylarini isleyen ana sinif:
 
-| Ozellik                    | Tur   | Aciklama                          |
-|----------------------------|-------|-----------------------------------|
-| `response_buffer`          | list  | Yanit metni biriktiricisi         |
-| `content_block_index`      | int   | Icerik blogu indeksi              |
-| `content_block_started`    | bool  | Icerik blogu baslatildi mi        |
-| `message_start_sent`       | bool  | message_start gonderildi mi       |
-| `current_tool_use`         | dict  | Aktif arac kullanimi              |
-| `in_think_block`           | bool  | Thinking blogu icinde mi          |
+| Ozellik                 | Tur  | Aciklama                    |
+|-------------------------|------|-----------------------------|
+| `response_buffer`       | list | Yanit metni biriktiricisi   |
+| `content_block_index`   | int  | Icerik blogu indeksi        |
+| `content_block_started` | bool | Icerik blogu baslatildi mi  |
+| `message_start_sent`    | bool | message_start gonderildi mi |
+| `current_tool_use`      | dict | Aktif arac kullanimi        |
+| `in_think_block`        | bool | Thinking blogu icinde mi    |
 
 ### SSE Olay Donusumu
 
@@ -399,14 +399,14 @@ THINKING_END_TAG = "</thinking>"
 
 ### HTTP Durum Kodlari
 
-| Kod | Aciklama                           | Islem                    |
-|-----|-------------------------------------|--------------------------|
-| 200 | Basarili                            | Yaniti isle              |
-| 400 | Gecersiz istek                      | Hata mesaji dondur       |
-| 401 | Yetkisiz                            | Token yenileme dene      |
-| 403 | Yasak                               | Token yenileme dene      |
-| 404 | Bulunamadi                          | Hata mesaji dondur       |
-| 500 | Sunucu hatasi                       | Detayli hata loglama     |
+| Kod | Aciklama       | Islem                |
+|-----|----------------|----------------------|
+| 200 | Basarili       | Yaniti isle          |
+| 400 | Gecersiz istek | Hata mesaji dondur   |
+| 401 | Yetkisiz       | Token yenileme dene  |
+| 403 | Yasak          | Token yenileme dene  |
+| 404 | Bulunamadi     | Hata mesaji dondur   |
+| 500 | Sunucu hatasi  | Detayli hata loglama |
 
 ### Otomatik Token Yenileme
 
@@ -435,10 +435,10 @@ if response.status_code in (401, 403) and retry_on_auth_error:
 
 ### Ortam Degiskenleri
 
-| Degisken          | Varsayilan  | Aciklama                    |
-|-------------------|-------------|-----------------------------|
-| `ADMIN_USERNAME`  | `admin`     | Admin panel kullanici adi   |
-| `ADMIN_PASSWORD`  | `admin123`  | Admin panel sifresi         |
+| Degisken         | Varsayilan | Aciklama                  |
+|------------------|------------|---------------------------|
+| `ADMIN_USERNAME` | `admin`    | Admin panel kullanici adi |
+| `ADMIN_PASSWORD` | `admin123` | Admin panel sifresi       |
 
 ### config.yaml Yapisi
 
@@ -547,16 +547,16 @@ services:
 
 ## Bagimlilıklar
 
-| Paket               | Versiyon     | Aciklama                    |
-|---------------------|--------------|-----------------------------|
-| `fastapi`           | >= 0.104.0   | Web framework               |
-| `uvicorn`           | >= 0.24.0    | ASGI sunucu                 |
-| `httpx`             | >= 0.25.0    | Async HTTP istemci          |
-| `pyyaml`            | >= 6.0       | YAML ayrıstirma             |
-| `pydantic`          | >= 2.0.0     | Veri dogrulama              |
-| `pydantic-settings` | >= 2.0.0     | Ayar yonetimi               |
-| `python-multipart`  | >= 0.0.6     | Form veri isleme            |
-| `tiktoken`          | >= 0.5.1     | Token sayma                 |
+| Paket               | Versiyon   | Aciklama           |
+|---------------------|------------|--------------------|
+| `fastapi`           | >= 0.104.0 | Web framework      |
+| `uvicorn`           | >= 0.24.0  | ASGI sunucu        |
+| `httpx`             | >= 0.25.0  | Async HTTP istemci |
+| `pyyaml`            | >= 6.0     | YAML ayrıstirma    |
+| `pydantic`          | >= 2.0.0   | Veri dogrulama     |
+| `pydantic-settings` | >= 2.0.0   | Ayar yonetimi      |
+| `python-multipart`  | >= 0.0.6   | Form veri isleme   |
+| `tiktoken`          | >= 0.5.1   | Token sayma        |
 
 ## Token Sayma
 
@@ -641,17 +641,17 @@ def convert_tools(tools: List[Dict]) -> List[Dict]:
 
 ## Karsilastirma: HaoYan-A/kiro-api vs Mevcut Proje
 
-| Ozellik                  | HaoYan-A/kiro-api    | Mevcut Proje            |
-|--------------------------|----------------------|-------------------------|
-| **Dil**                  | Python               | Node.js                 |
-| **Framework**            | FastAPI              | Express.js              |
-| **Veritabani**           | JSON dosyalari       | MySQL                   |
-| **Coklu Saglayici**      | Hayir (Sadece Kiro)  | Evet (Gemini, Vertex, vb.) |
-| **Kimlik Dogrulama**     | Social Auth          | Social, Builder ID, IdC |
-| **Cluster Modu**         | Hayir                | Evet                    |
-| **Token Depolama**       | Dosya tabanlari      | Veritabani tabanlari    |
-| **Web Arayuzu**          | React + Vite         | Yerlesik HTML/JS        |
-| **Docker Destegi**       | Evet                 | Evet                    |
+| Ozellik              | HaoYan-A/kiro-api   | Mevcut Proje               |
+|----------------------|---------------------|----------------------------|
+| **Dil**              | Python              | Node.js                    |
+| **Framework**        | FastAPI             | Express.js                 |
+| **Veritabani**       | JSON dosyalari      | MySQL                      |
+| **Coklu Saglayici**  | Hayir (Sadece Kiro) | Evet (Gemini, Vertex, vb.) |
+| **Kimlik Dogrulama** | Social Auth         | Social, Builder ID, IdC    |
+| **Cluster Modu**     | Hayir               | Evet                       |
+| **Token Depolama**   | Dosya tabanlari     | Veritabani tabanlari       |
+| **Web Arayuzu**      | React + Vite        | Yerlesik HTML/JS           |
+| **Docker Destegi**   | Evet                | Evet                       |
 
 ## Sonuc
 

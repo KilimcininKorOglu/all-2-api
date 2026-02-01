@@ -6,16 +6,16 @@ Bu dokuman, [AAEE86/kiro2api-deno](https://github.com/AAEE86/kiro2api-deno) proj
 
 ## Genel Bakis
 
-| Ozellik                   | Deger                                            |
-|---------------------------|--------------------------------------------------|
-| **Platform**              | Deno (TypeScript)                                |
-| **Varsayilan Port**       | 8080                                             |
-| **Kimlik Dogrulama**      | Social Auth, IdC (IAM Identity Center)           |
-| **Desteklenen API'ler**   | Anthropic Messages API, OpenAI Chat Completions  |
-| **Token Yonetimi**        | Deno KV veya ortam degiskenleri                  |
-| **Upstream API**          | AWS CodeWhisperer generateAssistantResponse      |
-| **Stream Destegi**        | Evet (SSE - Server-Sent Events)                  |
-| **Lisans**                | Acik kaynak                                      |
+| Ozellik                 | Deger                                           |
+|-------------------------|-------------------------------------------------|
+| **Platform**            | Deno (TypeScript)                               |
+| **Varsayilan Port**     | 8080                                            |
+| **Kimlik Dogrulama**    | Social Auth, IdC (IAM Identity Center)          |
+| **Desteklenen API'ler** | Anthropic Messages API, OpenAI Chat Completions |
+| **Token Yonetimi**      | Deno KV veya ortam degiskenleri                 |
+| **Upstream API**        | AWS CodeWhisperer generateAssistantResponse     |
+| **Stream Destegi**      | Evet (SSE - Server-Sent Events)                 |
+| **Lisans**              | Acik kaynak                                     |
 
 ---
 
@@ -82,12 +82,12 @@ kiro2api-deno/
 
 Google veya GitHub OAuth kullanarak kimlik dogrulama.
 
-| Ozellik           | Deger                                                          |
-|-------------------|----------------------------------------------------------------|
-| **Auth Type**     | `Social`                                                       |
-| **Refresh URL**   | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken`    |
-| **Gerekli Alan**  | `refreshToken`                                                 |
-| **HTTP Metodu**   | POST                                                           |
+| Ozellik          | Deger                                                       |
+|------------------|-------------------------------------------------------------|
+| **Auth Type**    | `Social`                                                    |
+| **Refresh URL**  | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken` |
+| **Gerekli Alan** | `refreshToken`                                              |
+| **HTTP Metodu**  | POST                                                        |
 
 **Istek Formati:**
 ```json
@@ -109,12 +109,12 @@ interface RefreshResponse {
 
 AWS IAM Identity Center kullanarak kurumsal kimlik dogrulama.
 
-| Ozellik           | Deger                                              |
-|-------------------|----------------------------------------------------|
-| **Auth Type**     | `IdC`                                              |
-| **Refresh URL**   | `https://oidc.us-east-1.amazonaws.com/token`       |
-| **Gerekli Alan**  | `refreshToken`, `clientId`, `clientSecret`         |
-| **HTTP Metodu**   | POST                                               |
+| Ozellik          | Deger                                        |
+|------------------|----------------------------------------------|
+| **Auth Type**    | `IdC`                                        |
+| **Refresh URL**  | `https://oidc.us-east-1.amazonaws.com/token` |
+| **Gerekli Alan** | `refreshToken`, `clientId`, `clientSecret`   |
+| **HTTP Metodu**  | POST                                         |
 
 **Istek Formati:**
 ```json
@@ -138,13 +138,13 @@ x-amz-user-agent: aws-sdk-js/3.738.0 ua/2.1 os/other lang/js md/browser#unknown_
 
 ### Ortam Degiskenleri
 
-| Degisken           | Zorunlu | Aciklama                                    |
-|--------------------|---------|---------------------------------------------|
-| `KIRO_CLIENT_TOKEN`| Evet    | API erisimine yetkilendirme anahtari        |
-| `KIRO_AUTH_TOKEN`  | Evet    | JSON formatinda auth konfigurasyonu         |
-| `PORT`             | Hayir   | Sunucu portu (varsayilan: 8080)             |
-| `LOG_LEVEL`        | Hayir   | Log seviyesi: debug, info, warn, error      |
-| `LOG_FORMAT`       | Hayir   | Log formati: json, text                     |
+| Degisken            | Zorunlu | Aciklama                               |
+|---------------------|---------|----------------------------------------|
+| `KIRO_CLIENT_TOKEN` | Evet    | API erisimine yetkilendirme anahtari   |
+| `KIRO_AUTH_TOKEN`   | Evet    | JSON formatinda auth konfigurasyonu    |
+| `PORT`              | Hayir   | Sunucu portu (varsayilan: 8080)        |
+| `LOG_LEVEL`         | Hayir   | Log seviyesi: debug, info, warn, error |
+| `LOG_FORMAT`        | Hayir   | Log formati: json, text                |
 
 ### KIRO_AUTH_TOKEN Formati
 
@@ -193,11 +193,11 @@ interface AuthConfig {
 
 ### Token Onbellek Yapilandirmasi
 
-| Parametre             | Deger          | Aciklama                           |
-|-----------------------|----------------|------------------------------------|
-| `TTL_MS`              | 86.400.000 ms  | 24 saat onbellek suresi            |
-| `CLEANUP_INTERVAL_MS` | 3.600.000 ms   | 1 saat temizleme araligi           |
-| `EXPIRY_BUFFER_MS`    | 300.000 ms     | 5 dakika erken yenileme tamponu    |
+| Parametre             | Deger         | Aciklama                        |
+|-----------------------|---------------|---------------------------------|
+| `TTL_MS`              | 86.400.000 ms | 24 saat onbellek suresi         |
+| `CLEANUP_INTERVAL_MS` | 3.600.000 ms  | 1 saat temizleme araligi        |
+| `EXPIRY_BUFFER_MS`    | 300.000 ms    | 5 dakika erken yenileme tamponu |
 
 ### Token Secim Stratejisi
 
@@ -215,38 +215,38 @@ Round-robin algoritmasi ile token secimi:
 
 ### Temel Endpointler
 
-| Metod | Endpoint                  | Aciklama                          |
-|-------|---------------------------|-----------------------------------|
-| GET   | `/`                       | Web yonetim arayuzu               |
-| GET   | `/admin`                  | Yonetici paneli                   |
-| GET   | `/v1/models`              | Kullanilabilir modeller           |
-| POST  | `/v1/messages`            | Anthropic Messages API            |
-| POST  | `/v1/chat/completions`    | OpenAI Chat Completions API       |
-| POST  | `/v1/messages/count_tokens`| Token sayimi                     |
-| GET   | `/api/tokens`             | Token havuzu durumu               |
+| Metod | Endpoint                    | Aciklama                    |
+|-------|-----------------------------|-----------------------------|
+| GET   | `/`                         | Web yonetim arayuzu         |
+| GET   | `/admin`                    | Yonetici paneli             |
+| GET   | `/v1/models`                | Kullanilabilir modeller     |
+| POST  | `/v1/messages`              | Anthropic Messages API      |
+| POST  | `/v1/chat/completions`      | OpenAI Chat Completions API |
+| POST  | `/v1/messages/count_tokens` | Token sayimi                |
+| GET   | `/api/tokens`               | Token havuzu durumu         |
 
 ### Yonetim Endpointleri
 
-| Metod  | Endpoint                     | Aciklama                      |
-|--------|------------------------------|-------------------------------|
-| GET    | `/api/admin/tokens`          | Tum tokenlari listele         |
-| POST   | `/api/admin/tokens`          | Yeni token ekle               |
-| DELETE | `/api/admin/tokens`          | Token sil                     |
-| POST   | `/api/admin/tokens/import`   | Toplu token yukle             |
-| POST   | `/api/admin/tokens/clear`    | Tum tokenlari temizle         |
+| Metod  | Endpoint                   | Aciklama              |
+|--------|----------------------------|-----------------------|
+| GET    | `/api/admin/tokens`        | Tum tokenlari listele |
+| POST   | `/api/admin/tokens`        | Yeni token ekle       |
+| DELETE | `/api/admin/tokens`        | Token sil             |
+| POST   | `/api/admin/tokens/import` | Toplu token yukle     |
+| POST   | `/api/admin/tokens/clear`  | Tum tokenlari temizle |
 
 ---
 
 ## Model Esleme
 
-| Harici Model Adi                  | CodeWhisperer Model ID               |
-|-----------------------------------|--------------------------------------|
-| `claude-sonnet-4-5`               | `CLAUDE_SONNET_4_5_20250929_V1_0`    |
-| `claude-sonnet-4-5-20250929`      | `CLAUDE_SONNET_4_5_20250929_V1_0`    |
-| `claude-sonnet-4-20250514`        | `CLAUDE_SONNET_4_20250514_V1_0`      |
-| `claude-3-7-sonnet-20250219`      | `CLAUDE_3_7_SONNET_20250219_V1_0`    |
-| `claude-3-5-haiku-20241022`       | `auto`                               |
-| `claude-haiku-4-5-20251001`       | `auto`                               |
+| Harici Model Adi             | CodeWhisperer Model ID            |
+|------------------------------|-----------------------------------|
+| `claude-sonnet-4-5`          | `CLAUDE_SONNET_4_5_20250929_V1_0` |
+| `claude-sonnet-4-5-20250929` | `CLAUDE_SONNET_4_5_20250929_V1_0` |
+| `claude-sonnet-4-20250514`   | `CLAUDE_SONNET_4_20250514_V1_0`   |
+| `claude-3-7-sonnet-20250219` | `CLAUDE_3_7_SONNET_20250219_V1_0` |
+| `claude-3-5-haiku-20241022`  | `auto`                            |
+| `claude-haiku-4-5-20251001`  | `auto`                            |
 
 ---
 
@@ -396,23 +396,23 @@ interface CodeWhispererRequest {
 
 ### SSE Event Tipleri
 
-| Event Tipi             | Aciklama                                |
-|------------------------|-----------------------------------------|
-| `message_start`        | Mesaj baslangici                        |
-| `ping`                 | Baglanti canli tutma                    |
-| `content_block_start`  | Icerik blogu baslangici                 |
-| `content_block_delta`  | Icerik parcasi (artimsal)               |
-| `content_block_stop`   | Icerik blogu sonu                       |
-| `message_delta`        | Mesaj guncelleme (stop_reason, usage)   |
-| `message_stop`         | Mesaj sonu                              |
+| Event Tipi            | Aciklama                              |
+|-----------------------|---------------------------------------|
+| `message_start`       | Mesaj baslangici                      |
+| `ping`                | Baglanti canli tutma                  |
+| `content_block_start` | Icerik blogu baslangici               |
+| `content_block_delta` | Icerik parcasi (artimsal)             |
+| `content_block_stop`  | Icerik blogu sonu                     |
+| `message_delta`       | Mesaj guncelleme (stop_reason, usage) |
+| `message_stop`        | Mesaj sonu                            |
 
 ### Stop Reason Degerleri
 
-| Deger        | Aciklama                                    |
-|--------------|---------------------------------------------|
-| `end_turn`   | Normal tamamlanma                           |
-| `tool_use`   | Arac kullanimi gerekli                      |
-| `max_tokens` | Token limiti asildi                         |
+| Deger        | Aciklama               |
+|--------------|------------------------|
+| `end_turn`   | Normal tamamlanma      |
+| `tool_use`   | Arac kullanimi gerekli |
+| `max_tokens` | Token limiti asildi    |
 
 ### Stream Yanit Ornegi
 
@@ -454,11 +454,11 @@ data: {"type":"message_stop"}
 
 ### Ayristic Ozellikleri
 
-| Parametre           | Deger        | Aciklama                           |
-|---------------------|--------------|------------------------------------|
-| `MIN_MESSAGE_SIZE`  | 16 byte      | Minimum mesaj boyutu               |
-| `MAX_MESSAGE_SIZE`  | 16 MB        | Maksimum mesaj boyutu              |
-| `maxErrors`         | 100          | Maksimum hata sayisi               |
+| Parametre          | Deger   | Aciklama              |
+|--------------------|---------|-----------------------|
+| `MIN_MESSAGE_SIZE` | 16 byte | Minimum mesaj boyutu  |
+| `MAX_MESSAGE_SIZE` | 16 MB   | Maksimum mesaj boyutu |
+| `maxErrors`        | 100     | Maksimum hata sayisi  |
 
 ### tool_use_id Dogrulama
 
@@ -547,23 +547,23 @@ function calculateAvailableCount(limits: UsageLimits): number {
 
 ### Hata Kategorileri
 
-| Kategori                      | Aciklama                              |
-|-------------------------------|---------------------------------------|
-| `AUTH_NO_AVAILABLE_TOKEN`     | Kullanilabilir token yok              |
-| `AUTH_REFRESH_FAILED`         | Token yenileme basarisiz              |
-| `AUTH_TOKEN_INVALID`          | Gecersiz token yapilandirmasi         |
-| `REQUEST_INVALID_PARAMS`      | Gecersiz istek parametreleri          |
-| `UPSTREAM_ERROR`              | Upstream API hatasi                   |
-| `UPSTREAM_TIMEOUT`            | Upstream zaman asimi                  |
-| `STREAM_TIMEOUT`              | Akis zaman asimi                      |
-| `STREAM_INTERRUPTED`          | Akis kesintisi                        |
+| Kategori                  | Aciklama                      |
+|---------------------------|-------------------------------|
+| `AUTH_NO_AVAILABLE_TOKEN` | Kullanilabilir token yok      |
+| `AUTH_REFRESH_FAILED`     | Token yenileme basarisiz      |
+| `AUTH_TOKEN_INVALID`      | Gecersiz token yapilandirmasi |
+| `REQUEST_INVALID_PARAMS`  | Gecersiz istek parametreleri  |
+| `UPSTREAM_ERROR`          | Upstream API hatasi           |
+| `UPSTREAM_TIMEOUT`        | Upstream zaman asimi          |
+| `STREAM_TIMEOUT`          | Akis zaman asimi              |
+| `STREAM_INTERRUPTED`      | Akis kesintisi                |
 
 ### CodeWhisperer Hata Esleme
 
-| CodeWhisperer Hatasi                   | Claude Eslenmis Hata      |
-|----------------------------------------|---------------------------|
-| `CONTENT_LENGTH_EXCEEDS_THRESHOLD`     | `max_tokens` stop_reason  |
-| Diger 400 hatalari                     | `overloaded_error`        |
+| CodeWhisperer Hatasi               | Claude Eslenmis Hata     |
+|------------------------------------|--------------------------|
+| `CONTENT_LENGTH_EXCEEDS_THRESHOLD` | `max_tokens` stop_reason |
+| Diger 400 hatalari                 | `overloaded_error`       |
 
 ### Istisna Olaylari
 
@@ -588,14 +588,14 @@ const KV_KEY = "kiro_auth_tokens";
 
 ### Desteklenen Islemler
 
-| Islem               | Aciklama                              |
-|---------------------|---------------------------------------|
-| `getAuthConfigs`    | Tum konfigurasyonlari getir           |
-| `saveAuthConfigs`   | Konfigurasyonlari kaydet              |
-| `addAuthConfig`     | Tek konfigurasyonu ekle               |
-| `deleteAuthConfig`  | refreshToken ile sil                  |
-| `importAuthConfigs` | Toplu import (ustune yaz)             |
-| `clearAuthConfigs`  | Tum konfigurasyonlari temizle         |
+| Islem               | Aciklama                      |
+|---------------------|-------------------------------|
+| `getAuthConfigs`    | Tum konfigurasyonlari getir   |
+| `saveAuthConfigs`   | Konfigurasyonlari kaydet      |
+| `addAuthConfig`     | Tek konfigurasyonu ekle       |
+| `deleteAuthConfig`  | refreshToken ile sil          |
+| `importAuthConfigs` | Toplu import (ustune yaz)     |
+| `clearAuthConfigs`  | Tum konfigurasyonlari temizle |
 
 ---
 
@@ -631,11 +631,11 @@ interface CodeWhispererTool {
 
 ### Tool Choice Esleme
 
-| Anthropic          | chatTriggerType    |
-|--------------------|--------------------|
-| `type: "any"`      | `AUTO`             |
-| `type: "tool"`     | `AUTO`             |
-| Diger              | `MANUAL`           |
+| Anthropic      | chatTriggerType |
+|----------------|-----------------|
+| `type: "any"`  | `AUTO`          |
+| `type: "tool"` | `AUTO`          |
+| Diger          | `MANUAL`        |
 
 ---
 
@@ -643,12 +643,12 @@ interface CodeWhispererTool {
 
 ### Desteklenen Formatlar
 
-| Format  | MIME Tipi         |
-|---------|-------------------|
-| PNG     | `image/png`       |
-| JPEG    | `image/jpeg`      |
-| GIF     | `image/gif`       |
-| WebP    | `image/webp`      |
+| Format | MIME Tipi    |
+|--------|--------------|
+| PNG    | `image/png`  |
+| JPEG   | `image/jpeg` |
+| GIF    | `image/gif`  |
+| WebP   | `image/webp` |
 
 ### Gorsel Donusumu
 
@@ -769,16 +769,16 @@ private refreshLocks: Map<number, Promise<TokenInfo>> = new Map();
 
 ## Farkliliklar: Node.js vs Deno Surumu
 
-| Ozellik              | Node.js (Kiro)           | Deno (kiro2api-deno)     |
-|----------------------|--------------------------|--------------------------|
-| Runtime              | Node.js                  | Deno                     |
-| Veritabani           | MySQL                    | Deno KV                  |
-| HTTP Framework       | Express                  | Native Deno.serve        |
-| Token Depolama       | MySQL tablolari          | KV Store / Env           |
-| Tip Guvenligi        | JavaScript               | TypeScript (strict)      |
-| Yapilandirma         | .env dosyasi             | .env + JSON dosya        |
-| Cluster Destegi      | Evet (worker nodes)      | Hayir                    |
-| Web UI               | Dahili                   | Basit statik dosyalar    |
+| Ozellik         | Node.js (Kiro)      | Deno (kiro2api-deno)  |
+|-----------------|---------------------|-----------------------|
+| Runtime         | Node.js             | Deno                  |
+| Veritabani      | MySQL               | Deno KV               |
+| HTTP Framework  | Express             | Native Deno.serve     |
+| Token Depolama  | MySQL tablolari     | KV Store / Env        |
+| Tip Guvenligi   | JavaScript          | TypeScript (strict)   |
+| Yapilandirma    | .env dosyasi        | .env + JSON dosya     |
+| Cluster Destegi | Evet (worker nodes) | Hayir                 |
+| Web UI          | Dahili              | Basit statik dosyalar |
 
 ---
 

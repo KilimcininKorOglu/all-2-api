@@ -6,27 +6,27 @@ Bu dokuman, [imbuxiangnan-cyber/aiapi](https://github.com/imbuxiangnan-cyber/aia
 
 ## Genel Bakis
 
-| Ozellik                 | Deger                                               |
-|-------------------------|-----------------------------------------------------|
-| Repository              | github.com/imbuxiangnan-cyber/aiapi                 |
-| Versiyon                | 1.0.2                                               |
-| Dil                     | TypeScript                                          |
-| Runtime                 | Bun / Node.js                                       |
-| Framework               | Hono (HTTP server)                                  |
-| Varsayilan Port         | 4141                                                |
-| Lisans                  | MIT                                                 |
-| Kiro API Endpoint       | codewhisperer.us-east-1.amazonaws.com               |
-| Desteklenen Protokoller | OpenAI Chat Completions, Anthropic Messages API    |
+| Ozellik                 | Deger                                           |
+|-------------------------|-------------------------------------------------|
+| Repository              | github.com/imbuxiangnan-cyber/aiapi             |
+| Versiyon                | 1.0.2                                           |
+| Dil                     | TypeScript                                      |
+| Runtime                 | Bun / Node.js                                   |
+| Framework               | Hono (HTTP server)                              |
+| Varsayilan Port         | 4141                                            |
+| Lisans                  | MIT                                             |
+| Kiro API Endpoint       | codewhisperer.us-east-1.amazonaws.com           |
+| Desteklenen Protokoller | OpenAI Chat Completions, Anthropic Messages API |
 
 ### Desteklenen Platformlar
 
-| Platform            | Mod Flag        | Aciklama                           |
-|---------------------|-----------------|-------------------------------------|
-| GitHub Copilot      | (varsayilan)    | GitHub Copilot aboneligi gerektirir |
-| OpenCode Zen        | `--zen`, `-z`   | Zen API anahtari gerektirir         |
-| Google Antigravity  | `--antigravity` | Google hesabi gerektirir            |
-| AWS Kiro            | `--kiro`, `-k`  | CodeWhisperer erisimi gerektirir    |
-| Factory AI Droids   | `--droids`, `-d`| Droids API anahtari gerektirir      |
+| Platform           | Mod Flag         | Aciklama                            |
+|--------------------|------------------|-------------------------------------|
+| GitHub Copilot     | (varsayilan)     | GitHub Copilot aboneligi gerektirir |
+| OpenCode Zen       | `--zen`, `-z`    | Zen API anahtari gerektirir         |
+| Google Antigravity | `--antigravity`  | Google hesabi gerektirir            |
+| AWS Kiro           | `--kiro`, `-k`   | CodeWhisperer erisimi gerektirir    |
+| Factory AI Droids  | `--droids`, `-d` | Droids API anahtari gerektirir      |
 
 ---
 
@@ -51,10 +51,10 @@ src/services/kiro/
 
 ### Desteklenen Yontemler
 
-| Yontem   | Aciklama                              | Gerekli Parametreler                          |
-|----------|---------------------------------------|-----------------------------------------------|
-| Social   | Google/GitHub OAuth via AWS SSO       | `refreshToken`                                |
-| IdC      | IAM Identity Center                   | `refreshToken`, `clientId`, `clientSecret`    |
+| Yontem | Aciklama                        | Gerekli Parametreler                       |
+|--------|---------------------------------|--------------------------------------------|
+| Social | Google/GitHub OAuth via AWS SSO | `refreshToken`                             |
+| IdC    | IAM Identity Center             | `refreshToken`, `clientId`, `clientSecret` |
 
 ### Kimlik Dogrulama Yapilandirmasi
 
@@ -92,10 +92,10 @@ interface KiroTokenInfo {
 
 ### API Endpoint'leri
 
-| Yontem | URL                                                    |
-|--------|--------------------------------------------------------|
+| Yontem | URL                                                         |
+|--------|-------------------------------------------------------------|
 | Social | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken` |
-| IdC    | `https://oidc.us-east-1.amazonaws.com/token`           |
+| IdC    | `https://oidc.us-east-1.amazonaws.com/token`                |
 
 ### Social Token Yenileme
 
@@ -189,11 +189,11 @@ POST https://codewhisperer.us-east-1.amazonaws.com/generateAssistantResponse
 
 ### Request Header'lari
 
-| Header           | Deger                                                    |
-|------------------|----------------------------------------------------------|
-| Content-Type     | `application/json`                                       |
-| Authorization    | `Bearer <access_token>`                                  |
-| x-amz-target     | `AmazonQDeveloperStreamingService.GenerateAssistantResponse` |
+| Header        | Deger                                                        |
+|---------------|--------------------------------------------------------------|
+| Content-Type  | `application/json`                                           |
+| Authorization | `Bearer <access_token>`                                      |
+| x-amz-target  | `AmazonQDeveloperStreamingService.GenerateAssistantResponse` |
 
 ### Request Body Formati
 
@@ -217,23 +217,23 @@ POST https://codewhisperer.us-east-1.amazonaws.com/generateAssistantResponse
 
 ### Kiro-Spesifik Route'lar (Her Zaman Aktif)
 
-| Route                         | Metod | Aciklama                |
-|-------------------------------|-------|-------------------------|
-| `/kiro/v1/chat/completions`   | POST  | Chat tamamlama          |
-| `/kiro/v1/models`             | GET   | Model listesi           |
-| `/kiro/v1/messages`           | POST  | Anthropic uyumlu mesaj  |
+| Route                       | Metod | Aciklama               |
+|-----------------------------|-------|------------------------|
+| `/kiro/v1/chat/completions` | POST  | Chat tamamlama         |
+| `/kiro/v1/models`           | GET   | Model listesi          |
+| `/kiro/v1/messages`         | POST  | Anthropic uyumlu mesaj |
 
 ### Mod-Tabanli Dinamik Route'lar
 
 Kiro modu aktifken (`--kiro` veya `-k`), asagidaki route'lar Kiro'ya yonlendirilir:
 
-| Route                    | Metod | Aciklama               |
-|--------------------------|-------|------------------------|
-| `/v1/chat/completions`   | POST  | Chat tamamlama         |
-| `/chat/completions`      | POST  | Chat tamamlama         |
-| `/v1/models`             | GET   | Model listesi          |
-| `/models`                | GET   | Model listesi          |
-| `/v1/messages`           | POST  | Anthropic uyumlu mesaj |
+| Route                  | Metod | Aciklama               |
+|------------------------|-------|------------------------|
+| `/v1/chat/completions` | POST  | Chat tamamlama         |
+| `/chat/completions`    | POST  | Chat tamamlama         |
+| `/v1/models`           | GET   | Model listesi          |
+| `/models`              | GET   | Model listesi          |
+| `/v1/messages`         | POST  | Anthropic uyumlu mesaj |
 
 ---
 
@@ -241,34 +241,34 @@ Kiro modu aktifken (`--kiro` veya `-k`), asagidaki route'lar Kiro'ya yonlendiril
 
 ### Desteklenen Modeller
 
-| Harici Model Adi                         | Dahili CodeWhisperer ID                       |
-|------------------------------------------|-----------------------------------------------|
-| claude-opus-4-5                          | CLAUDE_OPUS_4_5_V1_0                          |
-| claude-opus-4-5-20251101                 | CLAUDE_OPUS_4_5_20251101_V1_0                 |
-| claude-opus-4-5-thinking                 | CLAUDE_OPUS_4_5_THINKING_V1_0                 |
-| claude-opus-4-5-20251101-thinking        | CLAUDE_OPUS_4_5_20251101_THINKING_V1_0        |
-| claude-sonnet-4-5                        | CLAUDE_SONNET_4_5_V1_0                        |
-| claude-sonnet-4-5-20250929               | CLAUDE_SONNET_4_5_20250929_V1_0               |
-| claude-sonnet-4-5-thinking               | CLAUDE_SONNET_4_5_THINKING_V1_0               |
-| claude-sonnet-4-5-20250929-thinking      | CLAUDE_SONNET_4_5_20250929_THINKING_V1_0      |
-| claude-haiku-4-5                         | CLAUDE_HAIKU_4_5_V1_0                         |
-| claude-haiku-4-5-20251001                | CLAUDE_HAIKU_4_5_20251001_V1_0                |
-| claude-opus-4-1                          | CLAUDE_OPUS_4_1_V1_0                          |
-| claude-opus-4-1-20250805                 | CLAUDE_OPUS_4_1_20250805_V1_0                 |
-| claude-opus-4-1-thinking                 | CLAUDE_OPUS_4_1_THINKING_V1_0                 |
-| claude-opus-4-1-20250805-thinking        | CLAUDE_OPUS_4_1_20250805_THINKING_V1_0        |
-| claude-opus-4                            | CLAUDE_OPUS_4_V1_0                            |
-| claude-opus-4-20250514                   | CLAUDE_OPUS_4_20250514_V1_0                   |
-| claude-opus-4-thinking                   | CLAUDE_OPUS_4_THINKING_V1_0                   |
-| claude-opus-4-20250514-thinking          | CLAUDE_OPUS_4_20250514_THINKING_V1_0          |
-| claude-sonnet-4                          | CLAUDE_SONNET_4_V1_0                          |
-| claude-sonnet-4-20250514                 | CLAUDE_SONNET_4_20250514_V1_0                 |
-| claude-sonnet-4-thinking                 | CLAUDE_SONNET_4_THINKING_V1_0                 |
-| claude-sonnet-4-20250514-thinking        | CLAUDE_SONNET_4_20250514_THINKING_V1_0        |
-| claude-3-5-sonnet                        | CLAUDE_3_5_SONNET_V1_0                        |
-| claude-3-5-sonnet-20241022               | CLAUDE_3_5_SONNET_20241022_V1_0               |
-| claude-3-5-haiku                         | CLAUDE_3_5_HAIKU_V1_0                         |
-| claude-3-5-haiku-20241022                | CLAUDE_3_5_HAIKU_20241022_V1_0                |
+| Harici Model Adi                    | Dahili CodeWhisperer ID                  |
+|-------------------------------------|------------------------------------------|
+| claude-opus-4-5                     | CLAUDE_OPUS_4_5_V1_0                     |
+| claude-opus-4-5-20251101            | CLAUDE_OPUS_4_5_20251101_V1_0            |
+| claude-opus-4-5-thinking            | CLAUDE_OPUS_4_5_THINKING_V1_0            |
+| claude-opus-4-5-20251101-thinking   | CLAUDE_OPUS_4_5_20251101_THINKING_V1_0   |
+| claude-sonnet-4-5                   | CLAUDE_SONNET_4_5_V1_0                   |
+| claude-sonnet-4-5-20250929          | CLAUDE_SONNET_4_5_20250929_V1_0          |
+| claude-sonnet-4-5-thinking          | CLAUDE_SONNET_4_5_THINKING_V1_0          |
+| claude-sonnet-4-5-20250929-thinking | CLAUDE_SONNET_4_5_20250929_THINKING_V1_0 |
+| claude-haiku-4-5                    | CLAUDE_HAIKU_4_5_V1_0                    |
+| claude-haiku-4-5-20251001           | CLAUDE_HAIKU_4_5_20251001_V1_0           |
+| claude-opus-4-1                     | CLAUDE_OPUS_4_1_V1_0                     |
+| claude-opus-4-1-20250805            | CLAUDE_OPUS_4_1_20250805_V1_0            |
+| claude-opus-4-1-thinking            | CLAUDE_OPUS_4_1_THINKING_V1_0            |
+| claude-opus-4-1-20250805-thinking   | CLAUDE_OPUS_4_1_20250805_THINKING_V1_0   |
+| claude-opus-4                       | CLAUDE_OPUS_4_V1_0                       |
+| claude-opus-4-20250514              | CLAUDE_OPUS_4_20250514_V1_0              |
+| claude-opus-4-thinking              | CLAUDE_OPUS_4_THINKING_V1_0              |
+| claude-opus-4-20250514-thinking     | CLAUDE_OPUS_4_20250514_THINKING_V1_0     |
+| claude-sonnet-4                     | CLAUDE_SONNET_4_V1_0                     |
+| claude-sonnet-4-20250514            | CLAUDE_SONNET_4_20250514_V1_0            |
+| claude-sonnet-4-thinking            | CLAUDE_SONNET_4_THINKING_V1_0            |
+| claude-sonnet-4-20250514-thinking   | CLAUDE_SONNET_4_20250514_THINKING_V1_0   |
+| claude-3-5-sonnet                   | CLAUDE_3_5_SONNET_V1_0                   |
+| claude-3-5-sonnet-20241022          | CLAUDE_3_5_SONNET_20241022_V1_0          |
+| claude-3-5-haiku                    | CLAUDE_3_5_HAIKU_V1_0                    |
+| claude-3-5-haiku-20241022           | CLAUDE_3_5_HAIKU_20241022_V1_0           |
 
 ### Dinamik Model Eslestirme
 
@@ -286,15 +286,15 @@ function mapModelToKiroInternal(model: string): string {
 
 ### Model Alias'lari
 
-| Alias                | Standart Ad            |
-|----------------------|------------------------|
-| claude-4.5-opus      | claude-opus-4-5        |
-| claude-4.5-sonnet    | claude-sonnet-4-5      |
-| claude-4.5-haiku     | claude-haiku-4-5       |
-| claude-4-opus        | claude-opus-4          |
-| claude-4-sonnet      | claude-sonnet-4        |
-| claude-3.5-sonnet    | claude-3-5-sonnet      |
-| claude-3.5-haiku     | claude-3-5-haiku       |
+| Alias             | Standart Ad       |
+|-------------------|-------------------|
+| claude-4.5-opus   | claude-opus-4-5   |
+| claude-4.5-sonnet | claude-sonnet-4-5 |
+| claude-4.5-haiku  | claude-haiku-4-5  |
+| claude-4-opus     | claude-opus-4     |
+| claude-4-sonnet   | claude-sonnet-4   |
+| claude-3.5-sonnet | claude-3-5-sonnet |
+| claude-3.5-haiku  | claude-3-5-haiku  |
 
 ---
 
@@ -402,22 +402,22 @@ Bu proje icin ozel ortam degiskenleri bulunmamaktadir. Yapilandirma dosyalar uze
 
 ### Komut Satiri Parametreleri
 
-| Parametre      | Alias | Varsayilan | Aciklama                           |
-|----------------|-------|------------|------------------------------------|
-| `--kiro`       | `-k`  | false      | Kiro modunu etkinlestir            |
-| `--port`       | `-p`  | 4141       | Sunucu portu                       |
-| `--verbose`    | `-v`  | false      | Detayli loglama                    |
-| `--claude-code`| `-c`  | false      | Claude Code baslat komutu olustur  |
-| `--rate-limit` | `-r`  | -          | Istekler arasi bekleme (saniye)    |
-| `--wait`       | `-w`  | false      | Rate limit'te bekle, hata verme    |
-| `--proxy-env`  |       | false      | Proxy'yi ortam degiskenlerinden al |
+| Parametre       | Alias | Varsayilan | Aciklama                           |
+|-----------------|-------|------------|------------------------------------|
+| `--kiro`        | `-k`  | false      | Kiro modunu etkinlestir            |
+| `--port`        | `-p`  | 4141       | Sunucu portu                       |
+| `--verbose`     | `-v`  | false      | Detayli loglama                    |
+| `--claude-code` | `-c`  | false      | Claude Code baslat komutu olustur  |
+| `--rate-limit`  | `-r`  | -          | Istekler arasi bekleme (saniye)    |
+| `--wait`        | `-w`  | false      | Rate limit'te bekle, hata verme    |
+| `--proxy-env`   |       | false      | Proxy'yi ortam degiskenlerinden al |
 
 ### Veri Depolama Konumlari
 
-| Dosya           | Konum                                            | Aciklama                |
-|-----------------|--------------------------------------------------|-------------------------|
-| Kiro Auth       | `~/.local/share/copilot-api-plus/kiro-auth.json` | Kimlik dogrulama bilgisi|
-| Config          | `~/.local/share/copilot-api-plus/config.json`    | Genel yapilandirma      |
+| Dosya     | Konum                                            | Aciklama                 |
+|-----------|--------------------------------------------------|--------------------------|
+| Kiro Auth | `~/.local/share/copilot-api-plus/kiro-auth.json` | Kimlik dogrulama bilgisi |
+| Config    | `~/.local/share/copilot-api-plus/config.json`    | Genel yapilandirma       |
 
 ---
 
@@ -573,18 +573,18 @@ bun run start --kiro
 
 ## Karsilastirma: Kiro Modulu vs Bizim Uygulamamiz
 
-| Ozellik                      | AIAPI Kiro Modulu              | Bizim Uygulama                  |
-|------------------------------|--------------------------------|---------------------------------|
-| Dil                          | TypeScript (Bun)               | JavaScript (Node.js)            |
-| HTTP Framework               | Hono                           | Express                         |
-| Token Saklama                | JSON dosya                     | MySQL veritabani                |
-| Coklu Hesap                  | Bellek ici havuz               | Veritabani ile havuz            |
-| Token Yenileme               | Istek sirasinda                | Zamanlayici ile proaktif        |
-| Hata Yonetimi                | Hata sayaci (max 3)            | error_credentials tablosu       |
-| Kimlik Dogrulama             | Social, IdC                    | Social, Builder ID, IdC         |
-| Model Eslestirme             | Dinamik donusum                | Statik eslestirme + dinamik     |
-| Rate Limiting                | Komut satiri parametresi       | Dahili middleware               |
-| Izleme                       | Endpoint bazli                 | Web konsolu + API logs          |
+| Ozellik          | AIAPI Kiro Modulu        | Bizim Uygulama              |
+|------------------|--------------------------|-----------------------------|
+| Dil              | TypeScript (Bun)         | JavaScript (Node.js)        |
+| HTTP Framework   | Hono                     | Express                     |
+| Token Saklama    | JSON dosya               | MySQL veritabani            |
+| Coklu Hesap      | Bellek ici havuz         | Veritabani ile havuz        |
+| Token Yenileme   | Istek sirasinda          | Zamanlayici ile proaktif    |
+| Hata Yonetimi    | Hata sayaci (max 3)      | error_credentials tablosu   |
+| Kimlik Dogrulama | Social, IdC              | Social, Builder ID, IdC     |
+| Model Eslestirme | Dinamik donusum          | Statik eslestirme + dinamik |
+| Rate Limiting    | Komut satiri parametresi | Dahili middleware           |
+| Izleme           | Endpoint bazli           | Web konsolu + API logs      |
 
 ---
 

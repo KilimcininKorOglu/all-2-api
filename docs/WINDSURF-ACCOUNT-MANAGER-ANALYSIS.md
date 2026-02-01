@@ -6,13 +6,13 @@ Bu dokuman, [windsurf-account-manager-simple](https://github.com/chaogei/windsur
 
 Windsurf Account Manager, Tauri + Vue 3 + TypeScript tabanli bir masaustu uygulamasidir. Windsurf IDE icin coklu hesap yonetimi, otomatik token yenileme, koltuk (seat) yonetimi ve aktif hesap degisimi sunar.
 
-| Ozellik                | Aciklama                                              |
-|------------------------|-------------------------------------------------------|
-| Platform               | Tauri 2.x (Rust) + Vue 3 + TypeScript                 |
-| Authentication         | Firebase Auth (Email/Password)                        |
-| Backend API            | Protobuf over HTTP (gRPC-web style)                   |
-| Data Encryption        | AES-256-GCM + System Keychain                         |
-| Supported OS           | Windows, macOS, Linux                                 |
+| Ozellik         | Aciklama                              |
+|-----------------|---------------------------------------|
+| Platform        | Tauri 2.x (Rust) + Vue 3 + TypeScript |
+| Authentication  | Firebase Auth (Email/Password)        |
+| Backend API     | Protobuf over HTTP (gRPC-web style)   |
+| Data Encryption | AES-256-GCM + System Keychain         |
+| Supported OS    | Windows, macOS, Linux                 |
 
 ---
 
@@ -98,16 +98,16 @@ https://web-backend.windsurf.com
 
 ### 2.2 API Endpoints
 
-| Endpoint                                                    | Purpose                    |
-|-------------------------------------------------------------|----------------------------|
-| `/exa.seat_management_pb.SeatManagementService/UpdateSeats` | Koltuk sayisi guncelle     |
-| `/exa.seat_management_pb.SeatManagementService/GetCurrentUser` | Kullanici bilgisi        |
-| `/exa.seat_management_pb.SeatManagementService/GetTeamBilling` | Fatura bilgisi           |
-| `/exa.seat_management_pb.SeatManagementService/UpdatePlan`  | Plan guncelle              |
-| `/exa.seat_management_pb.SeatManagementService/CancelPlan`  | Abonelik iptal             |
-| `/exa.seat_management_pb.SeatManagementService/GetOneTimeAuthToken` | Auth token al       |
-| `/exa.seat_management_pb.SeatManagementService/SubscribeToPlan` | Trial baslat           |
-| `/exa.seat_management_pb.SeatManagementService/GetPlanStatus` | Plan durumu              |
+| Endpoint                                                            | Purpose                |
+|---------------------------------------------------------------------|------------------------|
+| `/exa.seat_management_pb.SeatManagementService/UpdateSeats`         | Koltuk sayisi guncelle |
+| `/exa.seat_management_pb.SeatManagementService/GetCurrentUser`      | Kullanici bilgisi      |
+| `/exa.seat_management_pb.SeatManagementService/GetTeamBilling`      | Fatura bilgisi         |
+| `/exa.seat_management_pb.SeatManagementService/UpdatePlan`          | Plan guncelle          |
+| `/exa.seat_management_pb.SeatManagementService/CancelPlan`          | Abonelik iptal         |
+| `/exa.seat_management_pb.SeatManagementService/GetOneTimeAuthToken` | Auth token al          |
+| `/exa.seat_management_pb.SeatManagementService/SubscribeToPlan`     | Trial baslat           |
+| `/exa.seat_management_pb.SeatManagementService/GetPlanStatus`       | Plan durumu            |
 
 ### 2.3 Request Headers
 
@@ -135,10 +135,10 @@ headers: {
 
 ### 3.1 Wire Types
 
-| Wire Type | Meaning           | Used For                              |
-|-----------|-------------------|---------------------------------------|
-| 0         | Varint            | int32, int64, uint32, bool, enum      |
-| 2         | Length-delimited  | string, bytes, embedded messages      |
+| Wire Type | Meaning          | Used For                         |
+|-----------|------------------|----------------------------------|
+| 0         | Varint           | int32, int64, uint32, bool, enum |
+| 2         | Length-delimited | string, bytes, embedded messages |
 
 ### 3.2 Varint Encoding
 
@@ -373,21 +373,21 @@ fn trigger_windsurf_callback(auth_token: &str) {
 
 ### 6.1 Machine ID Types
 
-| ID Type         | Format                       | Location                              |
-|-----------------|------------------------------|---------------------------------------|
-| machineId       | 64-char hex (256-bit)        | storage.json                          |
-| macMachineId    | 32-char hex (MD5 format)     | storage.json                          |
-| sqmId           | UUID (uppercase, no braces)  | storage.json                          |
-| devDeviceId     | UUID (lowercase)             | storage.json                          |
-| MachineGuid     | UUID (Windows Registry)      | HKLM\\SOFTWARE\\Microsoft\\Cryptography |
+| ID Type      | Format                      | Location                                |
+|--------------|-----------------------------|-----------------------------------------|
+| machineId    | 64-char hex (256-bit)       | storage.json                            |
+| macMachineId | 32-char hex (MD5 format)    | storage.json                            |
+| sqmId        | UUID (uppercase, no braces) | storage.json                            |
+| devDeviceId  | UUID (lowercase)            | storage.json                            |
+| MachineGuid  | UUID (Windows Registry)     | HKLM\\SOFTWARE\\Microsoft\\Cryptography |
 
 ### 6.2 Storage.json Location
 
-| OS      | Path                                                    |
-|---------|---------------------------------------------------------|
-| Windows | `%APPDATA%\Windsurf\User\globalStorage\storage.json`    |
+| OS      | Path                                                                     |
+|---------|--------------------------------------------------------------------------|
+| Windows | `%APPDATA%\Windsurf\User\globalStorage\storage.json`                     |
 | macOS   | `~/Library/Application Support/Windsurf/User/globalStorage/storage.json` |
-| Linux   | `~/.config/Windsurf/User/globalStorage/storage.json`    |
+| Linux   | `~/.config/Windsurf/User/globalStorage/storage.json`                     |
 
 ### 6.3 Machine ID Reset (Windows)
 
@@ -566,14 +566,14 @@ interface TeamConfig {
 
 ### 11.1 Firebase Errors
 
-| Error Code                   | Aciklama                        |
-|------------------------------|---------------------------------|
-| TOO_MANY_ATTEMPTS_TRY_LATER  | Rate limit, 15-30 dk bekle      |
-| INVALID_LOGIN_CREDENTIALS    | Email/password hatasi           |
-| EMAIL_NOT_FOUND              | Kayitli olmayan email           |
-| USER_DISABLED                | Devre disi hesap                |
-| TOKEN_EXPIRED                | Token suresi dolmus             |
-| INVALID_REFRESH_TOKEN        | Gecersiz refresh token          |
+| Error Code                  | Aciklama                   |
+|-----------------------------|----------------------------|
+| TOO_MANY_ATTEMPTS_TRY_LATER | Rate limit, 15-30 dk bekle |
+| INVALID_LOGIN_CREDENTIALS   | Email/password hatasi      |
+| EMAIL_NOT_FOUND             | Kayitli olmayan email      |
+| USER_DISABLED               | Devre disi hesap           |
+| TOKEN_EXPIRED               | Token suresi dolmus        |
+| INVALID_REFRESH_TOKEN       | Gecersiz refresh token     |
 
 ### 11.2 Admin Privilege Errors
 
@@ -593,15 +593,15 @@ fn is_root() -> bool {
 
 ## 12. Karsilastirma: Windsurf vs Kiro
 
-| Ozellik                | Windsurf Account Manager       | Kiro Account Manager           |
-|------------------------|--------------------------------|--------------------------------|
-| Auth System            | Firebase Email/Password        | AWS SSO OIDC / Social OAuth    |
-| Backend Protocol       | Protobuf (custom encoding)     | AWS Event Stream               |
-| Machine ID             | storage.json + Registry        | User-Agent header              |
-| Credit System          | Prompt/Flow/Flex credits       | Single quota                   |
-| Team Management        | Seats, billing, members        | ProfileArn based               |
-| Payment Integration    | Stripe Checkout                | Stripe (via Kiro)              |
-| Plan Types             | Teams/Pro/Enterprise/Trial     | Free/Pro                       |
+| Ozellik             | Windsurf Account Manager   | Kiro Account Manager        |
+|---------------------|----------------------------|-----------------------------|
+| Auth System         | Firebase Email/Password    | AWS SSO OIDC / Social OAuth |
+| Backend Protocol    | Protobuf (custom encoding) | AWS Event Stream            |
+| Machine ID          | storage.json + Registry    | User-Agent header           |
+| Credit System       | Prompt/Flow/Flex credits   | Single quota                |
+| Team Management     | Seats, billing, members    | ProfileArn based            |
+| Payment Integration | Stripe Checkout            | Stripe (via Kiro)           |
+| Plan Types          | Teams/Pro/Enterprise/Trial | Free/Pro                    |
 
 ---
 

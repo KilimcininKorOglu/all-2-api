@@ -6,14 +6,14 @@ Bu dokuman, [Kiro-account-manager](https://github.com/chaogei/Kiro-account-manag
 
 Kiro Account Manager, Electron + React tabanli bir masaustu uygulamasidir. Kiro hesap yonetimi, API proxy servisi ve Machine ID yonetimi sunar.
 
-| Ozellik                | Aciklama                                              |
-|------------------------|-------------------------------------------------------|
-| Platform               | Electron + React + TypeScript                         |
-| Authentication Methods | Social Auth (Google/GitHub), AWS Builder ID (IDC)     |
-| API Proxy              | OpenAI + Claude uyumlu endpoint'ler                   |
-| Account Pool           | Multi-account rotation, cooldown, error tracking      |
-| K-Proxy (MITM)         | Machine ID replacement via HTTPS interception         |
-| Format Translation     | OpenAI/Claude -> Kiro, Kiro -> OpenAI/Claude          |
+| Ozellik                | Aciklama                                          |
+|------------------------|---------------------------------------------------|
+| Platform               | Electron + React + TypeScript                     |
+| Authentication Methods | Social Auth (Google/GitHub), AWS Builder ID (IDC) |
+| API Proxy              | OpenAI + Claude uyumlu endpoint'ler               |
+| Account Pool           | Multi-account rotation, cooldown, error tracking  |
+| K-Proxy (MITM)         | Machine ID replacement via HTTPS interception     |
+| Format Translation     | OpenAI/Claude -> Kiro, Kiro -> OpenAI/Claude      |
 
 ---
 
@@ -40,12 +40,12 @@ const KIRO_ENDPOINTS = [
 
 ### 1.2 Management API Endpoints
 
-| Endpoint                                               | Purpose                    |
-|--------------------------------------------------------|----------------------------|
-| `codewhisperer.../ListAvailableModels`                 | Model listesi              |
-| `codewhisperer.../listAvailableSubscriptions`          | Abonelik planlari          |
-| `codewhisperer.../CreateSubscriptionToken`             | Stripe odeme linki         |
-| `q.../getUsageLimits`                                  | Kullanim limitleri         |
+| Endpoint                                      | Purpose            |
+|-----------------------------------------------|--------------------|
+| `codewhisperer.../ListAvailableModels`        | Model listesi      |
+| `codewhisperer.../listAvailableSubscriptions` | Abonelik planlari  |
+| `codewhisperer.../CreateSubscriptionToken`    | Stripe odeme linki |
+| `q.../getUsageLimits`                         | Kullanim limitleri |
 
 ---
 
@@ -284,19 +284,19 @@ function sanitizeConversation(messages) {
 
 ### 7.2 Event Types
 
-| Event Type                    | Purpose                           |
-|-------------------------------|-----------------------------------|
-| `assistantResponseEvent`      | Text content                      |
-| `toolUseEvent`                | Tool call (start/input/stop)      |
-| `messageMetadataEvent`        | Token usage info                  |
-| `meteringEvent`               | Credit usage                      |
-| `reasoningContentEvent`       | Thinking mode content             |
-| `supplementaryWebLinksEvent`  | Web references                    |
-| `codeReferenceEvent`          | Code/license references           |
-| `followupPromptEvent`         | Suggested follow-ups              |
-| `contextUsageEvent`           | Context window usage %            |
-| `invalidStateEvent`           | Error/warning                     |
-| `citationEvent`               | Citations                         |
+| Event Type                   | Purpose                      |
+|------------------------------|------------------------------|
+| `assistantResponseEvent`     | Text content                 |
+| `toolUseEvent`               | Tool call (start/input/stop) |
+| `messageMetadataEvent`       | Token usage info             |
+| `meteringEvent`              | Credit usage                 |
+| `reasoningContentEvent`      | Thinking mode content        |
+| `supplementaryWebLinksEvent` | Web references               |
+| `codeReferenceEvent`         | Code/license references      |
+| `followupPromptEvent`        | Suggested follow-ups         |
+| `contextUsageEvent`          | Context window usage %       |
+| `invalidStateEvent`          | Error/warning                |
+| `citationEvent`              | Citations                    |
 
 ### 7.3 Tool Use Accumulation
 
@@ -497,13 +497,13 @@ if (usage.outputTokens === 0 && totalOutputChars > 0) {
 
 ### 11.1 Endpoints
 
-| Path                       | Format   | Description          |
-|----------------------------|----------|----------------------|
-| `/v1/chat/completions`     | OpenAI   | Chat completions     |
-| `/v1/messages`             | Claude   | Messages API         |
-| `/admin/stats`             | JSON     | Usage statistics     |
-| `/admin/accounts`          | JSON     | Account list         |
-| `/admin/logs`              | JSON     | Request logs         |
+| Path                   | Format | Description      |
+|------------------------|--------|------------------|
+| `/v1/chat/completions` | OpenAI | Chat completions |
+| `/v1/messages`         | Claude | Messages API     |
+| `/admin/stats`         | JSON   | Usage statistics |
+| `/admin/accounts`      | JSON   | Account list     |
+| `/admin/logs`          | JSON   | Request logs     |
 
 ### 11.2 Configuration
 
@@ -555,18 +555,18 @@ async function fetchSubscriptionToken(account, subscriptionType?) {
 
 ## 13. Karsilastirma Tablosu
 
-| Ozellik                    | Kiro Account Manager       | Mevcut Sistem            |
-|----------------------------|----------------------------|--------------------------|
-| Platform                   | Electron Desktop App       | Node.js Server           |
-| Multi-Account              | Account Pool + Rotation    | DB-based                 |
-| Machine ID                 | K-Proxy MITM replacement   | -                        |
-| Message Sanitization       | Full sanitization pipeline | Partial                  |
-| Thinking Mode              | anthropic-beta header      | -                        |
-| Execution Discipline       | Auto-injected prompt       | -                        |
-| Event Stream Parsing       | Full binary parsing        | JSON-based               |
-| Tool Input Accumulation    | Fragment accumulation      | Single event             |
-| Subscription Management    | Stripe integration         | -                        |
-| IDE Integration            | Kiro settings sync         | -                        |
+| Ozellik                 | Kiro Account Manager       | Mevcut Sistem  |
+|-------------------------|----------------------------|----------------|
+| Platform                | Electron Desktop App       | Node.js Server |
+| Multi-Account           | Account Pool + Rotation    | DB-based       |
+| Machine ID              | K-Proxy MITM replacement   | -              |
+| Message Sanitization    | Full sanitization pipeline | Partial        |
+| Thinking Mode           | anthropic-beta header      | -              |
+| Execution Discipline    | Auto-injected prompt       | -              |
+| Event Stream Parsing    | Full binary parsing        | JSON-based     |
+| Tool Input Accumulation | Fragment accumulation      | Single event   |
+| Subscription Management | Stripe integration         | -              |
+| IDE Integration         | Kiro settings sync         | -              |
 
 ---
 

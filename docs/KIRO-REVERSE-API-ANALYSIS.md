@@ -6,28 +6,28 @@ Bu dokuman, `kiro-reverse-api` projesinin kapsamli bir analizini sunmaktadir. Pr
 
 ## Genel Bakis
 
-| Ozellik                     | Deger                                                                 |
-|-----------------------------|-----------------------------------------------------------------------|
-| Proje Adi                   | kiro-reverse-api                                                      |
-| Dil                         | JavaScript (ES Modules)                                               |
-| Calisma Ortami              | Node.js                                                               |
-| Varsayilan Port             | 3000                                                                  |
-| Lisans                      | MIT                                                                   |
-| Temel Amac                  | Coklu AI saglayicisini tek bir API uzerinden yonetme                  |
-| Desteklenen Saglayicilar    | Kiro OAuth, Gemini CLI OAuth, Gemini Antigravity, OpenAI, Claude, Qwen |
+| Ozellik                  | Deger                                                                  |
+|--------------------------|------------------------------------------------------------------------|
+| Proje Adi                | kiro-reverse-api                                                       |
+| Dil                      | JavaScript (ES Modules)                                                |
+| Calisma Ortami           | Node.js                                                                |
+| Varsayilan Port          | 3000                                                                   |
+| Lisans                   | MIT                                                                    |
+| Temel Amac               | Coklu AI saglayicisini tek bir API uzerinden yonetme                   |
+| Desteklenen Saglayicilar | Kiro OAuth, Gemini CLI OAuth, Gemini Antigravity, OpenAI, Claude, Qwen |
 
 ---
 
 ## Desteklenen Saglayicilar ve Model Listesi
 
-| Saglayici Tipi          | Tanim                                  | Desteklenen Modeller                                                                                          |
-|-------------------------|----------------------------------------|---------------------------------------------------------------------------------------------------------------|
-| `claude-kiro-oauth`     | Kiro OAuth ile Claude erisimi          | claude-opus-4-5, claude-opus-4-5-20251101, claude-haiku-4-5, claude-sonnet-4-5, claude-sonnet-4-5-20250929, claude-sonnet-4-20250514, claude-3-7-sonnet-20250219 |
-| `gemini-cli-oauth`      | Gemini CLI OAuth                       | gemini-2.5-flash, gemini-2.5-pro, gemini-2.5-pro-preview-06-05, gemini-3-pro-preview, gemini-3-flash-preview  |
-| `gemini-antigravity`    | Gemini Antigravity (deneysel)          | gemini-2.5-computer-use-preview-10-2025, gemini-3-pro-image-preview, gemini-claude-sonnet-4-5                 |
-| `openai-custom`         | Ozel OpenAI API                        | Yapilandirmaya bagli                                                                                          |
-| `claude-custom`         | Ozel Claude API                        | Yapilandirmaya bagli                                                                                          |
-| `openai-qwen-oauth`     | Qwen OAuth                             | qwen3-coder-plus, qwen3-coder-flash                                                                           |
+| Saglayici Tipi       | Tanim                         | Desteklenen Modeller                                                                                                                                             |
+|----------------------|-------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `claude-kiro-oauth`  | Kiro OAuth ile Claude erisimi | claude-opus-4-5, claude-opus-4-5-20251101, claude-haiku-4-5, claude-sonnet-4-5, claude-sonnet-4-5-20250929, claude-sonnet-4-20250514, claude-3-7-sonnet-20250219 |
+| `gemini-cli-oauth`   | Gemini CLI OAuth              | gemini-2.5-flash, gemini-2.5-pro, gemini-2.5-pro-preview-06-05, gemini-3-pro-preview, gemini-3-flash-preview                                                     |
+| `gemini-antigravity` | Gemini Antigravity (deneysel) | gemini-2.5-computer-use-preview-10-2025, gemini-3-pro-image-preview, gemini-claude-sonnet-4-5                                                                    |
+| `openai-custom`      | Ozel OpenAI API               | Yapilandirmaya bagli                                                                                                                                             |
+| `claude-custom`      | Ozel Claude API               | Yapilandirmaya bagli                                                                                                                                             |
+| `openai-qwen-oauth`  | Qwen OAuth                    | qwen3-coder-plus, qwen3-coder-flash                                                                                                                              |
 
 ---
 
@@ -201,17 +201,17 @@ Token'lar JSON dosyalari olarak saklanir:
 
 ### Temel Endpoint'ler
 
-| Endpoint                                    | Metod | Aciklama                           |
-|---------------------------------------------|-------|------------------------------------|
-| `/v1/chat/completions`                      | POST  | OpenAI uyumlu sohbet tamamlama     |
-| `/v1/messages`                              | POST  | Claude uyumlu mesaj API'si         |
-| `/v1/responses`                             | POST  | OpenAI Responses API               |
-| `/v1/models`                                | GET   | OpenAI format model listesi        |
-| `/v1beta/models`                            | GET   | Gemini format model listesi        |
-| `/v1beta/models/{model}:generateContent`    | POST  | Gemini icerik olusturma            |
-| `/v1beta/models/{model}:streamGenerateContent` | POST | Gemini akisli icerik olusturma   |
-| `/health`                                   | GET   | Saglik kontrolu                    |
-| `/provider_health`                          | GET   | Saglayici saglik durumu            |
+| Endpoint                                       | Metod | Aciklama                       |
+|------------------------------------------------|-------|--------------------------------|
+| `/v1/chat/completions`                         | POST  | OpenAI uyumlu sohbet tamamlama |
+| `/v1/messages`                                 | POST  | Claude uyumlu mesaj API'si     |
+| `/v1/responses`                                | POST  | OpenAI Responses API           |
+| `/v1/models`                                   | GET   | OpenAI format model listesi    |
+| `/v1beta/models`                               | GET   | Gemini format model listesi    |
+| `/v1beta/models/{model}:generateContent`       | POST  | Gemini icerik olusturma        |
+| `/v1beta/models/{model}:streamGenerateContent` | POST  | Gemini akisli icerik olusturma |
+| `/health`                                      | GET   | Saglik kontrolu                |
+| `/provider_health`                             | GET   | Saglayici saglik durumu        |
 
 ### Saglayici Bazli Routing
 
@@ -429,12 +429,12 @@ async callApi(method, model, body, isRetry = false, retryCount = 0) {
 
 ### Hata Kodu Haritalamasi
 
-| HTTP Kodu | Aciklama                       | Islem                           |
-|-----------|--------------------------------|---------------------------------|
-| 401       | Gecersiz API anahtari          | Hata firlat                     |
-| 403       | Erisim reddedildi              | Token yenile ve tekrar dene     |
-| 429       | Cok fazla istek                | Ustel geri cekilme              |
-| 5xx       | Sunucu hatasi                  | Ustel geri cekilme              |
+| HTTP Kodu | Aciklama              | Islem                       |
+|-----------|-----------------------|-----------------------------|
+| 401       | Gecersiz API anahtari | Hata firlat                 |
+| 403       | Erisim reddedildi     | Token yenile ve tekrar dene |
+| 429       | Cok fazla istek       | Ustel geri cekilme          |
+| 5xx       | Sunucu hatasi         | Ustel geri cekilme          |
 
 ### Saglayici Havuzu Saglik Yonetimi
 
@@ -533,25 +533,25 @@ class ProviderPoolManager {
 
 ### Komut Satiri Parametreleri
 
-| Parametre                       | Varsayilan                        | Aciklama                                    |
-|---------------------------------|-----------------------------------|---------------------------------------------|
-| `--host`                        | `0.0.0.0`                         | Sunucu dinleme adresi                       |
-| `--port`                        | `3000`                            | Sunucu dinleme portu                        |
-| `--api-key`                     | `123456`                          | Zorunlu API anahtari                        |
-| `--model-provider`              | `gemini-cli-oauth`                | Varsayilan model saglayicisi                |
-| `--kiro-oauth-creds-base64`     | -                                 | Base64 kodlu Kiro kimlik bilgileri          |
-| `--kiro-oauth-creds-file`       | -                                 | Kiro kimlik bilgileri dosya yolu            |
-| `--gemini-oauth-creds-base64`   | -                                 | Base64 kodlu Gemini kimlik bilgileri        |
-| `--gemini-oauth-creds-file`     | -                                 | Gemini kimlik bilgileri dosya yolu          |
-| `--system-prompt-file`          | `configs/input_system_prompt.txt` | Sistem istemi dosya yolu                    |
-| `--system-prompt-mode`          | `overwrite`                       | Sistem istemi modu (overwrite/append)       |
-| `--log-prompts`                 | `none`                            | Istem loglama modu (console/file/none)      |
-| `--request-max-retries`         | `3`                               | Maksimum yeniden deneme sayisi              |
-| `--request-base-delay`          | `1000`                            | Temel bekleme suresi (ms)                   |
-| `--cron-near-minutes`           | `15`                              | Token yenileme kontrolu araligi (dakika)    |
-| `--cron-refresh-token`          | `false`                           | Otomatik token yenileme                     |
-| `--provider-pools-file`         | `configs/provider_pools.json`     | Saglayici havuzu dosya yolu                 |
-| `--max-error-count`             | `3`                               | Saglayici icin maksimum hata sayisi         |
+| Parametre                     | Varsayilan                        | Aciklama                                 |
+|-------------------------------|-----------------------------------|------------------------------------------|
+| `--host`                      | `0.0.0.0`                         | Sunucu dinleme adresi                    |
+| `--port`                      | `3000`                            | Sunucu dinleme portu                     |
+| `--api-key`                   | `123456`                          | Zorunlu API anahtari                     |
+| `--model-provider`            | `gemini-cli-oauth`                | Varsayilan model saglayicisi             |
+| `--kiro-oauth-creds-base64`   | -                                 | Base64 kodlu Kiro kimlik bilgileri       |
+| `--kiro-oauth-creds-file`     | -                                 | Kiro kimlik bilgileri dosya yolu         |
+| `--gemini-oauth-creds-base64` | -                                 | Base64 kodlu Gemini kimlik bilgileri     |
+| `--gemini-oauth-creds-file`   | -                                 | Gemini kimlik bilgileri dosya yolu       |
+| `--system-prompt-file`        | `configs/input_system_prompt.txt` | Sistem istemi dosya yolu                 |
+| `--system-prompt-mode`        | `overwrite`                       | Sistem istemi modu (overwrite/append)    |
+| `--log-prompts`               | `none`                            | Istem loglama modu (console/file/none)   |
+| `--request-max-retries`       | `3`                               | Maksimum yeniden deneme sayisi           |
+| `--request-base-delay`        | `1000`                            | Temel bekleme suresi (ms)                |
+| `--cron-near-minutes`         | `15`                              | Token yenileme kontrolu araligi (dakika) |
+| `--cron-refresh-token`        | `false`                           | Otomatik token yenileme                  |
+| `--provider-pools-file`       | `configs/provider_pools.json`     | Saglayici havuzu dosya yolu              |
+| `--max-error-count`           | `3`                               | Saglayici icin maksimum hata sayisi      |
 
 ---
 
@@ -561,16 +561,16 @@ Sistem, farkli AI protokolleri arasinda otomatik donusum saglar:
 
 ### Desteklenen Donusumler
 
-| Kaynak Protokol  | Hedef Protokol   | Desteklenen |
-|------------------|------------------|-------------|
-| OpenAI           | Claude           | Evet        |
-| OpenAI           | Gemini           | Evet        |
-| Claude           | OpenAI           | Evet        |
-| Claude           | Gemini           | Evet        |
-| Gemini           | OpenAI           | Evet        |
-| Gemini           | Claude           | Evet        |
-| OpenAI Responses | Claude           | Evet        |
-| OpenAI Responses | Gemini           | Evet        |
+| Kaynak Protokol  | Hedef Protokol | Desteklenen |
+|------------------|----------------|-------------|
+| OpenAI           | Claude         | Evet        |
+| OpenAI           | Gemini         | Evet        |
+| Claude           | OpenAI         | Evet        |
+| Claude           | Gemini         | Evet        |
+| Gemini           | OpenAI         | Evet        |
+| Gemini           | Claude         | Evet        |
+| OpenAI Responses | Claude         | Evet        |
+| OpenAI Responses | Gemini         | Evet        |
 
 ### Donusum Ornegi
 

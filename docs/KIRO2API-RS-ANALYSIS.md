@@ -4,17 +4,17 @@ Bu dokuman, [kiro2api-rs](https://github.com/gdtiti/kiro2api-rs) projesinin kaps
 
 ## Genel Bakis
 
-| Ozellik                  | Deger                                                                 |
-|--------------------------|-----------------------------------------------------------------------|
-| Proje Adi                | kiro-rs                                                               |
-| Versiyon                 | 2025.12.7                                                             |
-| Programlama Dili         | Rust (Edition 2021)                                                   |
-| Web Framework            | Axum 0.8                                                              |
-| Asenkron Runtime         | Tokio                                                                 |
-| HTTP Istemcisi           | Reqwest (rustls, SOCKS5 destegi)                                      |
-| Lisans                   | MIT                                                                   |
-| Varsayilan Port          | 8080                                                                  |
-| Varsayilan Region        | us-east-1                                                             |
+| Ozellik           | Deger                            |
+|-------------------|----------------------------------|
+| Proje Adi         | kiro-rs                          |
+| Versiyon          | 2025.12.7                        |
+| Programlama Dili  | Rust (Edition 2021)              |
+| Web Framework     | Axum 0.8                         |
+| Asenkron Runtime  | Tokio                            |
+| HTTP Istemcisi    | Reqwest (rustls, SOCKS5 destegi) |
+| Lisans            | MIT                              |
+| Varsayilan Port   | 8080                             |
+| Varsayilan Region | us-east-1                        |
 
 ## Mimari Yapisi
 
@@ -80,11 +80,11 @@ Proje uc farkli kimlik dogrulama yontemini desteklemektedir:
 
 Google veya GitHub OAuth kullanarak kimlik dogrulama.
 
-| Alan          | Tip     | Zorunlu | Aciklama                          |
-|---------------|---------|---------|-----------------------------------|
-| refreshToken  | String  | Evet    | OAuth yenileme tokeni             |
-| expiresAt     | String  | Hayir   | Token son kullanma tarihi (RFC3339)|
-| authMethod    | String  | Evet    | "social" degeri                   |
+| Alan         | Tip    | Zorunlu | Aciklama                            |
+|--------------|--------|---------|-------------------------------------|
+| refreshToken | String | Evet    | OAuth yenileme tokeni               |
+| expiresAt    | String | Hayir   | Token son kullanma tarihi (RFC3339) |
+| authMethod   | String | Evet    | "social" degeri                     |
 
 **Token Yenileme Endpoint'i:**
 ```
@@ -112,13 +112,13 @@ POST https://prod.{region}.auth.desktop.kiro.dev/refreshToken
 
 AWS SSO OIDC protokolu kullanarak kimlik dogrulama.
 
-| Alan          | Tip     | Zorunlu | Aciklama                          |
-|---------------|---------|---------|-----------------------------------|
-| refreshToken  | String  | Evet    | OAuth yenileme tokeni             |
-| expiresAt     | String  | Hayir   | Token son kullanma tarihi (RFC3339)|
-| authMethod    | String  | Evet    | "idc" veya "builder-id" degeri    |
-| clientId      | String  | Evet    | OIDC istemci kimlik numarasi      |
-| clientSecret  | String  | Evet    | OIDC istemci sifresi              |
+| Alan         | Tip    | Zorunlu | Aciklama                            |
+|--------------|--------|---------|-------------------------------------|
+| refreshToken | String | Evet    | OAuth yenileme tokeni               |
+| expiresAt    | String | Hayir   | Token son kullanma tarihi (RFC3339) |
+| authMethod   | String | Evet    | "idc" veya "builder-id" degeri      |
+| clientId     | String | Evet    | OIDC istemci kimlik numarasi        |
+| clientSecret | String | Evet    | OIDC istemci sifresi                |
 
 **Token Yenileme Endpoint'i:**
 ```
@@ -155,19 +155,19 @@ POST https://oidc.{region}.amazonaws.com/token
 
 Token yonetiminden sorumlu ana sinif. Thread-safe erisim icin Mutex kullanir.
 
-| Metot                  | Aciklama                                           |
-|------------------------|----------------------------------------------------|
-| new()                  | Yeni TokenManager olusturur                        |
-| credentials()          | Kimlik bilgilerinin referansini dondurur           |
-| config()               | Yapilandirma referansini dondurur                  |
-| ensure_valid_token()   | Gecerli token saglar, gerekirse yeniler            |
+| Metot                | Aciklama                                 |
+|----------------------|------------------------------------------|
+| new()                | Yeni TokenManager olusturur              |
+| credentials()        | Kimlik bilgilerinin referansini dondurur |
+| config()             | Yapilandirma referansini dondurur        |
+| ensure_valid_token() | Gecerli token saglar, gerekirse yeniler  |
 
 ### Token Gecerlilik Kontrolleri
 
-| Kontrol                | Sure      | Aciklama                                   |
-|------------------------|-----------|--------------------------------------------|
-| is_token_expired()     | 5 dakika  | Token 5 dakika icinde sona erecekse true   |
-| is_token_expiring_soon()| 10 dakika| Token 10 dakika icinde sona erecekse true  |
+| Kontrol                  | Sure      | Aciklama                                  |
+|--------------------------|-----------|-------------------------------------------|
+| is_token_expired()       | 5 dakika  | Token 5 dakika icinde sona erecekse true  |
+| is_token_expiring_soon() | 10 dakika | Token 10 dakika icinde sona erecekse true |
 
 ### Token Dogrulama
 
@@ -184,30 +184,30 @@ fn validate_refresh_token(credentials: &KiroCredentials) -> anyhow::Result<()> {
 
 ### Anthropic Uyumlu API
 
-| Endpoint                     | Metot | Aciklama                          |
-|------------------------------|-------|-----------------------------------|
-| /v1/models                   | GET   | Mevcut model listesini getirir    |
-| /v1/messages                 | POST  | Mesaj olusturur (sohbet)          |
-| /v1/messages/count_tokens    | POST  | Token sayisini hesaplar           |
+| Endpoint                  | Metot | Aciklama                       |
+|---------------------------|-------|--------------------------------|
+| /v1/models                | GET   | Mevcut model listesini getirir |
+| /v1/messages              | POST  | Mesaj olusturur (sohbet)       |
+| /v1/messages/count_tokens | POST  | Token sayisini hesaplar        |
 
 ### Yonetim API'si (Kimlik Dogrulama Gerektirir)
 
-| Endpoint                     | Metot | Aciklama                          |
-|------------------------------|-------|-----------------------------------|
-| /api/status                  | GET   | Servis durumunu getirir           |
-| /api/accounts                | GET   | Hesap listesini getirir           |
-| /api/accounts                | POST  | Yeni hesap ekler                  |
-| /api/accounts/import         | POST  | Kiro JSON kimlik bilgisi alinir   |
-| /api/accounts/{id}           | DELETE| Hesabi siler                      |
-| /api/accounts/{id}/enable    | POST  | Hesabi etkinlestirir              |
-| /api/accounts/{id}/disable   | POST  | Hesabi devre disi birakir         |
-| /api/accounts/{id}/usage     | GET   | Hesap kotasini getirir            |
-| /api/accounts/{id}/usage/refresh | POST | Hesap kotasini yeniler        |
-| /api/strategy                | GET   | Mevcut stratejiyi getirir         |
-| /api/strategy                | POST  | Stratejiyi degistirir             |
-| /api/logs                    | GET   | Istek kayitlarini getirir         |
-| /api/logs/stats              | GET   | Istek istatistiklerini getirir    |
-| /api/usage/refresh           | POST  | Tum hesap kotalarini yeniler      |
+| Endpoint                         | Metot  | Aciklama                        |
+|----------------------------------|--------|---------------------------------|
+| /api/status                      | GET    | Servis durumunu getirir         |
+| /api/accounts                    | GET    | Hesap listesini getirir         |
+| /api/accounts                    | POST   | Yeni hesap ekler                |
+| /api/accounts/import             | POST   | Kiro JSON kimlik bilgisi alinir |
+| /api/accounts/{id}               | DELETE | Hesabi siler                    |
+| /api/accounts/{id}/enable        | POST   | Hesabi etkinlestirir            |
+| /api/accounts/{id}/disable       | POST   | Hesabi devre disi birakir       |
+| /api/accounts/{id}/usage         | GET    | Hesap kotasini getirir          |
+| /api/accounts/{id}/usage/refresh | POST   | Hesap kotasini yeniler          |
+| /api/strategy                    | GET    | Mevcut stratejiyi getirir       |
+| /api/strategy                    | POST   | Stratejiyi degistirir           |
+| /api/logs                        | GET    | Istek kayitlarini getirir       |
+| /api/logs/stats                  | GET    | Istek istatistiklerini getirir  |
+| /api/usage/refresh               | POST   | Tum hesap kotalarini yeniler    |
 
 ### Kiro API Endpoint'i
 
@@ -268,11 +268,11 @@ Anthropic istegi Kiro formatina donusturulur:
 
 ### Model Esleme
 
-| Anthropic Model          | Kiro Model          |
-|--------------------------|---------------------|
-| claude-*-sonnet-*        | claude-sonnet-4.5   |
-| claude-*-opus-*          | claude-opus-4.5     |
-| claude-*-haiku-*         | claude-haiku-4.5    |
+| Anthropic Model   | Kiro Model        |
+|-------------------|-------------------|
+| claude-*-sonnet-* | claude-sonnet-4.5 |
+| claude-*-opus-*   | claude-opus-4.5   |
+| claude-*-haiku-*  | claude-haiku-4.5  |
 
 ## AWS Event Stream Protokolu
 
@@ -287,37 +287,37 @@ Anthropic istegi Kiro formatina donusturulur:
 
 ### Cerceve Sabitleri
 
-| Sabit              | Deger                | Aciklama                    |
-|--------------------|----------------------|-----------------------------|
-| PRELUDE_SIZE       | 12 byte              | Prelude boyutu              |
-| MIN_MESSAGE_SIZE   | 16 byte              | Minimum mesaj boyutu        |
-| MAX_MESSAGE_SIZE   | 16 MB                | Maksimum mesaj boyutu       |
+| Sabit            | Deger   | Aciklama              |
+|------------------|---------|-----------------------|
+| PRELUDE_SIZE     | 12 byte | Prelude boyutu        |
+| MIN_MESSAGE_SIZE | 16 byte | Minimum mesaj boyutu  |
+| MAX_MESSAGE_SIZE | 16 MB   | Maksimum mesaj boyutu |
 
 ### Baslik Deger Tipleri
 
-| Tip Kodu | Tip Adi    | Boyut                      |
-|----------|------------|----------------------------|
-| 0        | BoolTrue   | 0 byte                     |
-| 1        | BoolFalse  | 0 byte                     |
-| 2        | Byte       | 1 byte                     |
-| 3        | Short      | 2 byte                     |
-| 4        | Integer    | 4 byte                     |
-| 5        | Long       | 8 byte                     |
-| 6        | ByteArray  | 2 byte uzunluk + veri      |
-| 7        | String     | 2 byte uzunluk + veri      |
-| 8        | Timestamp  | 8 byte                     |
-| 9        | Uuid       | 16 byte                    |
+| Tip Kodu | Tip Adi   | Boyut                 |
+|----------|-----------|-----------------------|
+| 0        | BoolTrue  | 0 byte                |
+| 1        | BoolFalse | 0 byte                |
+| 2        | Byte      | 1 byte                |
+| 3        | Short     | 2 byte                |
+| 4        | Integer   | 4 byte                |
+| 5        | Long      | 8 byte                |
+| 6        | ByteArray | 2 byte uzunluk + veri |
+| 7        | String    | 2 byte uzunluk + veri |
+| 8        | Timestamp | 8 byte                |
+| 9        | Uuid      | 16 byte               |
 
 ### Olay Tipleri
 
-| Olay Tipi              | Aciklama                              |
-|------------------------|---------------------------------------|
-| assistantResponseEvent | Asistan metin yaniti                  |
-| toolUseEvent           | Arac cagrisi olaylari                 |
-| meteringEvent          | Faturalandirma bilgisi                |
-| contextUsageEvent      | Baglam penceresi kullanim yuzdesi     |
-| error                  | Sunucu hatasi                         |
-| exception              | Sunucu istisnasi                      |
+| Olay Tipi              | Aciklama                          |
+|------------------------|-----------------------------------|
+| assistantResponseEvent | Asistan metin yaniti              |
+| toolUseEvent           | Arac cagrisi olaylari             |
+| meteringEvent          | Faturalandirma bilgisi            |
+| contextUsageEvent      | Baglam penceresi kullanim yuzdesi |
+| error                  | Sunucu hatasi                     |
+| exception              | Sunucu istisnasi                  |
 
 ### Kod Cozucu Durum Makinesi
 
@@ -349,98 +349,98 @@ Anthropic istegi Kiro formatina donusturulur:
 
 ### Hata Tipleri
 
-| Hata Tipi                  | Aciklama                              |
-|----------------------------|---------------------------------------|
-| Incomplete                 | Veri yetersiz, daha fazla byte gerekli|
-| PreludeCrcMismatch         | Prelude CRC dogrulama hatasi          |
-| MessageCrcMismatch         | Mesaj CRC dogrulama hatasi            |
-| InvalidHeaderType          | Gecersiz baslik deger tipi            |
-| HeaderParseFailed          | Baslik ayrıştirma hatasi              |
-| MessageTooLarge            | Mesaj boyutu limiti asildi            |
-| MessageTooSmall            | Mesaj boyutu minimum altinda          |
-| InvalidMessageType         | Gecersiz mesaj tipi                   |
-| PayloadDeserialize         | Payload JSON ayrıştirma hatasi        |
-| TooManyErrors              | Cok fazla ardisik hata, durdu         |
-| BufferOverflow             | Tampon tasma hatasi                   |
+| Hata Tipi          | Aciklama                               |
+|--------------------|----------------------------------------|
+| Incomplete         | Veri yetersiz, daha fazla byte gerekli |
+| PreludeCrcMismatch | Prelude CRC dogrulama hatasi           |
+| MessageCrcMismatch | Mesaj CRC dogrulama hatasi             |
+| InvalidHeaderType  | Gecersiz baslik deger tipi             |
+| HeaderParseFailed  | Baslik ayrıştirma hatasi               |
+| MessageTooLarge    | Mesaj boyutu limiti asildi             |
+| MessageTooSmall    | Mesaj boyutu minimum altinda           |
+| InvalidMessageType | Gecersiz mesaj tipi                    |
+| PayloadDeserialize | Payload JSON ayrıştirma hatasi         |
+| TooManyErrors      | Cok fazla ardisik hata, durdu          |
+| BufferOverflow     | Tampon tasma hatasi                    |
 
 ### HTTP Durum Kodu Isleme
 
 | Durum Kodu | Islem                                      |
-|------------|-------------------------------------------|
-| 401        | Kimlik bilgileri suresi dolmus/gecersiz   |
-| 403        | Hesap askiya alinmis, gecersiz olarak isle|
-| 429        | Oran siniri, 5 dakika soguma suresi       |
-| 500-599    | Sunucu hatasi, gecici olarak kullanilamaz |
+|------------|--------------------------------------------|
+| 401        | Kimlik bilgileri suresi dolmus/gecersiz    |
+| 403        | Hesap askiya alinmis, gecersiz olarak isle |
+| 429        | Oran siniri, 5 dakika soguma suresi        |
+| 500-599    | Sunucu hatasi, gecici olarak kullanilamaz  |
 
 ## Hesap Havuzu Yonetimi
 
 ### Hesap Durumlari
 
-| Durum     | Aciklama                                    |
-|-----------|---------------------------------------------|
-| Active    | Kullanima hazir                             |
-| Cooldown  | Oran siniri nedeniyle soguma surecinde      |
-| Invalid   | Askiya alinmis veya gecersiz                |
-| Disabled  | Kullanici tarafindan devre disi birakildi   |
+| Durum    | Aciklama                                  |
+|----------|-------------------------------------------|
+| Active   | Kullanima hazir                           |
+| Cooldown | Oran siniri nedeniyle soguma surecinde    |
+| Invalid  | Askiya alinmis veya gecersiz              |
+| Disabled | Kullanici tarafindan devre disi birakildi |
 
 ### Secim Stratejileri
 
-| Strateji    | Aciklama                                    |
-|-------------|---------------------------------------------|
-| RoundRobin  | Sirali dongusel secim (varsayilan)          |
-| Random      | Rastgele hesap secimi                       |
-| LeastUsed   | En az kullanilan hesabi sec                 |
+| Strateji   | Aciklama                           |
+|------------|------------------------------------|
+| RoundRobin | Sirali dongusel secim (varsayilan) |
+| Random     | Rastgele hesap secimi              |
+| LeastUsed  | En az kullanilan hesabi sec        |
 
 ### Veri Kaliciligi
 
 Hesap havuzu modu acik oldugunda asagidaki veriler DATA_DIR'e kaydedilir:
 
-| Dosya             | Aciklama                              |
-|-------------------|---------------------------------------|
-| accounts.json     | Hesap bilgileri ve durumlari         |
-| request_logs.json | Istek kayitlari (maks. 1000 adet)    |
-| usage_cache.json  | Hesap kota onbellegi                 |
+| Dosya             | Aciklama                          |
+|-------------------|-----------------------------------|
+| accounts.json     | Hesap bilgileri ve durumlari      |
+| request_logs.json | Istek kayitlari (maks. 1000 adet) |
+| usage_cache.json  | Hesap kota onbellegi              |
 
 ## Yapilandirma
 
 ### config.json
 
-| Alan                   | Tip    | Varsayilan  | Aciklama                          |
-|------------------------|--------|-------------|-----------------------------------|
-| host                   | String | 0.0.0.0     | Dinleme adresi                    |
-| port                   | Number | 8080        | Dinleme portu                     |
-| apiKey                 | String | -           | API anahtari                      |
-| region                 | String | us-east-1   | AWS bolgesi                       |
-| kiroVersion            | String | 0.8.0       | Kiro surum numarasi               |
-| machineId              | String | Otomatik    | Ozel makine kodu (64 karakter)    |
-| systemVersion          | String | Rastgele    | Isletim sistemi surumu            |
-| nodeVersion            | String | 22.21.1     | Node.js surumu                    |
-| countTokensApiUrl      | String | -           | Harici token sayim API'si         |
-| countTokensApiKey      | String | -           | Token sayim API anahtari          |
-| countTokensAuthType    | String | x-api-key   | Kimlik dogrulama tipi             |
-| proxyUrl               | String | -           | HTTP/SOCKS5 proxy adresi          |
-| proxyUsername          | String | -           | Proxy kullanici adi               |
-| proxyPassword          | String | -           | Proxy sifresi                     |
+| Alan                | Tip    | Varsayilan | Aciklama                       |
+|---------------------|--------|------------|--------------------------------|
+| host                | String | 0.0.0.0    | Dinleme adresi                 |
+| port                | Number | 8080       | Dinleme portu                  |
+| apiKey              | String | -          | API anahtari                   |
+| region              | String | us-east-1  | AWS bolgesi                    |
+| kiroVersion         | String | 0.8.0      | Kiro surum numarasi            |
+| machineId           | String | Otomatik   | Ozel makine kodu (64 karakter) |
+| systemVersion       | String | Rastgele   | Isletim sistemi surumu         |
+| nodeVersion         | String | 22.21.1    | Node.js surumu                 |
+| countTokensApiUrl   | String | -          | Harici token sayim API'si      |
+| countTokensApiKey   | String | -          | Token sayim API anahtari       |
+| countTokensAuthType | String | x-api-key  | Kimlik dogrulama tipi          |
+| proxyUrl            | String | -          | HTTP/SOCKS5 proxy adresi       |
+| proxyUsername       | String | -          | Proxy kullanici adi            |
+| proxyPassword       | String | -          | Proxy sifresi                  |
 
 ### Ortam Degiskenleri
 
-| Degisken         | Varsayilan  | Aciklama                          |
-|------------------|-------------|-----------------------------------|
-| HOST             | 0.0.0.0     | Dinleme adresi                    |
-| PORT             | 8080        | Dinleme portu                     |
-| API_KEY          | -           | API anahtari                      |
-| REGION           | us-east-1   | AWS bolgesi                       |
-| POOL_MODE        | false       | Hesap havuzu modunu etkinlestir   |
-| DATA_DIR         | ./data      | Veri depolama dizini              |
-| REFRESH_TOKEN    | -           | OAuth yenileme tokeni             |
-| AUTH_METHOD      | -           | Kimlik dogrulama yontemi          |
-| CLIENT_ID        | -           | IdC istemci kimlik numarasi       |
-| CLIENT_SECRET    | -           | IdC istemci sifresi               |
-| KIRO_VERSION     | 0.8.0       | Kiro surum numarasi               |
-| MACHINE_ID       | -           | Ozel makine kodu                  |
-| PROXY_URL        | -           | Proxy adresi                      |
-| PROXY_USERNAME   | -           | Proxy kullanici adi               |
-| PROXY_PASSWORD   | -           | Proxy sifresi                     |
+| Degisken       | Varsayilan | Aciklama                        |
+|----------------|------------|---------------------------------|
+| HOST           | 0.0.0.0    | Dinleme adresi                  |
+| PORT           | 8080       | Dinleme portu                   |
+| API_KEY        | -          | API anahtari                    |
+| REGION         | us-east-1  | AWS bolgesi                     |
+| POOL_MODE      | false      | Hesap havuzu modunu etkinlestir |
+| DATA_DIR       | ./data     | Veri depolama dizini            |
+| REFRESH_TOKEN  | -          | OAuth yenileme tokeni           |
+| AUTH_METHOD    | -          | Kimlik dogrulama yontemi        |
+| CLIENT_ID      | -          | IdC istemci kimlik numarasi     |
+| CLIENT_SECRET  | -          | IdC istemci sifresi             |
+| KIRO_VERSION   | 0.8.0      | Kiro surum numarasi             |
+| MACHINE_ID     | -          | Ozel makine kodu                |
+| PROXY_URL      | -          | Proxy adresi                    |
+| PROXY_USERNAME | -          | Proxy kullanici adi             |
+| PROXY_PASSWORD | -          | Proxy sifresi                   |
 
 ## Cihaz Parmak Izi (Machine ID)
 
@@ -462,18 +462,18 @@ Sonuc: 64 karakter hex dizesi
 
 ### Kiro API Istekleri Icin
 
-| Baslik                      | Deger                                        |
-|-----------------------------|----------------------------------------------|
-| Content-Type                | application/json                             |
-| Authorization               | Bearer {token}                               |
-| Host                        | q.{region}.amazonaws.com                     |
-| x-amzn-codewhisperer-optout | true                                         |
-| x-amzn-kiro-agent-mode      | vibe                                         |
+| Baslik                      | Deger                                           |
+|-----------------------------|-------------------------------------------------|
+| Content-Type                | application/json                                |
+| Authorization               | Bearer {token}                                  |
+| Host                        | q.{region}.amazonaws.com                        |
+| x-amzn-codewhisperer-optout | true                                            |
+| x-amzn-kiro-agent-mode      | vibe                                            |
 | x-amz-user-agent            | aws-sdk-js/1.0.27 KiroIDE-{version}-{machineId} |
-| User-Agent                  | aws-sdk-js/1.0.27 ua/2.1 os/{os} lang/js ... |
-| amz-sdk-invocation-id       | {uuid}                                       |
-| amz-sdk-request             | attempt=1; max=3                             |
-| Connection                  | close                                        |
+| User-Agent                  | aws-sdk-js/1.0.27 ua/2.1 os/{os} lang/js ...    |
+| amz-sdk-invocation-id       | {uuid}                                          |
+| amz-sdk-request             | attempt=1; max=3                                |
+| Connection                  | close                                           |
 
 ## Thinking Modu
 
@@ -578,11 +578,11 @@ data: {"type": "ping"}
 
 ### Icerik Blok Tipleri
 
-| Tip      | Aciklama                    |
-|----------|----------------------------|
-| text     | Metin icerigi              |
-| thinking | Dusunme icerigi            |
-| tool_use | Arac cagrisi               |
+| Tip      | Aciklama        |
+|----------|-----------------|
+| text     | Metin icerigi   |
+| thinking | Dusunme icerigi |
+| tool_use | Arac cagrisi    |
 
 ## Kota Yonetimi
 
@@ -650,38 +650,38 @@ strip = true    # Sembol cikarma
 
 ### HTTP Istemci Ayarlari
 
-| Ayar               | Deger      | Aciklama                    |
-|--------------------|------------|----------------------------|
-| Zaman Asimi        | 720 saniye | API istekleri icin (12 dk)  |
-| Token Yenileme     | 60 saniye  | Token yenileme icin         |
-| Baglanti           | close      | Her istekten sonra kapat    |
+| Ayar           | Deger      | Aciklama                   |
+|----------------|------------|----------------------------|
+| Zaman Asimi    | 720 saniye | API istekleri icin (12 dk) |
+| Token Yenileme | 60 saniye  | Token yenileme icin        |
+| Baglanti       | close      | Her istekten sonra kapat   |
 
 ### Tampon Ayarlari
 
-| Ayar                   | Deger    | Aciklama                    |
-|------------------------|----------|----------------------------|
-| Varsayilan Kapasite    | 8 KB     | Baslangic tampon boyutu    |
-| Maksimum Tampon        | 16 MB    | Maksimum tampon boyutu     |
-| Maksimum Ardisik Hata  | 5        | Durdurmadan once           |
+| Ayar                  | Deger | Aciklama                |
+|-----------------------|-------|-------------------------|
+| Varsayilan Kapasite   | 8 KB  | Baslangic tampon boyutu |
+| Maksimum Tampon       | 16 MB | Maksimum tampon boyutu  |
+| Maksimum Ardisik Hata | 5     | Durdurmadan once        |
 
 ## Bagimliliklar
 
-| Paket             | Surum  | Aciklama                          |
-|-------------------|--------|-----------------------------------|
-| axum              | 0.8    | Web framework                     |
-| tokio             | 1.0    | Asenkron runtime                  |
-| reqwest           | 0.12   | HTTP istemci (stream, json, socks)|
-| serde             | 1.0    | Serializasyon                     |
-| serde_json        | 1.0    | JSON isleme                       |
-| tracing           | 0.1    | Loglama                           |
-| anyhow            | 1.0    | Hata yonetimi                     |
-| chrono            | 0.4    | Tarih/saat isleme                 |
-| uuid              | 1.10   | UUID uretimi                      |
-| sha2              | 0.10   | SHA256 hash                       |
-| crc               | 3      | CRC32 hesaplama                   |
-| bytes             | 1      | Etkin byte tamponu                |
-| tower-http        | 0.6    | CORS middleware                   |
-| clap              | 4.5    | Komut satiri ayrıştirici          |
+| Paket      | Surum | Aciklama                           |
+|------------|-------|------------------------------------|
+| axum       | 0.8   | Web framework                      |
+| tokio      | 1.0   | Asenkron runtime                   |
+| reqwest    | 0.12  | HTTP istemci (stream, json, socks) |
+| serde      | 1.0   | Serializasyon                      |
+| serde_json | 1.0   | JSON isleme                        |
+| tracing    | 0.1   | Loglama                            |
+| anyhow     | 1.0   | Hata yonetimi                      |
+| chrono     | 0.4   | Tarih/saat isleme                  |
+| uuid       | 1.10  | UUID uretimi                       |
+| sha2       | 0.10  | SHA256 hash                        |
+| crc        | 3     | CRC32 hesaplama                    |
+| bytes      | 1     | Etkin byte tamponu                 |
+| tower-http | 0.6   | CORS middleware                    |
+| clap       | 4.5   | Komut satiri ayrıştirici           |
 
 ## Calistirma Modlari
 

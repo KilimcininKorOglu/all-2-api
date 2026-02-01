@@ -108,8 +108,8 @@ curl http://localhost:13003/api/client-ip
 
 ## Configuration Files
 
-| File                         | Description              |
-|------------------------------|--------------------------|
+| File                              | Description              |
+|-----------------------------------|--------------------------|
 | `code/docker-compose.cluster.yml` | Fixed 5 instances config |
 | `code/docker-compose.scale.yml`   | Dynamic scaling config   |
 | `code/src/cluster/balancer.js`    | Load balancer service    |

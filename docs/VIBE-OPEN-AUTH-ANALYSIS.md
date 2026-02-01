@@ -4,17 +4,17 @@ Bu belge, `vibe-open-auth` projesindeki Kiro (AWS CodeWhisperer) ozelliklerinin 
 
 ## Genel Bakis
 
-| Ozellik                      | Aciklama                                                                 |
-|------------------------------|--------------------------------------------------------------------------|
-| **Proje Adi**                | vibe-open-auth                                                           |
-| **Versiyon**                 | 1.0.19                                                                   |
-| **Lisans**                   | MIT                                                                      |
-| **Dil**                      | TypeScript                                                               |
-| **Platform**                 | Node.js >= 20.0.0                                                        |
-| **Modul Sistemi**            | ES Modules                                                               |
-| **Repository**               | https://github.com/frankekn/vibe-open-auth                               |
-| **Ana Fonksiyon**            | OpenCode eklentisi - Google Antigravity ve Kiro (AWS) API'lerine erisim  |
-| **Desteklenen Modeller**     | Claude Opus 4.5, Claude Sonnet 4.5, Claude 3.7 Sonnet, Claude Haiku      |
+| Ozellik                  | Aciklama                                                                |
+|--------------------------|-------------------------------------------------------------------------|
+| **Proje Adi**            | vibe-open-auth                                                          |
+| **Versiyon**             | 1.0.19                                                                  |
+| **Lisans**               | MIT                                                                     |
+| **Dil**                  | TypeScript                                                              |
+| **Platform**             | Node.js >= 20.0.0                                                       |
+| **Modul Sistemi**        | ES Modules                                                              |
+| **Repository**           | https://github.com/frankekn/vibe-open-auth                              |
+| **Ana Fonksiyon**        | OpenCode eklentisi - Google Antigravity ve Kiro (AWS) API'lerine erisim |
+| **Desteklenen Modeller** | Claude Opus 4.5, Claude Sonnet 4.5, Claude 3.7 Sonnet, Claude Haiku     |
 
 ---
 
@@ -43,12 +43,12 @@ src/kiro/
 
 ### 1. Social Auth (Google/GitHub)
 
-| Parametre           | Deger                                                        |
-|---------------------|--------------------------------------------------------------|
-| **Endpoint**        | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken`  |
-| **Metot**           | POST                                                         |
-| **Content-Type**    | application/json                                             |
-| **Body**            | `{ "refreshToken": "<refresh_token>" }`                      |
+| Parametre        | Deger                                                       |
+|------------------|-------------------------------------------------------------|
+| **Endpoint**     | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken` |
+| **Metot**        | POST                                                        |
+| **Content-Type** | application/json                                            |
+| **Body**         | `{ "refreshToken": "<refresh_token>" }`                     |
 
 **Yanit:**
 ```typescript
@@ -61,13 +61,13 @@ interface RefreshResponse {
 
 ### 2. IAM Identity Center (IdC)
 
-| Parametre           | Deger                                                        |
-|---------------------|--------------------------------------------------------------|
-| **Endpoint**        | `https://oidc.us-east-1.amazonaws.com/token`                 |
-| **Metot**           | POST                                                         |
-| **Content-Type**    | application/json                                             |
-| **Host Header**     | oidc.us-east-1.amazonaws.com                                 |
-| **User-Agent**      | aws-sdk-js/3.738.0 ... KiroIDE                               |
+| Parametre        | Deger                                        |
+|------------------|----------------------------------------------|
+| **Endpoint**     | `https://oidc.us-east-1.amazonaws.com/token` |
+| **Metot**        | POST                                         |
+| **Content-Type** | application/json                             |
+| **Host Header**  | oidc.us-east-1.amazonaws.com                 |
+| **User-Agent**   | aws-sdk-js/3.738.0 ... KiroIDE               |
 
 **Istek Body:**
 ```json
@@ -83,10 +83,10 @@ interface RefreshResponse {
 
 Kiro IDE, kimlik bilgilerini su konumda saklar:
 
-| Dosya                                           | Icerik                         |
-|-------------------------------------------------|--------------------------------|
-| `~/.aws/sso/cache/kiro-auth-token.json`         | Access/Refresh token, authMethod, clientIdHash |
-| `~/.aws/sso/cache/{clientIdHash}.json`          | clientId, clientSecret (IdC icin) |
+| Dosya                                   | Icerik                                         |
+|-----------------------------------------|------------------------------------------------|
+| `~/.aws/sso/cache/kiro-auth-token.json` | Access/Refresh token, authMethod, clientIdHash |
+| `~/.aws/sso/cache/{clientIdHash}.json`  | clientId, clientSecret (IdC icin)              |
 
 **kiro-auth-token.json Yapisi:**
 ```typescript
@@ -147,12 +147,12 @@ export function isKiroTokenExpired(token: KiroToken, bufferSeconds = 60): boolea
 
 ## API Endpoint'leri
 
-| Endpoint                        | URL                                                                |
-|---------------------------------|--------------------------------------------------------------------|
-| **CodeWhisperer API**           | `https://codewhisperer.us-east-1.amazonaws.com/generateAssistantResponse` |
-| **Kota Sorgulama**              | `https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits`     |
-| **Social Token Yenileme**       | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken`        |
-| **IdC Token Yenileme**          | `https://oidc.us-east-1.amazonaws.com/token`                       |
+| Endpoint                  | URL                                                                       |
+|---------------------------|---------------------------------------------------------------------------|
+| **CodeWhisperer API**     | `https://codewhisperer.us-east-1.amazonaws.com/generateAssistantResponse` |
+| **Kota Sorgulama**        | `https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits`            |
+| **Social Token Yenileme** | `https://prod.us-east-1.auth.desktop.kiro.dev/refreshToken`               |
+| **IdC Token Yenileme**    | `https://oidc.us-east-1.amazonaws.com/token`                              |
 
 ### HTTP Header'lari
 
@@ -168,18 +168,18 @@ export const KIRO_HEADERS = {
 
 ## Model Haritasi
 
-| Anthropic Model                    | Kiro Model ID                      |
-|------------------------------------|------------------------------------|
-| `claude-sonnet-4-5`                | CLAUDE_SONNET_4_5_20250929_V1_0    |
-| `claude-sonnet-4-5-20250929`       | CLAUDE_SONNET_4_5_20250929_V1_0    |
-| `claude-sonnet-4-20250514`         | CLAUDE_SONNET_4_20250514_V1_0      |
-| `claude-3-7-sonnet-20250219`       | CLAUDE_3_7_SONNET_20250219_V1_0    |
-| `claude-3-5-haiku-20241022`        | auto                               |
-| `claude-haiku-4-5-20251001`        | auto                               |
-| `claude-opus-4-5`                  | claude-opus-4.5                    |
-| `claude-opus-4`                    | claude-opus-4.5                    |
-| `claude-opus-4-5-thinking`         | claude-opus-4.5                    |
-| `claude-sonnet-4-5-thinking`       | CLAUDE_SONNET_4_5_20250929_V1_0    |
+| Anthropic Model              | Kiro Model ID                   |
+|------------------------------|---------------------------------|
+| `claude-sonnet-4-5`          | CLAUDE_SONNET_4_5_20250929_V1_0 |
+| `claude-sonnet-4-5-20250929` | CLAUDE_SONNET_4_5_20250929_V1_0 |
+| `claude-sonnet-4-20250514`   | CLAUDE_SONNET_4_20250514_V1_0   |
+| `claude-3-7-sonnet-20250219` | CLAUDE_3_7_SONNET_20250219_V1_0 |
+| `claude-3-5-haiku-20241022`  | auto                            |
+| `claude-haiku-4-5-20251001`  | auto                            |
+| `claude-opus-4-5`            | claude-opus-4.5                 |
+| `claude-opus-4`              | claude-opus-4.5                 |
+| `claude-opus-4-5-thinking`   | claude-opus-4.5                 |
+| `claude-sonnet-4-5-thinking` | CLAUDE_SONNET_4_5_20250929_V1_0 |
 
 ---
 
@@ -294,14 +294,14 @@ export function extractEventPayload(
 
 ### Event Tipleri
 
-| Event Tipi                | Aciklama                           |
-|---------------------------|------------------------------------|
-| `assistantResponseEvent`  | Model yanit metni                  |
-| `toolUseEvent`            | Arac kullanim istegi               |
-| `codeEvent`               | Kod blogu                          |
-| `supplementaryWebLinksEvent` | Web baglantilari                |
-| `messageMetadataEvent`    | Mesaj metadata                     |
-| `error`                   | Hata mesaji                        |
+| Event Tipi                   | Aciklama             |
+|------------------------------|----------------------|
+| `assistantResponseEvent`     | Model yanit metni    |
+| `toolUseEvent`               | Arac kullanim istegi |
+| `codeEvent`                  | Kod blogu            |
+| `supplementaryWebLinksEvent` | Web baglantilari     |
+| `messageMetadataEvent`       | Mesaj metadata       |
+| `error`                      | Hata mesaji          |
 
 ---
 
@@ -333,14 +333,14 @@ interface AnthropicStreamEvent {
 
 ### SSE Event Turleri
 
-| Event                   | Aciklama                                |
-|-------------------------|-----------------------------------------|
-| `message_start`         | Mesaj baslangici                        |
-| `content_block_start`   | Icerik blogu baslangici (text/tool_use/thinking) |
-| `content_block_delta`   | Icerik blogu parcasi                    |
-| `content_block_stop`    | Icerik blogu sonu                       |
-| `message_delta`         | Mesaj durumu guncelleme                 |
-| `message_stop`          | Mesaj sonu                              |
+| Event                 | Aciklama                                         |
+|-----------------------|--------------------------------------------------|
+| `message_start`       | Mesaj baslangici                                 |
+| `content_block_start` | Icerik blogu baslangici (text/tool_use/thinking) |
+| `content_block_delta` | Icerik blogu parcasi                             |
+| `content_block_stop`  | Icerik blogu sonu                                |
+| `message_delta`       | Mesaj durumu guncelleme                          |
+| `message_stop`        | Mesaj sonu                                       |
 
 ---
 
@@ -405,12 +405,12 @@ export function closeToolLoopForThinking(contents: any[]): any[] {
 
 ### Arac Limitleri
 
-| Limit                            | Deger    |
-|----------------------------------|----------|
-| Maksimum arac ismi uzunlugu      | 64       |
-| Maksimum aciklama uzunlugu       | 10237    |
-| Hedef toplam boyut               | 20 KB    |
-| Minimum aciklama uzunlugu        | 50       |
+| Limit                       | Deger |
+|-----------------------------|-------|
+| Maksimum arac ismi uzunlugu | 64    |
+| Maksimum aciklama uzunlugu  | 10237 |
+| Hedef toplam boyut          | 20 KB |
+| Minimum aciklama uzunlugu   | 50    |
 
 ### Arac Sanitizasyonu
 
@@ -531,11 +531,11 @@ export class KiroTokenRefreshError extends Error {
 
 ### Hata Kodlari
 
-| Kod                    | Aciklama                                    |
-|------------------------|---------------------------------------------|
-| `refresh_failed`       | Token yenileme basarisiz                    |
-| `missing_credentials`  | IdC icin clientId/clientSecret eksik        |
-| `unknown_auth_method`  | Bilinmeyen kimlik dogrulama yontemi         |
+| Kod                   | Aciklama                             |
+|-----------------------|--------------------------------------|
+| `refresh_failed`      | Token yenileme basarisiz             |
+| `missing_credentials` | IdC icin clientId/clientSecret eksik |
+| `unknown_auth_method` | Bilinmeyen kimlik dogrulama yontemi  |
 
 ### API Hata Yanitlari
 
@@ -649,16 +649,16 @@ interface KiroAccountStore {
 
 ### Hesap Islemleri
 
-| Fonksiyon                   | Aciklama                              |
-|-----------------------------|---------------------------------------|
-| `loadKiroAccounts()`        | Hesaplari yukle                       |
-| `saveKiroAccounts()`        | Hesaplari kaydet                      |
-| `clearKiroAccounts()`       | Tum hesaplari sil                     |
-| `addKiroAccount()`          | Yeni hesap ekle                       |
-| `removeKiroAccount()`       | Hesap sil                             |
-| `getActiveKiroAccount()`    | Aktif hesabi getir                    |
-| `setActiveKiroAccount()`    | Aktif hesabi degistir                 |
-| `updateKiroAccountToken()`  | Token guncelle                        |
+| Fonksiyon                  | Aciklama              |
+|----------------------------|-----------------------|
+| `loadKiroAccounts()`       | Hesaplari yukle       |
+| `saveKiroAccounts()`       | Hesaplari kaydet      |
+| `clearKiroAccounts()`      | Tum hesaplari sil     |
+| `addKiroAccount()`         | Yeni hesap ekle       |
+| `removeKiroAccount()`      | Hesap sil             |
+| `getActiveKiroAccount()`   | Aktif hesabi getir    |
+| `setActiveKiroAccount()`   | Aktif hesabi degistir |
+| `updateKiroAccountToken()` | Token guncelle        |
 
 ---
 
@@ -744,21 +744,21 @@ Google SSE Yaniti
 
 ### Rol Donusumu
 
-| Google API | Anthropic  | CodeWhisperer          |
-|------------|------------|------------------------|
-| user       | user       | userInputMessage       |
-| model      | assistant  | assistantResponseMessage |
+| Google API | Anthropic | CodeWhisperer            |
+|------------|-----------|--------------------------|
+| user       | user      | userInputMessage         |
+| model      | assistant | assistantResponseMessage |
 
 ---
 
 ## Bagimliliklar
 
-| Paket                   | Versiyon | Aciklama                    |
-|-------------------------|----------|-----------------------------|
-| @openauthjs/openauth    | ^0.4.3   | OAuth istemcisi             |
-| proper-lockfile         | ^4.1.2   | Dosya kilitleme             |
-| xdg-basedir             | ^5.1.0   | XDG dizin yollari           |
-| zod                     | ^3.24.0  | Schema dogrulama            |
+| Paket                | Versiyon | Aciklama          |
+|----------------------|----------|-------------------|
+| @openauthjs/openauth | ^0.4.3   | OAuth istemcisi   |
+| proper-lockfile      | ^4.1.2   | Dosya kilitleme   |
+| xdg-basedir          | ^5.1.0   | XDG dizin yollari |
+| zod                  | ^3.24.0  | Schema dogrulama  |
 
 ---
 

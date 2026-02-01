@@ -6,13 +6,13 @@ Bu dokuman, [AIClient-2-API](https://github.com/Ravens2121/AIClient-2-API) proje
 
 AIClient-2-API, Node.js tabanli bir API proxy servisidir. Kiro entegrasyonu asagidaki ozellikleri icerir:
 
-| Ozellik                | Aciklama                                              |
-|------------------------|-------------------------------------------------------|
-| Provider Type          | `claude-kiro-oauth`                                   |
-| Authentication Methods | Social Auth (Google/GitHub), AWS Builder ID           |
-| Token Management       | Auto-refresh, credential file storage                 |
-| API Endpoints          | CodeWhisperer + Amazon Q streaming                    |
-| Format Output          | Claude-compatible JSON response                       |
+| Ozellik                | Aciklama                                    |
+|------------------------|---------------------------------------------|
+| Provider Type          | `claude-kiro-oauth`                         |
+| Authentication Methods | Social Auth (Google/GitHub), AWS Builder ID |
+| Token Management       | Auto-refresh, credential file storage       |
+| API Endpoints          | CodeWhisperer + Amazon Q streaming          |
+| Format Output          | Claude-compatible JSON response             |
 
 ---
 
@@ -637,17 +637,17 @@ for (const tr of toolResults) {
 
 ## 13. Karsilastirma: AIClient-2-API vs Mevcut Sistem
 
-| Ozellik                    | AIClient-2-API (Node.js)         | Mevcut Sistem (Node.js)   |
-|----------------------------|----------------------------------|---------------------------|
-| Auth Methods               | Social + Builder ID              | Social + Builder ID + IdC |
-| HTTP Callback              | localhost:19876-19880            | -                         |
-| Streaming                  | Real streaming                   | Pseudo streaming          |
-| Token Counting             | @anthropic-ai/tokenizer          | Manual estimation         |
-| Tool Call Parsing          | Structured + Bracket format      | -                         |
-| Message Merging            | Automatic                        | -                         |
-| Machine ID                 | SHA256 hash of identifiers       | -                         |
-| Usage Limits API           | Supported                        | Supported                 |
-| Amazon Q URL Support       | Model prefix ile                 | -                         |
+| Ozellik              | AIClient-2-API (Node.js)    | Mevcut Sistem (Node.js)   |
+|----------------------|-----------------------------|---------------------------|
+| Auth Methods         | Social + Builder ID         | Social + Builder ID + IdC |
+| HTTP Callback        | localhost:19876-19880       | -                         |
+| Streaming            | Real streaming              | Pseudo streaming          |
+| Token Counting       | @anthropic-ai/tokenizer     | Manual estimation         |
+| Tool Call Parsing    | Structured + Bracket format | -                         |
+| Message Merging      | Automatic                   | -                         |
+| Machine ID           | SHA256 hash of identifiers  | -                         |
+| Usage Limits API     | Supported                   | Supported                 |
+| Amazon Q URL Support | Model prefix ile            | -                         |
 
 ---
 
