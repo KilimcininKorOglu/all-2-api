@@ -486,7 +486,7 @@ async function updateSidebarStats() {
 
         if (totalEl) totalEl.textContent = total;
         if (activeEl) activeEl.textContent = active;
-        if (navAccountsEl) navAccountsEl.textContent = total;
+        if (navAccountsEl) navAccountsEl.textContent = kiroTotal;
         if (navErrorEl) navErrorEl.textContent = errorCount;
         if (navGeminiEl) navGeminiEl.textContent = geminiCount;
         if (navWarpEl) navWarpEl.textContent = warpCount;
