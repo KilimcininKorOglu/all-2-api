@@ -10,6 +10,7 @@ import { KiroClient } from './kiro/client.js';
 import { KiroService } from './kiro/kiro-service.js';
 import { KiroAPI } from './kiro/api.js';
 import { KiroAuth, generateCodeVerifier, generateCodeChallenge, generateSocialAuthUrl, exchangeSocialAuthCode } from './kiro/auth.js';
+import { hasWebSearchTool, handleWebSearchRequest } from './kiro/websearch-service.js';
 import { OrchidsAPI } from './orchids/orchids-service.js';
 import { OrchidsChatService, ORCHIDS_MODELS } from './orchids/orchids-chat-service.js';
 import { setupOrchidsRoutes } from './orchids/orchids-routes.js';
@@ -2297,6 +2298,42 @@ app.post('/v1/messages', async (req, res) => {
 
         // ============ Default to Kiro/Claude Provider ============
         const { messages, max_tokens, stream, system, tools, thinking } = req.body;
+
+        // ============ Check for WebSearch Tool (Kiro MCP API) ============
+        if (hasWebSearchTool(tools)) {
+            console.log(`[${getTimestamp()}] [API] Request routed to Kiro WebSearch (MCP) | Model: ${model}`);
+            logData.path = '/v1/messages (websearch)';
+
+            // Get credential for MCP API call
+            const credentials = await store.getAllActive();
+            if (credentials.length === 0) {
+                decrementConcurrent(keyRecord.id, clientIp);
+                logData.statusCode = 503;
+                logData.errorMessage = 'No active credentials for WebSearch';
+                await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
+                return res.status(503).json({ error: { type: 'service_error', message: 'No active credentials' } });
+            }
+
+            const credential = credentials[0]; // Use first available credential
+            logData.credentialId = credential.id;
+            logData.credentialName = credential.name;
+
+            try {
+                await handleWebSearchRequest(req, res, credential);
+                logData.statusCode = 200;
+            } catch (error) {
+                console.error(`[${getTimestamp()}] [WebSearch] Error:`, error.message);
+                logData.statusCode = 500;
+                logData.errorMessage = error.message;
+                if (!res.headersSent) {
+                    res.status(500).json({ error: { type: 'api_error', message: error.message } });
+                }
+            } finally {
+                decrementConcurrent(keyRecord.id, clientIp);
+                await apiLogStore.create({ ...logData, durationMs: Date.now() - startTime });
+            }
+            return;
+        }
 
         // Record request info
         logData.model = model || 'claude-sonnet-4-20250514';
