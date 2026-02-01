@@ -1524,6 +1524,17 @@ app.get('/api/model-aliases/builtin', authMiddleware, async (req, res) => {
         const builtinAliases = {
             kiro: MODEL_MAPPING,
             bedrock: BEDROCK_MODEL_MAPPING,
+            gemini: {
+                // Gemini Antigravity model aliases
+                'gemini-2.5-pro': 'gemini-2.5-pro-preview-06-05',
+                'gemini-2.5-flash': 'gemini-2.5-flash-preview-05-20',
+                'gemini-2.0-flash': 'gemini-2.0-flash-001',
+                'gemini-2.0-flash-thinking': 'gemini-2.0-flash-thinking-exp-01-21',
+                'gemini-1.5-pro': 'gemini-1.5-pro',
+                'gemini-1.5-flash': 'gemini-1.5-flash',
+                'gemini-pro': 'gemini-1.5-pro',
+                'gemini-flash': 'gemini-1.5-flash'
+            },
             vertex: VERTEX_GEMINI_MODEL_MAPPING,
             warp: {
                 'claude-opus-4-5-20251101': 'claude-4-5-opus',
