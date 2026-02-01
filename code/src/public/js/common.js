@@ -453,17 +453,26 @@ async function updateSidebarStats() {
         const credentials = credResult.success ? credResult.data : [];
         const errors = errorResult.success ? errorResult.data : [];
         const geminiCredentials = geminiResult.success ? geminiResult.data : [];
-        const warpStats = warpResult.success ? warpResult.data : { total: 0 };
-        const vertexStats = vertexResult || { total: 0 };
+        const warpStats = warpResult.success ? warpResult.data : { total: 0, active: 0 };
+        const vertexStats = vertexResult || { total: 0, active: 0 };
         const anthropicCredentials = anthropicResult.success ? anthropicResult.data : [];
 
-        const total = credentials.length;
-        const active = credentials.filter(c => c.isActive).length;
+        // Individual provider counts
+        const kiroTotal = credentials.length;
+        const kiroActive = credentials.filter(c => c.isActive).length;
         const errorCount = errors.length;
         const geminiCount = geminiCredentials.length;
+        const geminiActive = geminiCredentials.filter(c => c.isActive).length;
         const warpCount = warpStats.total || 0;
+        const warpActive = warpStats.active || 0;
         const vertexCount = vertexStats.total || 0;
+        const vertexActive = vertexStats.active || 0;
         const anthropicCount = anthropicCredentials.length;
+        const anthropicActive = anthropicCredentials.filter(c => c.isActive).length;
+
+        // Combined totals for all providers
+        const total = kiroTotal + geminiCount + warpCount + vertexCount + anthropicCount;
+        const active = kiroActive + geminiActive + warpActive + vertexActive + anthropicActive;
 
         // Update sidebar numbers
         const totalEl = document.getElementById('stat-total');
