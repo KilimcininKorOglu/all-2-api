@@ -8,11 +8,15 @@ export const KIRO_CONSTANTS = {
     // Note: Both Builder ID and IAM Identity Center use the same oidc endpoint
     REFRESH_SSO_OIDC_URL: 'https://oidc.{{region}}.amazonaws.com/token',
 
-    // API endpoints
-    BASE_URL: 'https://codewhisperer.{{region}}.amazonaws.com/generateAssistantResponse',
-    AMAZON_Q_URL: 'https://codewhisperer.{{region}}.amazonaws.com/SendMessageStreaming',
+    // API endpoints - Q endpoint is primary (works in all regions)
+    BASE_URL: 'https://q.{{region}}.amazonaws.com/generateAssistantResponse',
+    // Fallback endpoint (legacy, only works in us-east-1)
+    CODEWHISPERER_URL: 'https://codewhisperer.{{region}}.amazonaws.com/generateAssistantResponse',
     USAGE_LIMITS_URL: 'https://codewhisperer.{{region}}.amazonaws.com/getUsageLimits',
     LIST_MODELS_URL: 'https://codewhisperer.{{region}}.amazonaws.com/ListAvailableModels',
+
+    // Agent mode for Kiro requests
+    AGENT_MODE: 'vibe',
 
     // Default configuration
     DEFAULT_MODEL_NAME: 'claude-sonnet-4-20250514',

@@ -62,12 +62,13 @@ export class KiroService {
             httpAgent,
             httpsAgent,
             headers: {
-                'Content-Type': KIRO_CONSTANTS.CONTENT_TYPE_JSON,
+                'Content-Type': 'application/json',
                 'Accept': KIRO_CONSTANTS.ACCEPT_JSON,
                 'amz-sdk-request': 'attempt=1; max=1',
-                'x-amzn-kiro-agent-mode': 'spec',
-                'x-amz-user-agent': `aws-sdk-js/1.0.0 KiroIDE-${kiroVersion}-${machineId}`,
-                'user-agent': `aws-sdk-js/1.0.0 ua/2.1 os/${osName} lang/js md/nodejs#${nodeVersion} api/codewhispererruntime#1.0.0 m/E KiroIDE-${kiroVersion}-${machineId}`,
+                'x-amzn-kiro-agent-mode': KIRO_CONSTANTS.AGENT_MODE || 'vibe',
+                'x-amzn-codewhisperer-optout': 'true',
+                'x-amz-user-agent': `aws-sdk-js/1.0.27 KiroIDE-${kiroVersion}-${machineId}`,
+                'user-agent': `aws-sdk-js/1.0.27 ua/2.1 os/${osName} lang/js md/nodejs#${nodeVersion} api/codewhispererstreaming#1.0.27 m/E KiroIDE-${kiroVersion}-${machineId}`,
                 'Connection': 'close'
             },
         };
