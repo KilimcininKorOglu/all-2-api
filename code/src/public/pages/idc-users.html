@@ -219,6 +219,119 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        .users-section {
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+        .users-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+        .users-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .users-table th,
+        .users-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .users-table th {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .users-table td {
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+        .users-table tr:hover {
+            background: var(--bg-tertiary);
+        }
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--primary);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .user-name {
+            font-weight: 500;
+        }
+        .user-email {
+            font-size: 12px;
+            color: var(--text-secondary);
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+        .badge.active {
+            background: rgba(34, 197, 94, 0.1);
+            color: var(--success);
+        }
+        .badge.inactive {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--error);
+        }
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: var(--text-secondary);
+        }
+        .empty-state svg {
+            width: 48px;
+            height: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            margin-top: 16px;
+        }
+        .pagination button {
+            padding: 8px 12px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-primary);
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .pagination button:hover:not(:disabled) {
+            background: var(--bg-tertiary);
+        }
+        .pagination button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .pagination span {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
     </style>
 </head>
 <body>
@@ -385,17 +498,56 @@
                     </div>
                 </div>
 
+                <!-- Users List Section -->
+                <div class="users-section" id="users-list-section" style="display: none;">
+                    <div class="users-header">
+                        <div class="form-section-title" style="margin-bottom: 0;">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            Existing Users
+                        </div>
+                        <button class="btn btn-secondary btn-sm" id="refresh-users-btn">
+                            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/>
+                                <path d="M3 3v5h5"/>
+                            </svg>
+                            Refresh
+                        </button>
+                    </div>
+                    <div id="users-table-container">
+                        <div class="empty-state">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                                <circle cx="9" cy="7" r="4"/>
+                                <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+                                <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                            </svg>
+                            <p>Validate AWS configuration to view users</p>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Results Section -->
                 <div id="results-container"></div>
             </div>
         </main>
     </div>
 
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
     <script src="/js/common.js"></script>
     <script>
         // State
         let awsConfigValidated = false;
         let awsConfig = {};
+        let usersData = [];
+        let currentPage = 1;
+        const pageSize = 10;
 
         // DOM Elements
         const awsAccessKey = document.getElementById('aws-access-key');
@@ -414,6 +566,9 @@
         const createUserBtn = document.getElementById('create-user-btn');
         const resetFormBtn = document.getElementById('reset-form-btn');
         const resultsContainer = document.getElementById('results-container');
+        const usersListSection = document.getElementById('users-list-section');
+        const usersTableContainer = document.getElementById('users-table-container');
+        const refreshUsersBtn = document.getElementById('refresh-users-btn');
 
         // Load saved config
         function loadSavedConfig() {
@@ -481,6 +636,9 @@
                     userInfoSection.style.pointerEvents = 'auto';
                     
                     showToast('AWS configuration validated successfully', 'success');
+                    
+                    // Load users list
+                    await loadUsers();
                 } else {
                     showToast(data.error || 'Validation failed', 'error');
                 }
@@ -559,6 +717,9 @@
                     userGivenName.value = '';
                     userFamilyName.value = '';
                     userDisplayName.value = '';
+                    
+                    // Refresh users list
+                    await loadUsers();
                 } else {
                     showResult('error', { error: data.error });
                     showToast(data.error || 'Failed to create user', 'error');
@@ -648,8 +809,131 @@
             subscribeQDeveloper.checked = true;
         }
 
+        // Load Users
+        async function loadUsers() {
+            if (!awsConfigValidated) return;
+
+            usersListSection.style.display = 'block';
+            usersTableContainer.innerHTML = '<div class="empty-state"><span class="loading-spinner" style="border-color: var(--primary); border-top-color: transparent;"></span><p>Loading users...</p></div>';
+
+            try {
+                const res = await fetch('/api/idc/list-users', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${authToken}`
+                    },
+                    body: JSON.stringify({
+                        ...awsConfig,
+                        maxResults: 100
+                    })
+                });
+
+                const data = await res.json();
+                if (data.success) {
+                    usersData = data.data.users || [];
+                    renderUsersTable();
+                } else {
+                    usersTableContainer.innerHTML = `<div class="empty-state"><p>Failed to load users: ${data.error}</p></div>`;
+                }
+            } catch (e) {
+                usersTableContainer.innerHTML = `<div class="empty-state"><p>Failed to load users: ${e.message}</p></div>`;
+            }
+        }
+
+        // Render Users Table
+        function renderUsersTable() {
+            if (usersData.length === 0) {
+                usersTableContainer.innerHTML = `
+                    <div class="empty-state">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                            <circle cx="9" cy="7" r="4"/>
+                        </svg>
+                        <p>No users found in this Identity Store</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const totalPages = Math.ceil(usersData.length / pageSize);
+            const start = (currentPage - 1) * pageSize;
+            const end = start + pageSize;
+            const pageUsers = usersData.slice(start, end);
+
+            let html = `
+                <table class="users-table">
+                    <thead>
+                        <tr>
+                            <th>User</th>
+                            <th>Username</th>
+                            <th>User ID</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+            `;
+
+            pageUsers.forEach(user => {
+                const initials = getInitials(user.DisplayName || user.UserName);
+                const primaryEmail = user.Emails?.find(e => e.Primary)?.Value || user.Emails?.[0]?.Value || '-';
+                
+                html += `
+                    <tr>
+                        <td>
+                            <div class="user-info">
+                                <div class="user-avatar">${initials}</div>
+                                <div>
+                                    <div class="user-name">${user.DisplayName || user.UserName}</div>
+                                    <div class="user-email">${primaryEmail}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>${user.UserName}</td>
+                        <td><code style="font-size: 11px;">${user.UserId}</code></td>
+                        <td><span class="badge active">Active</span></td>
+                    </tr>
+                `;
+            });
+
+            html += `
+                    </tbody>
+                </table>
+            `;
+
+            if (totalPages > 1) {
+                html += `
+                    <div class="pagination">
+                        <button onclick="changePage(-1)" ${currentPage === 1 ? 'disabled' : ''}>Previous</button>
+                        <span>Page ${currentPage} of ${totalPages} (${usersData.length} users)</span>
+                        <button onclick="changePage(1)" ${currentPage === totalPages ? 'disabled' : ''}>Next</button>
+                    </div>
+                `;
+            } else {
+                html += `<div class="pagination"><span>${usersData.length} users</span></div>`;
+            }
+
+            usersTableContainer.innerHTML = html;
+        }
+
+        function getInitials(name) {
+            if (!name) return '?';
+            const parts = name.split(' ');
+            if (parts.length >= 2) {
+                return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+            }
+            return name.substring(0, 2).toUpperCase();
+        }
+
+        function changePage(delta) {
+            const totalPages = Math.ceil(usersData.length / pageSize);
+            currentPage = Math.max(1, Math.min(totalPages, currentPage + delta));
+            renderUsersTable();
+        }
+
         // Event Listeners
         validateAwsBtn.addEventListener('click', validateAWSConfig);
+        refreshUsersBtn.addEventListener('click', loadUsers);
         createUserBtn.addEventListener('click', createUser);
         resetFormBtn.addEventListener('click', resetForm);
 
@@ -666,7 +950,15 @@
         }
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load site settings first
+            await loadSiteSettings();
+
+            // Inject sidebar
+            document.getElementById('sidebar-container').innerHTML = getSidebarHTML();
+            initSidebar('idc-users');
+
+            if (!await checkAuth()) return;
             loadSavedConfig();
         });
     </script>

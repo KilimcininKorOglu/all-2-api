@@ -5718,6 +5718,49 @@ app.post('/api/idc/validate', authMiddleware, async (req, res) => {
     }
 });
 
+// List IAM Identity Center Users
+app.post('/api/idc/list-users', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+
+        const { accessKeyId, secretAccessKey, identityStoreId, region = 'us-east-1', maxResults = 100 } = req.body;
+
+        if (!accessKeyId || !secretAccessKey || !identityStoreId) {
+            return res.status(400).json({ success: false, error: 'Missing required AWS credentials' });
+        }
+
+        const { IdentitystoreClient, ListUsersCommand } = await import('@aws-sdk/client-identitystore');
+
+        const client = new IdentitystoreClient({
+            region,
+            credentials: { accessKeyId, secretAccessKey }
+        });
+
+        const users = [];
+        let nextToken = undefined;
+
+        // Paginate through all users
+        do {
+            const command = new ListUsersCommand({
+                IdentityStoreId: identityStoreId,
+                MaxResults: Math.min(maxResults - users.length, 100),
+                NextToken: nextToken
+            });
+            const response = await client.send(command);
+            users.push(...(response.Users || []));
+            nextToken = response.NextToken;
+        } while (nextToken && users.length < maxResults);
+
+        console.log(`[IDC] Listed ${users.length} users from ${identityStoreId}`);
+        res.json({ success: true, data: { users, total: users.length } });
+    } catch (error) {
+        console.error('[IDC] List users error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // Create IAM Identity Center User and optionally subscribe to Q Developer
 app.post('/api/idc/create-user', authMiddleware, async (req, res) => {
     try {
