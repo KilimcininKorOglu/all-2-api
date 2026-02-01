@@ -108,14 +108,14 @@ AWS SSO-OIDC endpoint'i uzerinden calisir.
 ```javascript
 const OAUTH_PROVIDERS = {
     'gemini-cli-oauth': {
-        clientId: 'SAMPLE_CLIENT_ID.apps.googleusercontent.com',
-        clientSecret: 'GOCSPX-SAMPLE_SECRET_1',
+        clientId: '681255809395-oo8ft2oprdrnp9e3aqf6av3hmdib135j.apps.googleusercontent.com',
+        clientSecret: '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',
         port: 8085,
         scope: ['https://www.googleapis.com/auth/cloud-platform']
     },
     'gemini-antigravity': {
-        clientId: 'SAMPLE_CLIENT_ID_2.apps.googleusercontent.com',
-        clientSecret: 'GOCSPX-SAMPLE_SECRET_2',
+        clientId: '1071006060591-tmhssin2h21lcre235vtolojh4g403ep.apps.googleusercontent.com',
+        clientSecret: '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',
         port: 8086
     }
 };
