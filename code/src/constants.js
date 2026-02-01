@@ -50,16 +50,19 @@ export const KIRO_CONSTANTS = {
         'ap-south-1',
         'ap-south-2',
         'ap-east-1',
-        // Middle East
+        // Middle East & Israel
         'me-south-1',
         'me-central-1',
+        'il-central-1',
         // Africa
         'af-south-1',
         // South America
         'sa-east-1',
         // Canada
         'ca-central-1',
-        'ca-west-1'
+        'ca-west-1',
+        // Mexico
+        'mx-central-1'
     ],
 
     // Request headers
