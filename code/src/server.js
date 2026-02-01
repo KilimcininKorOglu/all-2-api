@@ -5679,6 +5679,178 @@ app.get('/api/gemini/account-limits', authMiddleware, async (req, res) => {
     }
 });
 
+// ============ IAM Identity Center User Management ============
+
+// Validate AWS Configuration
+app.post('/api/idc/validate', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+
+        const { accessKeyId, secretAccessKey, identityStoreId, region = 'us-east-1' } = req.body;
+
+        if (!accessKeyId || !secretAccessKey || !identityStoreId) {
+            return res.status(400).json({ success: false, error: 'Missing required AWS credentials' });
+        }
+
+        // Import AWS SDK dynamically
+        const { IdentitystoreClient, ListUsersCommand } = await import('@aws-sdk/client-identitystore');
+
+        const client = new IdentitystoreClient({
+            region,
+            credentials: {
+                accessKeyId,
+                secretAccessKey
+            }
+        });
+
+        // Try to list users to validate credentials
+        await client.send(new ListUsersCommand({
+            IdentityStoreId: identityStoreId,
+            MaxResults: 1
+        }));
+
+        res.json({ success: true, message: 'AWS configuration validated successfully' });
+    } catch (error) {
+        console.error('[IDC] Validation error:', error.message);
+        res.status(400).json({ success: false, error: error.message });
+    }
+});
+
+// Create IAM Identity Center User and optionally subscribe to Q Developer
+app.post('/api/idc/create-user', authMiddleware, async (req, res) => {
+    try {
+        if (!req.user.isAdmin) {
+            return res.status(403).json({ success: false, error: 'Admin permission required' });
+        }
+
+        const {
+            accessKeyId,
+            secretAccessKey,
+            identityStoreId,
+            region = 'us-east-1',
+            email,
+            username,
+            givenName,
+            familyName,
+            displayName,
+            subscribeQDeveloper = true
+        } = req.body;
+
+        // Validation
+        if (!accessKeyId || !secretAccessKey || !identityStoreId) {
+            return res.status(400).json({ success: false, error: 'Missing required AWS credentials' });
+        }
+        if (!email || !username || !givenName || !familyName) {
+            return res.status(400).json({ success: false, error: 'Missing required user information' });
+        }
+        if (username.toLowerCase() === 'administrator' || username.toLowerCase() === 'awsadministrators') {
+            return res.status(400).json({ success: false, error: 'Username cannot be "Administrator" or "AWSAdministrators"' });
+        }
+        if (username.length > 128) {
+            return res.status(400).json({ success: false, error: 'Username cannot exceed 128 characters' });
+        }
+
+        // Import AWS SDK dynamically
+        const { IdentitystoreClient, CreateUserCommand } = await import('@aws-sdk/client-identitystore');
+
+        const credentials = { accessKeyId, secretAccessKey };
+        const client = new IdentitystoreClient({ region, credentials });
+
+        // Create user in IAM Identity Center
+        let userId;
+        try {
+            const createResponse = await client.send(new CreateUserCommand({
+                IdentityStoreId: identityStoreId,
+                UserName: username,
+                DisplayName: displayName || `${givenName} ${familyName}`,
+                Name: {
+                    GivenName: givenName,
+                    FamilyName: familyName
+                },
+                Emails: [{
+                    Value: email,
+                    Type: 'Work',
+                    Primary: true
+                }]
+            }));
+            userId = createResponse.UserId;
+            console.log(`[IDC] User created: ${username} (${userId})`);
+        } catch (createError) {
+            if (createError.name === 'ConflictException') {
+                return res.status(409).json({ success: false, error: `User already exists: ${username}` });
+            }
+            throw createError;
+        }
+
+        // Subscribe to Q Developer if requested
+        let subscribed = false;
+        if (subscribeQDeveloper && userId) {
+            try {
+                // Use SigV4 signed request to CodeWhisperer API
+                const { SignatureV4 } = await import('@smithy/signature-v4');
+                const { Sha256 } = await import('@aws-crypto/sha256-js');
+
+                const signer = new SignatureV4({
+                    credentials,
+                    region: 'us-east-1',
+                    service: 'q',
+                    sha256: Sha256
+                });
+
+                const payload = JSON.stringify({
+                    principalId: userId,
+                    principalType: 'USER'
+                });
+
+                const request = {
+                    method: 'POST',
+                    protocol: 'https:',
+                    hostname: 'codewhisperer.us-east-1.amazonaws.com',
+                    path: '/',
+                    headers: {
+                        'Content-Type': 'application/x-amz-json-1.0',
+                        'X-Amz-Target': 'AmazonQDeveloperService.CreateAssignment',
+                        'Host': 'codewhisperer.us-east-1.amazonaws.com'
+                    },
+                    body: payload
+                };
+
+                const signedRequest = await signer.sign(request);
+
+                const subscribeResponse = await axios.post(
+                    'https://codewhisperer.us-east-1.amazonaws.com/',
+                    payload,
+                    { headers: signedRequest.headers }
+                );
+
+                if (subscribeResponse.status === 200) {
+                    subscribed = true;
+                    console.log(`[IDC] User ${username} subscribed to Q Developer`);
+                }
+            } catch (subscribeError) {
+                console.error(`[IDC] Failed to subscribe user to Q Developer:`, subscribeError.message);
+                // Don't fail the whole operation, just report subscription failed
+            }
+        }
+
+        res.json({
+            success: true,
+            data: {
+                userId,
+                username,
+                email,
+                displayName: displayName || `${givenName} ${familyName}`,
+                subscribed
+            }
+        });
+    } catch (error) {
+        console.error('[IDC] Create user error:', error.message);
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
 // ============ API Log Management ============
 
 // Get error log list (status code >= 400)

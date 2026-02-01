@@ -226,6 +226,7 @@ function navigateTo(page) {
         'providers': '/pages/providers.html',
         'model-aliases': '/pages/model-aliases.html',
         'pricing': '/pages/pricing.html',
+        'idc-users': '/pages/idc-users.html',
         'dashboard': '/pages/accounts.html',
         'rules': '/pages/accounts.html',
         'settings': '/pages/accounts.html',
@@ -401,6 +402,15 @@ function getSidebarHTML(stats = { total: 0, active: 0, error: 0 }) {
                         <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
                     </svg>
                     Change Password
+                </a>
+                <a href="#" class="nav-item" data-page="idc-users">
+                    <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+                        <circle cx="8.5" cy="7" r="4"/>
+                        <line x1="20" y1="8" x2="20" y2="14"/>
+                        <line x1="23" y1="11" x2="17" y2="11"/>
+                    </svg>
+                    IdC Users
                 </a>
             </div>
         </nav>
