@@ -10,9 +10,8 @@ export const KIRO_CONSTANTS = {
 
     // API endpoints - Q endpoint is primary (works in all regions)
     BASE_URL: 'https://q.{{region}}.amazonaws.com/generateAssistantResponse',
-    // Fallback endpoint (legacy, only works in us-east-1)
-    CODEWHISPERER_URL: 'https://codewhisperer.{{region}}.amazonaws.com/generateAssistantResponse',
-    // Usage and models endpoints - CodeWhisperer only works in us-east-1
+    // All CodeWhisperer endpoints only work in us-east-1
+    CODEWHISPERER_URL: 'https://codewhisperer.us-east-1.amazonaws.com/generateAssistantResponse',
     USAGE_LIMITS_URL: 'https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits',
     LIST_MODELS_URL: 'https://codewhisperer.us-east-1.amazonaws.com/ListAvailableModels',
 
@@ -125,13 +124,11 @@ export function buildCodeWhispererUrl(baseUrl, userRegion) {
 /**
  * Build fallback CodeWhisperer URL (legacy endpoint, only works in us-east-1)
  * Used when Q endpoint fails
- * @param {string} baseUrl - Base URL template (containing {{region}} placeholder)
  * @returns {string} Complete fallback API URL (always us-east-1)
  */
-export function buildFallbackUrl(baseUrl) {
+export function buildFallbackUrl() {
     // CodeWhisperer legacy endpoint only works in us-east-1
-    const fallbackUrl = baseUrl.replace('q.{{region}}.amazonaws.com', 'codewhisperer.us-east-1.amazonaws.com');
-    return fallbackUrl.replace('{{region}}', 'us-east-1');
+    return KIRO_CONSTANTS.CODEWHISPERER_URL;
 }
 export const KIRO_MODELS = [
     // Opus 4.5

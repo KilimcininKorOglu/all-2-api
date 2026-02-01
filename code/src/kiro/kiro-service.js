@@ -114,7 +114,7 @@ export class KiroService {
 
         this.axiosInstance = axios.create(axiosConfig);
         this.baseUrl = buildCodeWhispererUrl(KIRO_CONSTANTS.BASE_URL, this.region);
-        this.fallbackUrl = buildFallbackUrl(KIRO_CONSTANTS.BASE_URL);
+        this.fallbackUrl = buildFallbackUrl();
     }
 
     getContentText(message) {
