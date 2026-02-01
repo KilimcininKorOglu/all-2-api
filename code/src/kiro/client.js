@@ -1299,7 +1299,8 @@ export class KiroClient {
      * Get available model list from API
      */
     async listAvailableModels() {
-        const url = buildCodeWhispererUrl(KIRO_CONSTANTS.LIST_MODELS_URL, this.region);
+        // LIST_MODELS_URL is hardcoded to us-east-1 (only working region for CodeWhisperer)
+        const url = KIRO_CONSTANTS.LIST_MODELS_URL;
 
         const requestHeaders = {
             ...this.axiosInstance.defaults.headers,
@@ -1326,7 +1327,8 @@ export class KiroClient {
      * Get usage limits
      */
     async getUsageLimits() {
-        const url = buildCodeWhispererUrl(KIRO_CONSTANTS.USAGE_LIMITS_URL, this.region);
+        // USAGE_LIMITS_URL is hardcoded to us-east-1 (only working region for CodeWhisperer)
+        const url = KIRO_CONSTANTS.USAGE_LIMITS_URL;
 
         // Build query parameters (reference AIClient-2-API)
         const params = new URLSearchParams({

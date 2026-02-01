@@ -12,8 +12,9 @@ export const KIRO_CONSTANTS = {
     BASE_URL: 'https://q.{{region}}.amazonaws.com/generateAssistantResponse',
     // Fallback endpoint (legacy, only works in us-east-1)
     CODEWHISPERER_URL: 'https://codewhisperer.{{region}}.amazonaws.com/generateAssistantResponse',
-    USAGE_LIMITS_URL: 'https://codewhisperer.{{region}}.amazonaws.com/getUsageLimits',
-    LIST_MODELS_URL: 'https://codewhisperer.{{region}}.amazonaws.com/ListAvailableModels',
+    // Usage and models endpoints - CodeWhisperer only works in us-east-1
+    USAGE_LIMITS_URL: 'https://codewhisperer.us-east-1.amazonaws.com/getUsageLimits',
+    LIST_MODELS_URL: 'https://codewhisperer.us-east-1.amazonaws.com/ListAvailableModels',
 
     // Agent mode for Kiro requests
     AGENT_MODE: 'vibe',

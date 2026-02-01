@@ -735,7 +735,8 @@ export class KiroAPI {
         }
 
         const axiosInstance = createAxiosInstance(credential);
-        const url = buildCodeWhispererUrl(KIRO_CONSTANTS.USAGE_LIMITS_URL, region);
+        // USAGE_LIMITS_URL is hardcoded to us-east-1 (only working region for CodeWhisperer)
+        const url = KIRO_CONSTANTS.USAGE_LIMITS_URL;
 
         const params = new URLSearchParams({
             isEmailRequired: 'true',
@@ -791,7 +792,8 @@ export class KiroAPI {
         }
 
         const axiosInstance = createAxiosInstance(credential);
-        const url = buildCodeWhispererUrl(KIRO_CONSTANTS.LIST_MODELS_URL, region);
+        // LIST_MODELS_URL is hardcoded to us-east-1 (only working region for CodeWhisperer)
+        const url = KIRO_CONSTANTS.LIST_MODELS_URL;
 
         try {
             const fullUrl = `${url}?origin=${KIRO_CONSTANTS.ORIGIN_AI_EDITOR}`;
