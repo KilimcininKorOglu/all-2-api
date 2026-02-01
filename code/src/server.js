@@ -1043,14 +1043,49 @@ app.get('/lb/status', (req, res) => {
     });
 });
 
-// Model list endpoint - OpenAI format
+// Model list endpoint - OpenAI format (all providers)
 app.get('/v1/models', (req, res) => {
-    // Use KIRO_MODELS from constants.js (includes all supported models)
-    const modelList = KIRO_MODELS.map(id => ({
+    const timestamp = Math.floor(Date.now() / 1000);
+
+    // Kiro (Claude) models
+    const kiroModels = KIRO_MODELS.map(id => ({
         id,
         object: 'model',
-        created: Math.floor(Date.now() / 1000),
+        created: timestamp,
         owned_by: 'anthropic',
+        permission: [],
+        root: id,
+        parent: null
+    }));
+
+    // Gemini Antigravity models
+    const geminiModels = GEMINI_MODELS.map(id => ({
+        id,
+        object: 'model',
+        created: timestamp,
+        owned_by: 'google',
+        permission: [],
+        root: id,
+        parent: null
+    }));
+
+    // Warp models
+    const warpModels = WARP_MODELS.map(m => ({
+        id: m.id,
+        object: 'model',
+        created: timestamp,
+        owned_by: 'warp',
+        permission: [],
+        root: m.id,
+        parent: null
+    }));
+
+    // Orchids models
+    const orchidsModels = ORCHIDS_MODELS.map(id => ({
+        id,
+        object: 'model',
+        created: timestamp,
+        owned_by: 'orchids',
         permission: [],
         root: id,
         parent: null
@@ -1058,7 +1093,7 @@ app.get('/v1/models', (req, res) => {
 
     res.json({
         object: 'list',
-        data: modelList
+        data: [...kiroModels, ...geminiModels, ...warpModels, ...orchidsModels]
     });
 });
 
