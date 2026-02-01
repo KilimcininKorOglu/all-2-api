@@ -465,8 +465,11 @@ function bindEvents() {
         if (e.target.id === 'edit-modal') closeEditModal();
     });
 
-    // Batch refresh
+    // Batch refresh token
     document.getElementById('refresh-all-btn').addEventListener('click', refreshAllTokens);
+
+    // Batch refresh quota
+    document.getElementById('refresh-quota-btn')?.addEventListener('click', batchRefreshQuota);
 
     // Select all
     document.getElementById('select-all')?.addEventListener('change', handleSelectAll);
@@ -1132,4 +1135,77 @@ async function refreshSingleUsage(id, showToastMsg = true) {
         }
         if (showToastMsg) showToast('Quota refresh failed: ' + error.message, 'error');
     }
+}
+
+// Batch refresh quota for all accounts
+async function batchRefreshQuota() {
+    if (credentials.length === 0) {
+        showToast('No accounts to refresh', 'warning');
+        return;
+    }
+
+    const btn = document.getElementById('refresh-quota-btn');
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = `
+            <svg class="btn-icon spin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12a9 9 0 1 1-9-9"/>
+                <polyline points="21 3 21 9 15 9"/>
+            </svg>
+            Refreshing...
+        `;
+    }
+
+    showToast(`Refreshing quota for ${credentials.length} accounts...`, 'warning');
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const cred of credentials) {
+        try {
+            const response = await fetch(`/api/gemini/credentials/${cred.id}/refresh-quota`, {
+                method: 'POST',
+                headers: { 'Authorization': `Bearer ${authToken}` }
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                successCount++;
+                // Update cache and UI
+                const quotaData = result.data?.quotaData || result.data || {};
+                const models = {};
+                for (const [modelId, info] of Object.entries(quotaData)) {
+                    models[modelId] = {
+                        remaining: info.remainingFraction || info.remaining || 0,
+                        resetTime: info.resetTime
+                    };
+                }
+                usageCache[cred.id] = { models };
+
+                // Update card display
+                const modelsSection = document.querySelector(`.card-models[data-id="${cred.id}"]`);
+                if (modelsSection) {
+                    modelsSection.innerHTML = generateModelTagsHTML(result.data);
+                }
+            } else {
+                failCount++;
+            }
+        } catch (e) {
+            failCount++;
+        }
+    }
+
+    if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `
+            <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 12a9 9 0 1 1-9-9"/>
+                <polyline points="21 3 21 9 15 9"/>
+            </svg>
+            Batch Refresh Quota
+        `;
+    }
+
+    updateStatsCards();
+    showToast(`Quota refresh complete: ${successCount} succeeded, ${failCount} failed`, successCount > 0 ? 'success' : 'error');
 }
