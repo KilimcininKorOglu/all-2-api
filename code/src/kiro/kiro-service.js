@@ -205,6 +205,12 @@ export class KiroService {
 
                 for (const tool of filteredTools) {
                     const description = tool.description || "";
+                    // Ensure input_schema is a valid object with required fields
+                    let inputSchema = tool.input_schema;
+                    if (!inputSchema || typeof inputSchema !== 'object') {
+                        inputSchema = { type: 'object', properties: {} };
+                    }
+
                     if (description.length > maxDescLength) {
                         // Move long description to system prompt
                         toolDocumentation += `\n\n---\n## Tool: ${tool.name}\n\n${description}`;
@@ -212,7 +218,7 @@ export class KiroService {
                             toolSpecification: {
                                 name: tool.name,
                                 description: `[Full documentation in system prompt under '## Tool: ${tool.name}']`,
-                                inputSchema: { json: tool.input_schema || {} }
+                                inputSchema: { json: inputSchema }
                             }
                         });
                         log.info(`[KiroService] Tool '${tool.name}' description too long (${description.length} > ${maxDescLength}), moved to system prompt`);
@@ -221,7 +227,7 @@ export class KiroService {
                             toolSpecification: {
                                 name: tool.name,
                                 description: description,
-                                inputSchema: { json: tool.input_schema || {} }
+                                inputSchema: { json: inputSchema }
                             }
                         });
                     }
