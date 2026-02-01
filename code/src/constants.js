@@ -103,29 +103,100 @@ export function buildCodeWhispererUrl(baseUrl, userRegion) {
     return baseUrl.replace('{{region}}', actualRegion);
 }
 export const KIRO_MODELS = [
-    'claude-sonnet-4-20250514',
-    'claude-sonnet-4-5-20250929',
-    'claude-3-7-sonnet-20250219',
+    // Opus 4.5
+    'claude-opus-4-5',
     'claude-opus-4-5-20251101',
-    'claude-haiku-4-5'
+    'claude-opus-4-5-thinking',
+    'claude-opus-4-5-20251101-thinking',
+    // Sonnet 4.5
+    'claude-sonnet-4-5',
+    'claude-sonnet-4-5-20250929',
+    'claude-sonnet-4-5-thinking',
+    'claude-sonnet-4-5-20250929-thinking',
+    // Haiku 4.5
+    'claude-haiku-4-5',
+    'claude-haiku-4-5-20251001',
+    // Opus 4.1
+    'claude-opus-4-1',
+    'claude-opus-4-1-20250805',
+    'claude-opus-4-1-thinking',
+    'claude-opus-4-1-20250805-thinking',
+    // Opus 4
+    'claude-opus-4',
+    'claude-opus-4-20250514',
+    'claude-opus-4-thinking',
+    'claude-opus-4-20250514-thinking',
+    // Sonnet 4
+    'claude-sonnet-4',
+    'claude-sonnet-4-20250514',
+    'claude-sonnet-4-thinking',
+    'claude-sonnet-4-20250514-thinking',
+    // Claude 3.7
+    'claude-3-7-sonnet',
+    'claude-3-7-sonnet-20250219',
+    // Claude 3.5
+    'claude-3-5-sonnet',
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-haiku',
+    'claude-3-5-haiku-20241022'
 ];
 
 /**
  * Model mapping table - maps model names to internal names used by Kiro API
  */
 export const MODEL_MAPPING = {
-    // Sonnet series (consistent with kiro2api)
-    'claude-sonnet-4-5': 'CLAUDE_SONNET_4_5_20250929_V1_0',
+    // Opus 4.5 series
+    'claude-opus-4-5': 'CLAUDE_OPUS_4_5_V1_0',
+    'claude-opus-4-5-20251101': 'CLAUDE_OPUS_4_5_20251101_V1_0',
+    'claude-opus-4-5-thinking': 'CLAUDE_OPUS_4_5_THINKING_V1_0',
+    'claude-opus-4-5-20251101-thinking': 'CLAUDE_OPUS_4_5_20251101_THINKING_V1_0',
+
+    // Sonnet 4.5 series
+    'claude-sonnet-4-5': 'CLAUDE_SONNET_4_5_V1_0',
     'claude-sonnet-4-5-20250929': 'CLAUDE_SONNET_4_5_20250929_V1_0',
+    'claude-sonnet-4-5-thinking': 'CLAUDE_SONNET_4_5_THINKING_V1_0',
+    'claude-sonnet-4-5-20250929-thinking': 'CLAUDE_SONNET_4_5_20250929_THINKING_V1_0',
+
+    // Haiku 4.5 series
+    'claude-haiku-4-5': 'CLAUDE_HAIKU_4_5_V1_0',
+    'claude-haiku-4-5-20251001': 'CLAUDE_HAIKU_4_5_20251001_V1_0',
+
+    // Opus 4.1 series
+    'claude-opus-4-1': 'CLAUDE_OPUS_4_1_V1_0',
+    'claude-opus-4-1-20250805': 'CLAUDE_OPUS_4_1_20250805_V1_0',
+    'claude-opus-4-1-thinking': 'CLAUDE_OPUS_4_1_THINKING_V1_0',
+    'claude-opus-4-1-20250805-thinking': 'CLAUDE_OPUS_4_1_20250805_THINKING_V1_0',
+
+    // Opus 4 series
+    'claude-opus-4': 'CLAUDE_OPUS_4_V1_0',
+    'claude-opus-4-20250514': 'CLAUDE_OPUS_4_20250514_V1_0',
+    'claude-opus-4-thinking': 'CLAUDE_OPUS_4_THINKING_V1_0',
+    'claude-opus-4-20250514-thinking': 'CLAUDE_OPUS_4_20250514_THINKING_V1_0',
+
+    // Sonnet 4 series
+    'claude-sonnet-4': 'CLAUDE_SONNET_4_V1_0',
     'claude-sonnet-4-20250514': 'CLAUDE_SONNET_4_20250514_V1_0',
+    'claude-sonnet-4-thinking': 'CLAUDE_SONNET_4_THINKING_V1_0',
+    'claude-sonnet-4-20250514-thinking': 'CLAUDE_SONNET_4_20250514_THINKING_V1_0',
+
+    // Claude 3.7 Sonnet
+    'claude-3-7-sonnet': 'CLAUDE_3_7_SONNET_V1_0',
     'claude-3-7-sonnet-20250219': 'CLAUDE_3_7_SONNET_20250219_V1_0',
-    // Haiku series (consistent with kiro2api, using auto)
-    'claude-3-5-haiku-20241022': 'auto',
-    'claude-haiku-4-5-20251001': 'auto',
-    'claude-haiku-4-5': 'auto',
-    // Opus series
-    'claude-opus-4-5': 'claude-opus-4.5',
-    'claude-opus-4-5-20251101': 'claude-opus-4.5'
+
+    // Claude 3.5 series
+    'claude-3-5-sonnet': 'CLAUDE_3_5_SONNET_V1_0',
+    'claude-3-5-sonnet-20241022': 'CLAUDE_3_5_SONNET_20241022_V1_0',
+    'claude-3-5-haiku': 'CLAUDE_3_5_HAIKU_V1_0',
+    'claude-3-5-haiku-20241022': 'CLAUDE_3_5_HAIKU_20241022_V1_0',
+
+    // Aliases (dot notation)
+    'claude-4.5-opus': 'CLAUDE_OPUS_4_5_V1_0',
+    'claude-4.5-sonnet': 'CLAUDE_SONNET_4_5_V1_0',
+    'claude-4.5-haiku': 'CLAUDE_HAIKU_4_5_V1_0',
+    'claude-4-opus': 'CLAUDE_OPUS_4_V1_0',
+    'claude-4-sonnet': 'CLAUDE_SONNET_4_V1_0',
+    'claude-3.5-sonnet': 'CLAUDE_3_5_SONNET_V1_0',
+    'claude-3.5-haiku': 'CLAUDE_3_5_HAIKU_V1_0'
 };
 
 /**

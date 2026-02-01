@@ -18,7 +18,7 @@ import { WarpService, WARP_MODELS, refreshAccessToken, isTokenExpired, getEmailF
 import { setupWarpRoutes } from './warp/warp-routes.js';
 import { setupWarpMultiAgentRoutes } from './warp/warp-multi-agent.js';
 import { setupWarpProxyRoutes } from './warp/warp-proxy.js';
-import { KIRO_CONSTANTS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore, SELECTION_CONFIG } from './constants.js';
+import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore, SELECTION_CONFIG } from './constants.js';
 import {
     AntigravityApiService,
     GEMINI_MODELS,
@@ -1045,19 +1045,8 @@ app.get('/lb/status', (req, res) => {
 
 // Model list endpoint - OpenAI format
 app.get('/v1/models', (req, res) => {
-    const models = Object.keys(KIRO_CONSTANTS.MODEL_MAPPING || {});
-    const defaultModels = [
-        'claude-sonnet-4-20250514',
-        'claude-opus-4-5-20251101',
-        'claude-3-5-sonnet-20241022',
-        'claude-3-5-sonnet-20240620',
-        'claude-3-opus-20240229',
-        'claude-3-sonnet-20240229',
-        'claude-3-haiku-20240307',
-        'claude-3-5-haiku-20241022'
-    ];
-
-    const modelList = (models.length > 0 ? models : defaultModels).map(id => ({
+    // Use KIRO_MODELS from constants.js (includes all supported models)
+    const modelList = KIRO_MODELS.map(id => ({
         id,
         object: 'model',
         created: Math.floor(Date.now() / 1000),
