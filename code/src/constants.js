@@ -100,15 +100,14 @@ export function getCodeWhispererRegion(userRegion) {
         return KIRO_CONSTANTS.DEFAULT_REGION;
     }
 
-    // Q endpoint supports all AWS regions
+    // Q endpoint supports all listed AWS regions
     if (KIRO_CONSTANTS.Q_SUPPORTED_REGIONS.includes(userRegion)) {
         return userRegion;
     }
 
-    // For unknown regions, fallback to default but allow the request
-    // Q endpoint may work in regions not explicitly listed
-    console.warn(`[REGION] Region ${userRegion} not in known list, using as-is (Q endpoint supports all regions)`);
-    return userRegion;
+    // For unknown regions, fallback to default region (us-east-1)
+    console.warn(`[REGION] Unknown region ${userRegion}, falling back to ${KIRO_CONSTANTS.DEFAULT_REGION}`);
+    return KIRO_CONSTANTS.DEFAULT_REGION;
 }
 
 /**
