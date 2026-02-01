@@ -833,6 +833,7 @@
 
             if (!await checkAuth()) return;
             await loadAliasGroups();
+            updateSidebarStats();
         });
     </script>
 </body>
