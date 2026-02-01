@@ -412,9 +412,11 @@ export class KiroClient {
         // Process system prompt
         let systemPrompt = options.system || '';
 
-        // Process tools (validate format, avoid ValidationException)
+        // Process tools (validate format, handle long descriptions, avoid ValidationException)
         let toolsContext = {};
+        let toolDocumentation = '';
         if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
+            const maxDescLength = KIRO_CONSTANTS.TOOL_DESCRIPTION_MAX_LENGTH || 10000;
             const validTools = options.tools
                 .filter(tool => tool && tool.name) // Ensure name exists
                 .map(tool => {
@@ -423,19 +425,39 @@ export class KiroClient {
                     if (!inputSchema || typeof inputSchema !== 'object') {
                         inputSchema = { type: 'object', properties: {} };
                     }
-                    
+
+                    const description = tool.description || '';
+                    if (description.length > maxDescLength) {
+                        // Move long description to system prompt
+                        toolDocumentation += `\n\n---\n## Tool: ${tool.name}\n\n${description}`;
+                        log.info(`[KiroClient] Tool '${tool.name}' description too long (${description.length} > ${maxDescLength}), moved to system prompt`);
+                        return {
+                            toolSpecification: {
+                                name: tool.name,
+                                description: `[Full documentation in system prompt under '## Tool: ${tool.name}']`,
+                                inputSchema: { json: inputSchema }
+                            }
+                        };
+                    }
+
                     return {
                         toolSpecification: {
                             name: tool.name,
-                            description: tool.description || '',
+                            description: description,
                             inputSchema: { json: inputSchema }
                         }
                     };
                 });
-            
+
             if (validTools.length > 0) {
                 toolsContext = { tools: validTools };
             }
+        }
+
+        // Append tool documentation to system prompt if any
+        if (toolDocumentation) {
+            const docHeader = "\n\n---\n# Tool Documentation\nThe following tools have detailed documentation that couldn't fit in the tool definition.";
+            systemPrompt = systemPrompt + docHeader + toolDocumentation;
         }
 
         // If first message is user, merge system prompt into it

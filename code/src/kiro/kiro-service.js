@@ -195,20 +195,46 @@ export class KiroService {
         }
 
         let toolsContext = {};
+        let toolDocumentation = '';
         if (options.tools && Array.isArray(options.tools) && options.tools.length > 0) {
             // Filter out Bash tool
             const filteredTools = options.tools.filter(tool => tool.name !== 'Bash');
             if (filteredTools.length > 0) {
-                toolsContext = {
-                    tools: filteredTools.map(tool => ({
-                        toolSpecification: {
-                            name: tool.name,
-                            description: tool.description || "",
-                            inputSchema: { json: tool.input_schema || {} }
-                        }
-                    }))
-                };
+                const maxDescLength = KIRO_CONSTANTS.TOOL_DESCRIPTION_MAX_LENGTH || 10000;
+                const processedTools = [];
+
+                for (const tool of filteredTools) {
+                    const description = tool.description || "";
+                    if (description.length > maxDescLength) {
+                        // Move long description to system prompt
+                        toolDocumentation += `\n\n---\n## Tool: ${tool.name}\n\n${description}`;
+                        processedTools.push({
+                            toolSpecification: {
+                                name: tool.name,
+                                description: `[Full documentation in system prompt under '## Tool: ${tool.name}']`,
+                                inputSchema: { json: tool.input_schema || {} }
+                            }
+                        });
+                        log.info(`[KiroService] Tool '${tool.name}' description too long (${description.length} > ${maxDescLength}), moved to system prompt`);
+                    } else {
+                        processedTools.push({
+                            toolSpecification: {
+                                name: tool.name,
+                                description: description,
+                                inputSchema: { json: tool.input_schema || {} }
+                            }
+                        });
+                    }
+                }
+
+                toolsContext = { tools: processedTools };
             }
+        }
+
+        // Append tool documentation to system prompt if any
+        if (toolDocumentation) {
+            const docHeader = "\n\n---\n# Tool Documentation\nThe following tools have detailed documentation that couldn't fit in the tool definition.";
+            systemPrompt = systemPrompt + docHeader + toolDocumentation;
         }
 
         const history = [];

@@ -62,6 +62,14 @@ export const KIRO_CONSTANTS = {
     // Request parameters
     CHAT_TRIGGER_TYPE_MANUAL: 'MANUAL',
     ORIGIN_AI_EDITOR: 'AI_EDITOR',
+
+    // Tool description max length (characters)
+    // Descriptions longer than this are moved to system prompt
+    // to avoid Kiro API 400 errors
+    TOOL_DESCRIPTION_MAX_LENGTH: 10000,
+
+    // MCP API endpoint for web search
+    MCP_URL: 'https://q.{{region}}.amazonaws.com/mcp',
 };
 
 /**
