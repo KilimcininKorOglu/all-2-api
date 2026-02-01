@@ -1500,8 +1500,9 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     await warpStore.incrementUseCount(credential.id);
                     res.end();
 
-                    // Log
+                    // Log with cache tokens from usage
                     const durationMs = Date.now() - startTime;
+                    const usage = state.usage || {};
                     await apiLogStore.create({
                         requestId,
                         apiKeyId,
@@ -1513,8 +1514,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         path: '/w/v1/messages/proto',
                         model: warpModel,
                         stream: true,
-                        inputTokens,
-                        outputTokens: estimateTokens(state.fullText || ''),
+                        inputTokens: usage.input_tokens || inputTokens,
+                        outputTokens: usage.output_tokens || estimateTokens(state.fullText || ''),
+                        cacheCreationTokens: usage.cache_creation_input_tokens || 0,
+                        cacheReadTokens: usage.cache_read_input_tokens || 0,
                         statusCode: 200,
                         durationMs
                     });
@@ -1555,8 +1558,14 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                     const outputTokens = estimateTokens(response.text || '');
                     const stopReason = (response.toolCalls && response.toolCalls.length > 0) ? 'tool_use' : 'end_turn';
 
-                    // Log
+                    // Log with cache tokens from usage
                     const durationMs = Date.now() - startTime;
+                    const usage = response.usage || {};
+                    const actualInputTokens = usage.input_tokens || inputTokens;
+                    const actualOutputTokens = usage.output_tokens || outputTokens;
+                    const cacheCreationTokens = usage.cache_creation_input_tokens || 0;
+                    const cacheReadTokens = usage.cache_read_input_tokens || 0;
+
                     await apiLogStore.create({
                         requestId,
                         apiKeyId,
@@ -1568,8 +1577,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         path: '/w/v1/messages/proto',
                         model: warpModel,
                         stream: false,
-                        inputTokens,
-                        outputTokens,
+                        inputTokens: actualInputTokens,
+                        outputTokens: actualOutputTokens,
+                        cacheCreationTokens,
+                        cacheReadTokens,
                         statusCode: 200,
                         durationMs
                     });
@@ -1583,8 +1594,10 @@ export async function setupWarpRoutes(app, warpStore, warpService, apiKeyStore) 
                         stop_reason: stopReason,
                         stop_sequence: null,
                         usage: {
-                            input_tokens: inputTokens,
-                            output_tokens: outputTokens
+                            input_tokens: actualInputTokens,
+                            output_tokens: actualOutputTokens,
+                            cache_creation_input_tokens: cacheCreationTokens,
+                            cache_read_input_tokens: cacheReadTokens
                         }
                     });
 
