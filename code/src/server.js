@@ -18,7 +18,8 @@ import { WarpService, WARP_MODELS, refreshAccessToken, isTokenExpired, getEmailF
 import { setupWarpRoutes } from './warp/warp-routes.js';
 import { setupWarpMultiAgentRoutes } from './warp/warp-multi-agent.js';
 import { setupWarpProxyRoutes } from './warp/warp-proxy.js';
-import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore, SELECTION_CONFIG } from './constants.js';
+import { KIRO_CONSTANTS, MODEL_MAPPING, KIRO_MODELS, BEDROCK_MODEL_MAPPING, MODEL_PRICING, calculateTokenCost, setDynamicPricing, initializeRemotePricing, getPricingInfo, setRemotePricingStore, SELECTION_CONFIG } from './constants.js';
+import { VERTEX_GEMINI_MODEL_MAPPING } from './vertex/vertex.js';
 import {
     AntigravityApiService,
     GEMINI_MODELS,
@@ -1512,6 +1513,36 @@ app.post('/api/model-aliases/:id/toggle', authMiddleware, async (req, res) => {
 
         const isActive = await modelAliasStore.toggleActive(id);
         res.json({ success: true, data: { id: parseInt(id), isActive } });
+    } catch (error) {
+        res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// Get built-in (hardcoded) aliases from all providers
+app.get('/api/model-aliases/builtin', authMiddleware, async (req, res) => {
+    try {
+        const builtinAliases = {
+            kiro: MODEL_MAPPING,
+            bedrock: BEDROCK_MODEL_MAPPING,
+            vertex: VERTEX_GEMINI_MODEL_MAPPING,
+            warp: {
+                'claude-opus-4-5-20251101': 'claude-4-5-opus',
+                'claude-sonnet-4-5-20250929': 'claude-4-5-sonnet',
+                'claude-sonnet-4-20250514': 'claude-4-sonnet',
+                'claude-3-5-sonnet-20241022': 'claude-4-sonnet',
+                'gpt-4-turbo': 'gpt-4.1',
+                'gpt-4': 'gpt-4.1',
+                'o1': 'o3',
+                'o1-mini': 'o4-mini'
+            },
+            anthropic: {
+                'claude-4.5-opus': 'claude-opus-4-5-20251101',
+                'claude-4.5-sonnet': 'claude-sonnet-4-5-20250929',
+                'claude-4-sonnet': 'claude-sonnet-4-20250514',
+                'claude-4-opus': 'claude-opus-4-20250514'
+            }
+        };
+        res.json({ success: true, data: builtinAliases });
     } catch (error) {
         res.status(500).json({ success: false, error: error.message });
     }
