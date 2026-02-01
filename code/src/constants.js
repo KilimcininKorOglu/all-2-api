@@ -23,34 +23,44 @@ export const KIRO_CONSTANTS = {
     DEFAULT_REGION: 'us-east-1',
     AXIOS_TIMEOUT: 300000, // 5 minute timeout
 
-    // CodeWhisperer API actually supported regions
-    CODEWHISPERER_SUPPORTED_REGIONS: [
-        'us-east-1'  // Currently only us-east-1 is confirmed to work
-    ],
-
-    // Region mapping: map all regions to us-east-1 (the only confirmed working region)
-    REGION_MAPPING: {
+    // Q API (q.{region}.amazonaws.com) supported regions
+    // Q endpoint works in all AWS regions, unlike CodeWhisperer which only works in us-east-1
+    Q_SUPPORTED_REGIONS: [
         // US
-        'us-east-1': 'us-east-1',
-        'us-east-2': 'us-east-1',
-        'us-west-1': 'us-east-1',
-        'us-west-2': 'us-east-1',
+        'us-east-1',
+        'us-east-2',
+        'us-west-1',
+        'us-west-2',
         // Europe
-        'eu-west-1': 'us-east-1',
-        'eu-west-2': 'us-east-1',
-        'eu-west-3': 'us-east-1',
-        'eu-central-1': 'us-east-1',
-        'eu-north-1': 'us-east-1',
+        'eu-west-1',
+        'eu-west-2',
+        'eu-west-3',
+        'eu-central-1',
+        'eu-central-2',
+        'eu-north-1',
+        'eu-south-1',
+        'eu-south-2',
         // Asia Pacific
-        'ap-northeast-1': 'us-east-1',
-        'ap-northeast-2': 'us-east-1',
-        'ap-southeast-1': 'us-east-1',
-        'ap-southeast-2': 'us-east-1',
-        'ap-south-1': 'us-east-1',
-        // Other
-        'ca-central-1': 'us-east-1',
-        'sa-east-1': 'us-east-1'
-    },
+        'ap-northeast-1',
+        'ap-northeast-2',
+        'ap-northeast-3',
+        'ap-southeast-1',
+        'ap-southeast-2',
+        'ap-southeast-3',
+        'ap-south-1',
+        'ap-south-2',
+        'ap-east-1',
+        // Middle East
+        'me-south-1',
+        'me-central-1',
+        // Africa
+        'af-south-1',
+        // South America
+        'sa-east-1',
+        // Canada
+        'ca-central-1',
+        'ca-west-1'
+    ],
 
     // Request headers
     USER_AGENT: 'KiroIDE',
@@ -77,31 +87,25 @@ export const KIRO_CONSTANTS = {
 };
 
 /**
- * Get CodeWhisperer API supported region
- * If the user-selected region is not supported, return the mapped region
+ * Get Q API supported region
+ * Q endpoint (q.{region}.amazonaws.com) works in all AWS regions
  * @param {string} userRegion - User-selected region
- * @returns {string} CodeWhisperer API supported region
+ * @returns {string} Q API supported region
  */
 export function getCodeWhispererRegion(userRegion) {
     if (!userRegion) {
         return KIRO_CONSTANTS.DEFAULT_REGION;
     }
 
-    // If directly supported, return original region
-    if (KIRO_CONSTANTS.CODEWHISPERER_SUPPORTED_REGIONS.includes(userRegion)) {
+    // Q endpoint supports all AWS regions
+    if (KIRO_CONSTANTS.Q_SUPPORTED_REGIONS.includes(userRegion)) {
         return userRegion;
     }
 
-    // Use mapping table
-    const mappedRegion = KIRO_CONSTANTS.REGION_MAPPING[userRegion];
-    if (mappedRegion) {
-        console.log(`[REGION] Mapping region: ${userRegion} -> ${mappedRegion}`);
-        return mappedRegion;
-    }
-
-    // Fallback to default region
-    console.warn(`[REGION] Unsupported region ${userRegion}, using default region ${KIRO_CONSTANTS.DEFAULT_REGION}`);
-    return KIRO_CONSTANTS.DEFAULT_REGION;
+    // For unknown regions, fallback to default but allow the request
+    // Q endpoint may work in regions not explicitly listed
+    console.warn(`[REGION] Region ${userRegion} not in known list, using as-is (Q endpoint supports all regions)`);
+    return userRegion;
 }
 
 /**
