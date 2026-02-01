@@ -712,10 +712,18 @@ function formatExpireDate(dateStr) {
     const date = new Date(dateStr);
     const now = new Date();
     const diff = date - now;
-    const hours = Math.floor(diff / (1000 * 60 * 60));
-    if (hours < 0) return 'Expired';
-    if (hours < 24) return 'In ' + hours + ' hours';
-    return 'In ' + Math.floor(hours / 24) + ' days';
+    if (diff < 0) return 'Expired';
+    
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    let parts = [];
+    if (days > 0) parts.push(days + 'd');
+    if (hours > 0) parts.push(hours + 'h');
+    if (minutes > 0 && days === 0) parts.push(minutes + 'm');
+    
+    return parts.length > 0 ? parts.join(' ') : '< 1m';
 }
 
 // Modal functions
